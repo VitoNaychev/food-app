@@ -1,2 +1,2 @@
-# validation
-Module containing validation logic used across food app microservices
+# bt-customer-svc
+Repository for the customer service
