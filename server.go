@@ -14,7 +14,8 @@ type CustomerStore interface {
 }
 
 type CustomerServer struct {
-	store CustomerStore
+	secretKey []byte
+	store     CustomerStore
 }
 
 type GetCustomerResponse struct {
@@ -50,7 +51,7 @@ func storeCustomer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
-	if token, err := verifyJWT(r.Header); err == nil {
+	if token, err := verifyJWT(r.Header, c.secretKey); err == nil {
 		id := getIDFromToken(token)
 		customerResponse, err := c.store.GetCustomerInfo(id)
 		if err != nil {
@@ -65,9 +66,7 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func verifyJWT(header http.Header) (*jwt.Token, error) {
-	secretKey := []byte("mySecretKey")
-
+func verifyJWT(header http.Header, secretKey []byte) (*jwt.Token, error) {
 	if header["Token"] == nil {
 		return nil, errors.New("token is missing")
 	}

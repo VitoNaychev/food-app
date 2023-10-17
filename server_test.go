@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/joho/godotenv"
 )
 
 type StubCustomerStore struct {
@@ -55,8 +57,6 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	secretKey := []byte("mySecretKey")
-
 	store := &StubCustomerStore{
 		customers: []GetCustomerResponse{
 			{
@@ -74,10 +74,12 @@ func TestGetUser(t *testing.T) {
 		},
 	}
 
-	server := &CustomerServer{store}
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	server := &CustomerServer{secretKey, store}
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
-		peterJWT, _ := generateJWT(secretKey, 0, time.Now().Add(10*time.Second))
+		peterJWT, _ := generateJWT(secretKey, 0, time.Now().Add(time.Second))
 		request := newGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -88,11 +90,12 @@ func TestGetUser(t *testing.T) {
 
 		want := store.customers[0]
 
+		assertStatus(t, response.Code, http.StatusOK)
 		assertGetCustomerResponse(t, got, want)
 	})
 
 	t.Run("returns Alice's customer information", func(t *testing.T) {
-		aliceJWT, _ := generateJWT(secretKey, 1, time.Now().Add(10*time.Second))
+		aliceJWT, _ := generateJWT(secretKey, 1, time.Now().Add(time.Second))
 		request := newGetCustomerRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
@@ -103,6 +106,7 @@ func TestGetUser(t *testing.T) {
 
 		want := store.customers[1]
 
+		assertStatus(t, response.Code, http.StatusOK)
 		assertGetCustomerResponse(t, got, want)
 	})
 
