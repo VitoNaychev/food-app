@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -10,7 +10,7 @@ import (
 )
 
 type CustomerStore interface {
-	GetCustomerInfo(id int) GetCustomerResponse
+	GetCustomerInfo(id int) (*GetCustomerResponse, error)
 }
 
 type CustomerServer struct {
@@ -32,6 +32,10 @@ type CreateCustomerRequest struct {
 	Password    string
 }
 
+type ErrorResponse struct {
+	Message string
+}
+
 func (c *CustomerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
@@ -46,37 +50,37 @@ func storeCustomer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
-	if r.Header["Token"] != nil {
-		if token, err := verifyJWT(r.Header["Token"][0]); err == nil {
-			id := getIDFromToken(token)
-			json.NewEncoder(w).Encode(c.store.GetCustomerInfo(id))
+	if token, err := verifyJWT(r.Header); err == nil {
+		id := getIDFromToken(token)
+		customerResponse, err := c.store.GetCustomerInfo(id)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		} else {
-			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(customerResponse)
 		}
-
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 	}
 }
 
-func verifyJWT(tokenString string) (*jwt.Token, error) {
+func verifyJWT(header http.Header) (*jwt.Token, error) {
 	secretKey := []byte("mySecretKey")
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return "", fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
+	if header["Token"] == nil {
+		return nil, errors.New("token is missing")
+	}
 
+	token, err := jwt.Parse(header["Token"][0], func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
-	})
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}))
 
 	if err != nil {
-		return nil, fmt.Errorf("Invalid JWT token: %v", tokenString)
+		return nil, err
 	}
 
-	if token.Valid {
-		return token, nil
-	} else {
-		return nil, fmt.Errorf("Expired JWT token")
-	}
+	return token, nil
 }
 
 func getIDFromToken(token *jwt.Token) int {

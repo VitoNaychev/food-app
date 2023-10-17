@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -17,9 +18,13 @@ type StubCustomerStore struct {
 	customers []GetCustomerResponse
 }
 
-func (s *StubCustomerStore) GetCustomerInfo(id int) GetCustomerResponse {
+func (s *StubCustomerStore) GetCustomerInfo(id int) (*GetCustomerResponse, error) {
+	if len(s.customers) < id {
+		return nil, fmt.Errorf("no customer with id %v", id)
+	}
+
 	customerInfo := s.customers[id]
-	return customerInfo
+	return &customerInfo, nil
 }
 
 func TestCreateUser(t *testing.T) {
@@ -30,7 +35,7 @@ func TestCreateUser(t *testing.T) {
 			LastName:    "Smith",
 			PhoneNumber: "+359 88 576 5981",
 			Email:       "petesmith@gmail.com",
-			Password:    "samoMBTbratmeeee",
+			Password:    "firefirefire",
 		}
 
 		body := bytes.NewBuffer([]byte{})
@@ -109,6 +114,7 @@ func TestGetUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
+
 	})
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
@@ -119,6 +125,25 @@ func TestGetUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/customer/", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("returns Not Found on nonexistent customer", func(t *testing.T) {
+		noCustomerJWT, _ := generateJWT(secretKey, 3, time.Now().Add(time.Second))
+		request := newGetCustomerRequest(noCustomerJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusNotFound)
 	})
 }
 
