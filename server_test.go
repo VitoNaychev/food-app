@@ -8,42 +8,74 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
-	"strconv"
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
 
 type StubCustomerStore struct {
-	customers []GetCustomerResponse
+	customers []Customer
 }
 
-func (s *StubCustomerStore) GetCustomerInfo(id int) (*GetCustomerResponse, error) {
+func (s *StubCustomerStore) GetCustomer(id int) (*Customer, error) {
 	if len(s.customers) < id {
 		return nil, fmt.Errorf("no customer with id %v", id)
 	}
 
-	customerInfo := s.customers[id]
-	return &customerInfo, nil
+	customer := s.customers[id]
+
+	return &customer, nil
+}
+
+func (s *StubCustomerStore) StoreCustomer(customer Customer) int {
+	id := len(s.customers)
+
+	customer.Id = id
+	s.customers = append(s.customers, customer)
+
+	return id
+}
+
+func (s *StubCustomerStore) Empty() {
+	s.customers = []Customer{}
 }
 
 func TestCreateUser(t *testing.T) {
-	server := &CustomerServer{}
-	t.Run("stores customer on POST and returns JWT", func(t *testing.T) {
-		customer := CreateCustomerRequest{
-			FirstName:   "Peter",
-			LastName:    "Smith",
-			PhoneNumber: "+359 88 576 5981",
-			Email:       "petesmith@gmail.com",
-			Password:    "firefirefire",
-		}
+	store := &StubCustomerStore{}
 
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(customer)
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	server := &CustomerServer{secretKey, time.Now().Add(time.Second), store}
 
-		request, _ := http.NewRequest(http.MethodPost, "/customer/", body)
+	customer := Customer{
+		Id:          0,
+		FirstName:   "Peter",
+		LastName:    "Smith",
+		PhoneNumber: "+359 88 576 5981",
+		Email:       "petesmith@gmail.com",
+		Password:    "firefirefire",
+	}
+
+	t.Run("stores customer on POST", func(t *testing.T) {
+		store.Empty()
+
+		request := newCreateCustomerRequest(customer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := response.Code
+		want := http.StatusAccepted
+
+		assertStatus(t, got, want)
+		assertCustomer(t, store.customers[0], customer)
+	})
+
+	t.Run("returns JWT on POST", func(t *testing.T) {
+		store.Empty()
+
+		request := newCreateCustomerRequest(customer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -53,33 +85,75 @@ func TestCreateUser(t *testing.T) {
 
 		assertStatus(t, got, want)
 
+		customerJWT := response.Header()["Token"]
+		if customerJWT != nil {
+			request, _ := http.NewRequest(http.MethodGet, "/customer/", nil)
+			request.Header.Add("Token", customerJWT[0])
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, request)
+
+			var getCustomerResponse GetCustomerResponse
+			json.NewDecoder(response.Body).Decode(&getCustomerResponse)
+
+			assertGetCustomerResponse(t, getCustomerResponse, customer)
+		} else {
+			t.Errorf("didn't recieve JWT for the new customer")
+		}
 	})
+}
+
+func newCreateCustomerRequest(customer Customer) *http.Request {
+	createCustomerRequest := CreateCustomerRequest{
+		FirstName:   customer.FirstName,
+		LastName:    customer.LastName,
+		PhoneNumber: customer.PhoneNumber,
+		Email:       customer.Email,
+		Password:    customer.Password,
+	}
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(createCustomerRequest)
+
+	request, _ := http.NewRequest(http.MethodPost, "/customer/", body)
+	return request
+}
+
+func assertCustomer(t testing.TB, got, want Customer) {
+	t.Helper()
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 }
 
 func TestGetUser(t *testing.T) {
 	store := &StubCustomerStore{
-		customers: []GetCustomerResponse{
+		customers: []Customer{
 			{
+				Id:          0,
 				FirstName:   "Peter",
 				LastName:    "Smith",
 				PhoneNumber: "+359 88 576 5981",
 				Email:       "petesmith@gmail.com",
+				Password:    "helloWorld123",
 			},
 			{
+				Id:          1,
 				FirstName:   "Alice",
 				LastName:    "Johnson",
 				PhoneNumber: "+359 88 444 2222",
 				Email:       "alicejohn@gmail.com",
+				Password:    "helloJohn123",
 			},
 		},
 	}
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
-	server := &CustomerServer{secretKey, store}
+	server := &CustomerServer{secretKey, time.Now(), store}
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
-		peterJWT, _ := generateJWT(secretKey, 0, time.Now().Add(time.Second))
+		peterJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 0)
 		request := newGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -88,14 +162,14 @@ func TestGetUser(t *testing.T) {
 		var got GetCustomerResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		want := store.customers[0]
+		customer := store.customers[0]
 
 		assertStatus(t, response.Code, http.StatusOK)
-		assertGetCustomerResponse(t, got, want)
+		assertGetCustomerResponse(t, got, customer)
 	})
 
 	t.Run("returns Alice's customer information", func(t *testing.T) {
-		aliceJWT, _ := generateJWT(secretKey, 1, time.Now().Add(time.Second))
+		aliceJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 1)
 		request := newGetCustomerRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
@@ -104,14 +178,14 @@ func TestGetUser(t *testing.T) {
 		var got GetCustomerResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		want := store.customers[1]
+		customer := store.customers[1]
 
 		assertStatus(t, response.Code, http.StatusOK)
-		assertGetCustomerResponse(t, got, want)
+		assertGetCustomerResponse(t, got, customer)
 	})
 
 	t.Run("returns Unauthorized on expired JWT", func(t *testing.T) {
-		expiredJWT, _ := generateJWT(secretKey, 0, time.Now())
+		expiredJWT, _ := generateJWT(secretKey, time.Now(), 0)
 		request := newGetCustomerRequest(expiredJWT)
 		response := httptest.NewRecorder()
 
@@ -141,7 +215,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on nonexistent customer", func(t *testing.T) {
-		noCustomerJWT, _ := generateJWT(secretKey, 3, time.Now().Add(time.Second))
+		noCustomerJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 3)
 		request := newGetCustomerRequest(noCustomerJWT)
 		response := httptest.NewRecorder()
 
@@ -158,21 +232,6 @@ func newGetCustomerRequest(jwt string) *http.Request {
 	return request
 }
 
-func generateJWT(secretKey []byte, subject int, expiresAt time.Time) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-		Subject:   strconv.FormatInt(int64(subject), 10),
-		ExpiresAt: jwt.NewNumericDate(expiresAt),
-	})
-
-	tokenString, err := token.SignedString(secretKey)
-
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
-}
-
 func assertStatus(t testing.TB, got, want int) {
 	t.Helper()
 
@@ -181,8 +240,15 @@ func assertStatus(t testing.TB, got, want int) {
 	}
 }
 
-func assertGetCustomerResponse(t testing.TB, got, want GetCustomerResponse) {
+func assertGetCustomerResponse(t testing.TB, got GetCustomerResponse, customer Customer) {
 	t.Helper()
+
+	want := GetCustomerResponse{
+		FirstName:   customer.FirstName,
+		LastName:    customer.LastName,
+		PhoneNumber: customer.PhoneNumber,
+		Email:       customer.Email,
+	}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
