@@ -3,14 +3,17 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type CustomerStore interface {
-	GetCustomer(id int) (*Customer, error)
+	GetCustomerById(id int) (*Customer, error)
+	GetCustomerByEmail(email string) (*Customer, bool)
 	StoreCustomer(customer Customer) int
 }
 
@@ -18,6 +21,21 @@ type CustomerServer struct {
 	secretKey []byte
 	expiresAt time.Time
 	store     CustomerStore
+}
+
+func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStore) *CustomerServer {
+	govalidator.TagMap["phonenumber"] = govalidator.Validator(func(str string) bool {
+		matched, _ := regexp.Match(`^\+[\d ]+$`, []byte(str))
+		return matched
+	})
+
+	c := &CustomerServer{
+		secretKey: secretKey,
+		expiresAt: expiresAt,
+		store:     store,
+	}
+
+	return c
 }
 
 type Customer struct {
@@ -37,11 +55,11 @@ type GetCustomerResponse struct {
 }
 
 type CreateCustomerRequest struct {
-	FirstName   string
-	LastName    string
-	PhoneNumber string
-	Email       string
-	Password    string
+	FirstName   string `valid:"stringlength(2|20),required"`
+	LastName    string `valid:"stringlength(2|20),required"`
+	PhoneNumber string `valid:"phonenumber,required"`
+	Email       string `valid:"email,required"`
+	Password    string `valid:"stringlength(2|72),required"`
 }
 
 type ErrorResponse struct {
@@ -61,15 +79,19 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	var createCustomerRequest CreateCustomerRequest
 	json.NewDecoder(r.Body).Decode(&createCustomerRequest)
 
-	customer := Customer{
-		Id:          0,
-		FirstName:   createCustomerRequest.FirstName,
-		LastName:    createCustomerRequest.LastName,
-		PhoneNumber: createCustomerRequest.PhoneNumber,
-		Email:       createCustomerRequest.Email,
-		Password:    createCustomerRequest.Password,
+	valid, _ := govalidator.ValidateStruct(createCustomerRequest)
+	if !valid {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	customerId := c.store.StoreCustomer(customer)
+
+	if _, ok := c.store.GetCustomerByEmail(createCustomerRequest.Email); ok {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	customer := getCustomerFromCreateCustomerRequest(createCustomerRequest)
+	customerId := c.store.StoreCustomer(*customer)
 
 	customerJWT, _ := generateJWT(c.secretKey, c.expiresAt, customerId)
 
@@ -77,10 +99,22 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Token", customerJWT)
 }
 
+func getCustomerFromCreateCustomerRequest(createCustomerRequest CreateCustomerRequest) *Customer {
+	customer := &Customer{
+		Id:          0,
+		FirstName:   createCustomerRequest.FirstName,
+		LastName:    createCustomerRequest.LastName,
+		PhoneNumber: createCustomerRequest.PhoneNumber,
+		Email:       createCustomerRequest.Email,
+		Password:    createCustomerRequest.Password,
+	}
+	return customer
+}
+
 func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 	if token, err := verifyJWT(r.Header, c.secretKey); err == nil {
 		id := getIDFromToken(token)
-		customer, err := c.store.GetCustomer(id)
+		customer, err := c.store.GetCustomerById(id)
 
 		if err == nil {
 			getCustomerResponse := GetCustomerResponse{

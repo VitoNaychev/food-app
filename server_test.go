@@ -19,7 +19,7 @@ type StubCustomerStore struct {
 	customers []Customer
 }
 
-func (s *StubCustomerStore) GetCustomer(id int) (*Customer, error) {
+func (s *StubCustomerStore) GetCustomerById(id int) (*Customer, error) {
 	if len(s.customers) < id {
 		return nil, fmt.Errorf("no customer with id %v", id)
 	}
@@ -27,6 +27,16 @@ func (s *StubCustomerStore) GetCustomer(id int) (*Customer, error) {
 	customer := s.customers[id]
 
 	return &customer, nil
+}
+
+func (s *StubCustomerStore) GetCustomerByEmail(email string) (*Customer, bool) {
+	for _, customer := range s.customers {
+		if customer.Email == email {
+			return &customer, true
+		}
+	}
+
+	return nil, false
 }
 
 func (s *StubCustomerStore) StoreCustomer(customer Customer) int {
@@ -42,12 +52,16 @@ func (s *StubCustomerStore) Empty() {
 	s.customers = []Customer{}
 }
 
+func TestLoginUser(t *testing.T) {
+
+}
+
 func TestCreateUser(t *testing.T) {
 	store := &StubCustomerStore{}
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
-	server := &CustomerServer{secretKey, time.Now().Add(time.Second), store}
+	server := NewCustomerServer(secretKey, time.Now().Add(time.Second), store)
 
 	customer := Customer{
 		Id:          0,
@@ -93,6 +107,42 @@ func TestCreateUser(t *testing.T) {
 
 		assertStatus(t, got, want)
 		assertJWT(t, response.Header(), secretKey, customer.Id)
+	})
+
+	t.Run("returns Bad Request on malformed request(phone number)", func(t *testing.T) {
+		store.Empty()
+
+		malformedCustomer := Customer{
+			Id:          0,
+			FirstName:   "Peter",
+			LastName:    "Smith",
+			PhoneNumber: "+359 aa bbbb 834",
+			Email:       "petesmith@gmail.com",
+			Password:    "$#andsfkasnflkkadf",
+		}
+
+		request := newCreateCustomerRequest(malformedCustomer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+	})
+
+	t.Run("return Bad Request on user with same email", func(t *testing.T) {
+		store.Empty()
+
+		request := newCreateCustomerRequest(customer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		// reinit ResponseRecorder as it allows a
+		// one-time only write of the Status Code
+		response = httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
 	})
 }
 
@@ -159,7 +209,7 @@ func TestGetUser(t *testing.T) {
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
-	server := &CustomerServer{secretKey, time.Now(), store}
+	server := NewCustomerServer(secretKey, time.Now(), store)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
 		peterJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 0)
