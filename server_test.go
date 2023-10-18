@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -69,7 +70,14 @@ func TestCreateUser(t *testing.T) {
 		want := http.StatusAccepted
 
 		assertStatus(t, got, want)
-		assertCustomer(t, store.customers[0], customer)
+
+		if len(store.customers) != 1 {
+			t.Errorf("got %d calls to StoreCustomer want %d", len(store.customers), 1)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %v, want %v", got, want)
+		}
 	})
 
 	t.Run("returns JWT on POST", func(t *testing.T) {
@@ -84,23 +92,32 @@ func TestCreateUser(t *testing.T) {
 		want := http.StatusAccepted
 
 		assertStatus(t, got, want)
-
-		customerJWT := response.Header()["Token"]
-		if customerJWT != nil {
-			request, _ := http.NewRequest(http.MethodGet, "/customer/", nil)
-			request.Header.Add("Token", customerJWT[0])
-			response := httptest.NewRecorder()
-
-			server.ServeHTTP(response, request)
-
-			var getCustomerResponse GetCustomerResponse
-			json.NewDecoder(response.Body).Decode(&getCustomerResponse)
-
-			assertGetCustomerResponse(t, getCustomerResponse, customer)
-		} else {
-			t.Errorf("didn't recieve JWT for the new customer")
-		}
+		assertJWT(t, response.Header(), secretKey, customer.Id)
 	})
+}
+
+func assertJWT(t testing.TB, header http.Header, secretKey []byte, wantId int) {
+	t.Helper()
+
+	token, err := verifyJWT(header, secretKey)
+	if err != nil {
+		t.Errorf("error verifying JWT: %v", err)
+	}
+
+	subject, err := token.Claims.GetSubject()
+	if err != nil {
+		t.Errorf("did not get subject in JWT, expected %v", wantId)
+	}
+
+	gotId, err := strconv.Atoi(subject)
+
+	if err != nil {
+		t.Errorf("did not get customer ID for subject, got %v", subject)
+	}
+
+	if gotId != wantId {
+		t.Errorf("got %v want %v", subject, wantId)
+	}
 }
 
 func newCreateCustomerRequest(customer Customer) *http.Request {
@@ -116,14 +133,6 @@ func newCreateCustomerRequest(customer Customer) *http.Request {
 
 	request, _ := http.NewRequest(http.MethodPost, "/customer/", body)
 	return request
-}
-
-func assertCustomer(t testing.TB, got, want Customer) {
-	t.Helper()
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v, want %v", got, want)
-	}
 }
 
 func TestGetUser(t *testing.T) {
