@@ -71,6 +71,7 @@ var (
 	ErrExistingUser     = errors.New("user with this email already exists")
 	ErrMalformedRequest = errors.New("there are malformed field(s) in the request")
 	ErrMissingCustomer  = errors.New("customer doesn't exists")
+	ErrMissingToken     = errors.New("missing token")
 )
 
 func (c *CustomerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +122,13 @@ func getCustomerFromCreateCustomerRequest(createCustomerRequest CreateCustomerRe
 }
 
 func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
-	if token, err := verifyJWT(r.Header, c.secretKey); err == nil {
+	if r.Header["Token"] == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
+		return
+	}
+
+	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
 		id := getIDFromToken(token)
 		customer, err := c.store.GetCustomerById(id)
 

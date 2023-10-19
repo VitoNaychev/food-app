@@ -166,7 +166,11 @@ func assertErrorResponse(t testing.TB, errorResponse ErrorResponse, expetedError
 func assertJWT(t testing.TB, header http.Header, secretKey []byte, wantId int) {
 	t.Helper()
 
-	token, err := verifyJWT(header, secretKey)
+	if header["Token"] == nil {
+		t.Errorf("missing JWT in header")
+	}
+
+	token, err := verifyJWT(header["Token"][0], secretKey)
 	if err != nil {
 		t.Errorf("error verifying JWT: %v", err)
 	}
@@ -285,8 +289,11 @@ func TestGetUser(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
+		assertErrorResponse(t, errorResponse, ErrMissingToken)
 	})
 
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
