@@ -16,6 +16,7 @@ type CustomerStore interface {
 	GetCustomerById(id int) (*Customer, error)
 	GetCustomerByEmail(email string) (*Customer, error)
 	StoreCustomer(customer Customer) int
+	DeleteCustomer(id int) error
 }
 
 type CustomerServer struct {
@@ -123,6 +124,29 @@ func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request)
 		c.storeCustomer(w, r)
 	case http.MethodGet:
 		c.getCustomer(w, r)
+	case http.MethodDelete:
+		c.deleteCustomer(w, r)
+	}
+}
+
+func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) {
+	if r.Header["Token"] == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
+		return
+	}
+
+	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
+		id := getIDFromToken(token)
+		err := c.store.DeleteCustomer(id)
+
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		}
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 	}
 }
 

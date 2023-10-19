@@ -16,7 +16,20 @@ import (
 )
 
 type StubCustomerStore struct {
-	customers []Customer
+	customers   []Customer
+	deleteCalls []int
+}
+
+func (s *StubCustomerStore) DeleteCustomer(id int) error {
+	for _, customer := range s.customers {
+		if customer.Id == id {
+			// s.customers = append(s.customers[:id], s.customers[id+1:]...)
+			s.deleteCalls = append(s.deleteCalls, id)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("no customer with id %d", id)
 }
 
 func (s *StubCustomerStore) GetCustomerById(id int) (*Customer, error) {
@@ -74,8 +87,79 @@ type MalformedRequest struct {
 	s string
 }
 
+func TestUpdateUser(t *testing.T) {
+
+}
+
+func TestDeleteUser(t *testing.T) {
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}}
+
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	server := NewCustomerServer(secretKey, time.Now().Add(time.Second), store)
+
+	t.Run("returns Accepted on valid JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
+		response := httptest.NewRecorder()
+
+		peterJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), peterCustomer.Id)
+		request.Header.Add("Token", peterJWT)
+
+		server.ServeHTTP(response, request)
+
+		if len(store.deleteCalls) != 1 {
+			t.Fatalf("got %d calls to DeleteCustomer expected %d", len(store.deleteCalls), 1)
+		}
+
+		if store.deleteCalls[0] != peterCustomer.Id {
+			t.Errorf("did not delete correct customer got %d want %d", store.deleteCalls[0], peterCustomer.Id)
+		}
+	})
+
+	t.Run("returns Not Found on missing user", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
+		response := httptest.NewRecorder()
+
+		missingCustomerJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 10)
+		request.Header.Add("Token", missingCustomerJWT)
+
+		server.ServeHTTP(response, request)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		assertStatus(t, response.Code, http.StatusNotFound)
+		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
+	})
+
+	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+		assertErrorResponse(t, errorResponse, ErrMissingToken)
+	})
+
+	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+}
+
 func TestLoginUser(t *testing.T) {
-	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}}
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}}
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
@@ -335,7 +419,7 @@ func newCreateCustomerRequest(customer Customer) *http.Request {
 }
 
 func TestGetUser(t *testing.T) {
-	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}}
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}}
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
