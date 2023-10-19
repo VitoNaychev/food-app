@@ -22,6 +22,7 @@ type CustomerServer struct {
 	secretKey []byte
 	expiresAt time.Time
 	store     CustomerStore
+	http.Handler
 }
 
 func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStore) *CustomerServer {
@@ -30,11 +31,17 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStor
 		return matched
 	})
 
-	c := &CustomerServer{
-		secretKey: secretKey,
-		expiresAt: expiresAt,
-		store:     store,
-	}
+	c := new(CustomerServer)
+
+	c.secretKey = secretKey
+	c.expiresAt = expiresAt
+	c.store = store
+
+	router := http.NewServeMux()
+	router.HandleFunc("/customer/", c.CustomerHandler)
+	router.HandleFunc("/customer/login/", c.LoginHandler)
+
+	c.Handler = router
 
 	return c
 }
@@ -63,18 +70,54 @@ type CreateCustomerRequest struct {
 	Password    string `valid:"stringlength(2|72),required"`
 }
 
+type LoginCustomerRequest struct {
+	Email    string `valid:"email,required"`
+	Password string `valid:"stringlength(2|72),required"`
+}
+
 type ErrorResponse struct {
 	Message string
 }
 
 var (
-	ErrExistingUser     = errors.New("user with this email already exists")
-	ErrMalformedRequest = errors.New("there are malformed field(s) in the request")
-	ErrMissingCustomer  = errors.New("customer doesn't exists")
-	ErrMissingToken     = errors.New("missing token")
+	ErrExistingUser       = errors.New("user with this email already exists")
+	ErrMalformedRequest   = errors.New("there are malformed field(s) in the request")
+	ErrMissingCustomer    = errors.New("customer doesn't exists")
+	ErrMissingToken       = errors.New("missing token")
+	ErrInvalidCredentials = errors.New("invalid user credentials")
 )
 
-func (c *CustomerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	var loginCustomerRequest LoginCustomerRequest
+	json.NewDecoder(r.Body).Decode(&loginCustomerRequest)
+
+	valid, _ := govalidator.ValidateStruct(loginCustomerRequest)
+	if !valid {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMalformedRequest.Error()})
+		return
+	}
+
+	customer, err := c.store.GetCustomerByEmail(loginCustomerRequest.Email)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		return
+	}
+
+	if customer.Password != loginCustomerRequest.Password {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidCredentials.Error()})
+		return
+	}
+
+	loginJWT, _ := generateJWT(c.secretKey, c.expiresAt, customer.Id)
+
+	w.WriteHeader(http.StatusAccepted)
+	w.Header().Add("Token", loginJWT)
+}
+
+func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		c.storeCustomer(w, r)

@@ -52,8 +52,110 @@ func (s *StubCustomerStore) Empty() {
 	s.customers = []Customer{}
 }
 
-func TestLoginUser(t *testing.T) {
+var peterCustomer = Customer{
+	Id:          0,
+	FirstName:   "Peter",
+	LastName:    "Smith",
+	PhoneNumber: "+359 88 576 5981",
+	Email:       "petesmith@gmail.com",
+	Password:    "firefirefire",
+}
 
+var aliceCustomer = Customer{
+	Id:          1,
+	FirstName:   "Alice",
+	LastName:    "Johnson",
+	PhoneNumber: "+359 88 444 2222",
+	Email:       "alicejohn@gmail.com",
+	Password:    "helloJohn123",
+}
+
+func TestLoginUser(t *testing.T) {
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}}
+
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	server := NewCustomerServer(secretKey, time.Now().Add(time.Second), store)
+
+	t.Run("returns JWT on Peter's credentials", func(t *testing.T) {
+		request := newLoginRequest(peterCustomer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertJWT(t, response.Header(), secretKey, peterCustomer.Id)
+	})
+
+	t.Run("returns JWT on Alice's credentials", func(t *testing.T) {
+		request := newLoginRequest(aliceCustomer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertJWT(t, response.Header(), secretKey, aliceCustomer.Id)
+	})
+
+	t.Run("returns Unauthorized on invalid credentials", func(t *testing.T) {
+		incorrectCustomer := peterCustomer
+		incorrectCustomer.Password = "passsword123"
+		request := newLoginRequest(incorrectCustomer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+		assertErrorResponse(t, errorResponse, ErrInvalidCredentials)
+	})
+
+	t.Run("returns Unauthorized on missing user", func(t *testing.T) {
+		missingCustomer := peterCustomer
+		missingCustomer.Email = "notanemail@gmail.com"
+		request := newLoginRequest(missingCustomer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
+	})
+
+	t.Run("returns Bad Request on malformed request", func(t *testing.T) {
+		malformedRequest := LoginCustomerRequest{
+			Email:    "thisisnotan.email",
+			Password: "password123",
+		}
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(malformedRequest)
+
+		request, _ := http.NewRequest(http.MethodPost, "/customer/login/", body)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+		assertErrorResponse(t, errorResponse, ErrMalformedRequest)
+	})
+}
+
+func newLoginRequest(customer Customer) *http.Request {
+	loginCustomerRequest := LoginCustomerRequest{
+		Email:    customer.Email,
+		Password: customer.Password,
+	}
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(loginCustomerRequest)
+
+	request, _ := http.NewRequest(http.MethodPost, "/customer/login/", body)
+	return request
 }
 
 func TestCreateUser(t *testing.T) {
@@ -63,19 +165,10 @@ func TestCreateUser(t *testing.T) {
 	secretKey := []byte(os.Getenv("SECRET"))
 	server := NewCustomerServer(secretKey, time.Now().Add(time.Second), store)
 
-	customer := Customer{
-		Id:          0,
-		FirstName:   "Peter",
-		LastName:    "Smith",
-		PhoneNumber: "+359 88 576 5981",
-		Email:       "petesmith@gmail.com",
-		Password:    "firefirefire",
-	}
-
 	t.Run("stores customer on POST", func(t *testing.T) {
 		store.Empty()
 
-		request := newCreateCustomerRequest(customer)
+		request := newCreateCustomerRequest(peterCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -97,7 +190,7 @@ func TestCreateUser(t *testing.T) {
 	t.Run("returns JWT on POST", func(t *testing.T) {
 		store.Empty()
 
-		request := newCreateCustomerRequest(customer)
+		request := newCreateCustomerRequest(peterCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -106,7 +199,7 @@ func TestCreateUser(t *testing.T) {
 		want := http.StatusAccepted
 
 		assertStatus(t, got, want)
-		assertJWT(t, response.Header(), secretKey, customer.Id)
+		assertJWT(t, response.Header(), secretKey, peterCustomer.Id)
 	})
 
 	t.Run("returns Bad Request on malformed request(phone number)", func(t *testing.T) {
@@ -136,12 +229,12 @@ func TestCreateUser(t *testing.T) {
 	t.Run("return Bad Request on user with same email", func(t *testing.T) {
 		store.Empty()
 
-		request := newCreateCustomerRequest(customer)
+		request := newCreateCustomerRequest(peterCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		request = newCreateCustomerRequest(customer)
+		request = newCreateCustomerRequest(peterCustomer)
 		// reinit ResponseRecorder as it allows a
 		// one-time only write of the Status Code
 		response = httptest.NewRecorder()
@@ -167,27 +260,26 @@ func assertJWT(t testing.TB, header http.Header, secretKey []byte, wantId int) {
 	t.Helper()
 
 	if header["Token"] == nil {
-		t.Errorf("missing JWT in header")
+		t.Fatalf("missing JWT in header")
 	}
 
 	token, err := verifyJWT(header["Token"][0], secretKey)
 	if err != nil {
-		t.Errorf("error verifying JWT: %v", err)
+		t.Fatalf("error verifying JWT: %v", err)
 	}
 
 	subject, err := token.Claims.GetSubject()
 	if err != nil {
-		t.Errorf("did not get subject in JWT, expected %v", wantId)
+		t.Fatalf("did not get subject in JWT, expected %v", wantId)
 	}
 
 	gotId, err := strconv.Atoi(subject)
-
 	if err != nil {
-		t.Errorf("did not get customer ID for subject, got %v", subject)
+		t.Fatalf("did not get customer ID for subject, got %v", subject)
 	}
 
 	if gotId != wantId {
-		t.Errorf("got %v want %v", subject, wantId)
+		t.Errorf("got customer id %v want %v", subject, wantId)
 	}
 }
 
@@ -207,33 +299,14 @@ func newCreateCustomerRequest(customer Customer) *http.Request {
 }
 
 func TestGetUser(t *testing.T) {
-	store := &StubCustomerStore{
-		customers: []Customer{
-			{
-				Id:          0,
-				FirstName:   "Peter",
-				LastName:    "Smith",
-				PhoneNumber: "+359 88 576 5981",
-				Email:       "petesmith@gmail.com",
-				Password:    "helloWorld123",
-			},
-			{
-				Id:          1,
-				FirstName:   "Alice",
-				LastName:    "Johnson",
-				PhoneNumber: "+359 88 444 2222",
-				Email:       "alicejohn@gmail.com",
-				Password:    "helloJohn123",
-			},
-		},
-	}
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}}
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	server := NewCustomerServer(secretKey, time.Now(), store)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
-		peterJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 0)
+		peterJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), peterCustomer.Id)
 		request := newGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
