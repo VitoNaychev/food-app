@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -13,7 +14,7 @@ import (
 
 type CustomerStore interface {
 	GetCustomerById(id int) (*Customer, error)
-	GetCustomerByEmail(email string) (*Customer, bool)
+	GetCustomerByEmail(email string) (*Customer, error)
 	StoreCustomer(customer Customer) int
 }
 
@@ -66,6 +67,12 @@ type ErrorResponse struct {
 	Message string
 }
 
+var (
+	ErrExistingUser     = errors.New("user with this email already exists")
+	ErrMalformedRequest = errors.New("there are malformed field(s) in the request")
+	ErrMissingCustomer  = errors.New("customer doesn't exists")
+)
+
 func (c *CustomerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
@@ -82,11 +89,13 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	valid, _ := govalidator.ValidateStruct(createCustomerRequest)
 	if !valid {
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMalformedRequest.Error()})
 		return
 	}
 
-	if _, ok := c.store.GetCustomerByEmail(createCustomerRequest.Email); ok {
+	if _, err := c.store.GetCustomerByEmail(createCustomerRequest.Email); err == nil {
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrExistingUser.Error()})
 		return
 	}
 
@@ -116,22 +125,29 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 		id := getIDFromToken(token)
 		customer, err := c.store.GetCustomerById(id)
 
-		if err == nil {
-			getCustomerResponse := GetCustomerResponse{
-				FirstName:   customer.FirstName,
-				LastName:    customer.LastName,
-				PhoneNumber: customer.PhoneNumber,
-				Email:       customer.Email,
-			}
-			json.NewEncoder(w).Encode(getCustomerResponse)
-		} else {
+		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+			return
 		}
+
+		getCustomerResponse := newGetCustomerResponse(*customer)
+		json.NewEncoder(w).Encode(getCustomerResponse)
 	} else {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 	}
+}
+
+func newGetCustomerResponse(customer Customer) *GetCustomerResponse {
+	getCustomerResponse := GetCustomerResponse{
+		FirstName:   customer.FirstName,
+		LastName:    customer.LastName,
+		PhoneNumber: customer.PhoneNumber,
+		Email:       customer.Email,
+	}
+
+	return &getCustomerResponse
 }
 
 func getIDFromToken(token *jwt.Token) int {

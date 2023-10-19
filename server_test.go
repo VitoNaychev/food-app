@@ -21,7 +21,7 @@ type StubCustomerStore struct {
 
 func (s *StubCustomerStore) GetCustomerById(id int) (*Customer, error) {
 	if len(s.customers) < id {
-		return nil, fmt.Errorf("no customer with id %v", id)
+		return nil, fmt.Errorf("no customer with id %d", id)
 	}
 
 	customer := s.customers[id]
@@ -29,14 +29,14 @@ func (s *StubCustomerStore) GetCustomerById(id int) (*Customer, error) {
 	return &customer, nil
 }
 
-func (s *StubCustomerStore) GetCustomerByEmail(email string) (*Customer, bool) {
+func (s *StubCustomerStore) GetCustomerByEmail(email string) (*Customer, error) {
 	for _, customer := range s.customers {
 		if customer.Email == email {
-			return &customer, true
+			return &customer, nil
 		}
 	}
 
-	return nil, false
+	return nil, fmt.Errorf("no customer with email %v", email)
 }
 
 func (s *StubCustomerStore) StoreCustomer(customer Customer) int {
@@ -126,7 +126,11 @@ func TestCreateUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
 		assertStatus(t, response.Code, http.StatusBadRequest)
+		assertErrorResponse(t, errorResponse, ErrMalformedRequest)
 	})
 
 	t.Run("return Bad Request on user with same email", func(t *testing.T) {
@@ -137,13 +141,26 @@ func TestCreateUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
+		request = newCreateCustomerRequest(customer)
 		// reinit ResponseRecorder as it allows a
 		// one-time only write of the Status Code
 		response = httptest.NewRecorder()
 		server.ServeHTTP(response, request)
 
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
 		assertStatus(t, response.Code, http.StatusBadRequest)
+		assertErrorResponse(t, errorResponse, ErrExistingUser)
 	})
+}
+
+func assertErrorResponse(t testing.TB, errorResponse ErrorResponse, expetedError error) {
+	t.Helper()
+
+	if errorResponse.Message != expetedError.Error() {
+		t.Errorf("got error %q want %q", errorResponse.Message, expetedError.Error())
+	}
 }
 
 func assertJWT(t testing.TB, header http.Header, secretKey []byte, wantId int) {
@@ -251,7 +268,6 @@ func TestGetUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
-
 	})
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
@@ -273,14 +289,17 @@ func TestGetUser(t *testing.T) {
 		assertStatus(t, response.Code, http.StatusUnauthorized)
 	})
 
-	t.Run("returns Not Found on nonexistent customer", func(t *testing.T) {
+	t.Run("returns Not Found on missing customer", func(t *testing.T) {
 		noCustomerJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 3)
 		request := newGetCustomerRequest(noCustomerJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
 
 		assertStatus(t, response.Code, http.StatusNotFound)
+		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
 	})
 }
 

@@ -9,6 +9,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+var (
+	ErrMissingToken = errors.New("missing token")
+)
+
 func generateJWT(secretKey []byte, expiresAt time.Time, subject int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Subject:   strconv.FormatInt(int64(subject), 10),
@@ -26,7 +30,7 @@ func generateJWT(secretKey []byte, expiresAt time.Time, subject int) (string, er
 
 func verifyJWT(header http.Header, secretKey []byte) (*jwt.Token, error) {
 	if header["Token"] == nil {
-		return nil, errors.New("token is missing")
+		return nil, ErrMissingToken
 	}
 
 	token, err := jwt.Parse(header["Token"][0], func(token *jwt.Token) (interface{}, error) {
