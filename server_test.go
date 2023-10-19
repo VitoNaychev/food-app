@@ -70,6 +70,10 @@ var aliceCustomer = Customer{
 	Password:    "helloJohn123",
 }
 
+type MalformedRequest struct {
+	s string
+}
+
 func TestLoginUser(t *testing.T) {
 	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}}
 
@@ -125,13 +129,29 @@ func TestLoginUser(t *testing.T) {
 		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
 	})
 
-	t.Run("returns Bad Request on malformed request", func(t *testing.T) {
+	t.Run("returns Bad Request on invalid request field", func(t *testing.T) {
 		malformedRequest := LoginCustomerRequest{
 			Email:    "thisisnotan.email",
 			Password: "password123",
 		}
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(malformedRequest)
+
+		request, _ := http.NewRequest(http.MethodPost, "/customer/login/", body)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+		assertErrorResponse(t, errorResponse, ErrMalformedRequest)
+	})
+
+	t.Run("returns Bad Request on malformed request", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(MalformedRequest{"malformed request"})
 
 		request, _ := http.NewRequest(http.MethodPost, "/customer/login/", body)
 		response := httptest.NewRecorder()
@@ -202,7 +222,7 @@ func TestCreateUser(t *testing.T) {
 		assertJWT(t, response.Header(), secretKey, peterCustomer.Id)
 	})
 
-	t.Run("returns Bad Request on malformed request(phone number)", func(t *testing.T) {
+	t.Run("returns Bad Request on invalid request field (phone number)", func(t *testing.T) {
 		store.Empty()
 
 		malformedCustomer := Customer{
@@ -215,6 +235,22 @@ func TestCreateUser(t *testing.T) {
 		}
 
 		request := newCreateCustomerRequest(malformedCustomer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+		assertErrorResponse(t, errorResponse, ErrMalformedRequest)
+	})
+
+	t.Run("returns Bad Request on malformed request", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(MalformedRequest{"malformed request"})
+
+		request, _ := http.NewRequest(http.MethodPost, "/customer/", body)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
