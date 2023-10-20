@@ -18,6 +18,13 @@ import (
 type StubCustomerStore struct {
 	customers   []Customer
 	deleteCalls []int
+	updateCalls []Customer
+}
+
+func (s *StubCustomerStore) UpdateCustomer(customer Customer) error {
+	s.updateCalls = append(s.updateCalls, customer)
+
+	return nil
 }
 
 func (s *StubCustomerStore) DeleteCustomer(id int) error {
@@ -88,21 +95,120 @@ type MalformedRequest struct {
 }
 
 func TestUpdateUser(t *testing.T) {
-
-}
-
-func TestDeleteUser(t *testing.T) {
-	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}}
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
-	server := NewCustomerServer(secretKey, time.Now().Add(time.Second), store)
+	expiresAt := time.Now().Add(time.Second)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
-	t.Run("returns Accepted on valid JWT", func(t *testing.T) {
+	t.Run("updates customer information on valid JWT", func(t *testing.T) {
+		customer := peterCustomer
+		customer.FirstName = "John"
+		customer.PhoneNumber = "+359 88 1234 213"
+
+		request := newUpdateCustomerRequest(customer, secretKey, expiresAt)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusOK)
+
+		if len(store.updateCalls) != 1 {
+			t.Fatalf("got %d calls to UpdateCustomer expected %d", len(store.updateCalls), 1)
+		}
+
+		if !reflect.DeepEqual(store.updateCalls[0], customer) {
+			t.Errorf("did not update correct customer got %v want %v", store.updateCalls[0], customer)
+		}
+	})
+
+	t.Run("return Bad Request on missing fields", func(t *testing.T) {
+		customer := peterCustomer
+		customer.FirstName = "John"
+		customer.PhoneNumber = ""
+
+		request := newUpdateCustomerRequest(customer, secretKey, expiresAt)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+	})
+
+	t.Run("returns Bad Request on invalid fields", func(t *testing.T) {
+		customer := peterCustomer
+		customer.FirstName = "John"
+		customer.PhoneNumber = "+359 88 aaaa bbb"
+
+		request := newUpdateCustomerRequest(customer, secretKey, expiresAt)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+	})
+
+	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
+		customer := peterCustomer
+		customer.FirstName = "John"
+		customer.PhoneNumber = "+359 88 1234 213"
+
+		request := newUpdateCustomerRequest(customer, secretKey, expiresAt)
+		request.Header.Del("Token")
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
+		customer := peterCustomer
+		customer.FirstName = "John"
+		customer.PhoneNumber = "+359 88 1234 213"
+
+		request := newUpdateCustomerRequest(customer, secretKey, expiresAt)
+		request.Header.Set("Token", "thisIsAnInvalidJWT")
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+}
+
+func newUpdateCustomerRequest(customer Customer, secretKey []byte, expiresAt time.Time) *http.Request {
+	body := bytes.NewBuffer([]byte{})
+	updateCustomerRequest := UpdateCustomerRequest{
+		FirstName:   customer.FirstName,
+		LastName:    customer.LastName,
+		Email:       customer.Email,
+		PhoneNumber: customer.PhoneNumber,
+		Password:    customer.Password,
+	}
+	json.NewEncoder(body).Encode(updateCustomerRequest)
+
+	customerJWT, _ := generateJWT(secretKey, expiresAt, customer.Id)
+
+	request, _ := http.NewRequest(http.MethodPut, "/customer/", body)
+	request.Header.Add("Token", customerJWT)
+	return request
+}
+
+func TestDeleteUser(t *testing.T) {
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
+
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	expiresAt := time.Now().Add(time.Second)
+	server := NewCustomerServer(secretKey, expiresAt, store)
+
+	t.Run("deletes customer on valid JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 		response := httptest.NewRecorder()
 
-		peterJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), peterCustomer.Id)
+		peterJWT, _ := generateJWT(secretKey, expiresAt, peterCustomer.Id)
 		request.Header.Add("Token", peterJWT)
 
 		server.ServeHTTP(response, request)
@@ -116,11 +222,11 @@ func TestDeleteUser(t *testing.T) {
 		}
 	})
 
-	t.Run("returns Not Found on missing user", func(t *testing.T) {
+	t.Run("returns Not Found on missing customer", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 		response := httptest.NewRecorder()
 
-		missingCustomerJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 10)
+		missingCustomerJWT, _ := generateJWT(secretKey, expiresAt, 10)
 		request.Header.Add("Token", missingCustomerJWT)
 
 		server.ServeHTTP(response, request)
@@ -159,11 +265,12 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestLoginUser(t *testing.T) {
-	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}}
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
-	server := NewCustomerServer(secretKey, time.Now().Add(time.Second), store)
+	expiresAt := time.Now().Add(time.Second)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
 	t.Run("returns JWT on Peter's credentials", func(t *testing.T) {
 		request := newLoginRequest(peterCustomer)
@@ -267,7 +374,8 @@ func TestCreateUser(t *testing.T) {
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
-	server := NewCustomerServer(secretKey, time.Now().Add(time.Second), store)
+	expiresAt := time.Now().Add(time.Second)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
 	t.Run("stores customer on POST", func(t *testing.T) {
 		store.Empty()
@@ -419,14 +527,15 @@ func newCreateCustomerRequest(customer Customer) *http.Request {
 }
 
 func TestGetUser(t *testing.T) {
-	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}}
+	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
 
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
-	server := NewCustomerServer(secretKey, time.Now(), store)
+	expiresAt := time.Now().Add(time.Second)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
-		peterJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), peterCustomer.Id)
+		peterJWT, _ := generateJWT(secretKey, expiresAt, peterCustomer.Id)
 		request := newGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -442,7 +551,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Alice's customer information", func(t *testing.T) {
-		aliceJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 1)
+		aliceJWT, _ := generateJWT(secretKey, expiresAt, 1)
 		request := newGetCustomerRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
@@ -490,7 +599,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
-		noCustomerJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), 3)
+		noCustomerJWT, _ := generateJWT(secretKey, expiresAt, 3)
 		request := newGetCustomerRequest(noCustomerJWT)
 		response := httptest.NewRecorder()
 

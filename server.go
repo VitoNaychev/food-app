@@ -17,6 +17,7 @@ type CustomerStore interface {
 	GetCustomerByEmail(email string) (*Customer, error)
 	StoreCustomer(customer Customer) int
 	DeleteCustomer(id int) error
+	UpdateCustomer(customer Customer) error
 }
 
 type CustomerServer struct {
@@ -76,6 +77,14 @@ type LoginCustomerRequest struct {
 	Password string `valid:"stringlength(2|72),required"`
 }
 
+type UpdateCustomerRequest struct {
+	FirstName   string `valid:"stringlength(2|20),required"`
+	LastName    string `valid:"stringlength(2|20),required"`
+	PhoneNumber string `valid:"phonenumber,required"`
+	Email       string `valid:"email,required"`
+	Password    string `valid:"stringlength(2|72),required"`
+}
+
 type ErrorResponse struct {
 	Message string
 }
@@ -126,6 +135,41 @@ func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request)
 		c.getCustomer(w, r)
 	case http.MethodDelete:
 		c.deleteCustomer(w, r)
+	case http.MethodPut:
+		c.updateCustomer(w, r)
+	}
+}
+
+func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) {
+	if r.Header["Token"] == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
+		return
+	}
+
+	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
+		id := getIDFromToken(token)
+		customer, _ := c.store.GetCustomerById(id)
+
+		var updateCustomerRequest UpdateCustomerRequest
+		json.NewDecoder(r.Body).Decode(&updateCustomerRequest)
+		valid, _ := govalidator.ValidateStruct(updateCustomerRequest)
+		if !valid {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMalformedRequest.Error()})
+			return
+		}
+
+		customer.FirstName = updateCustomerRequest.FirstName
+		customer.LastName = updateCustomerRequest.LastName
+		customer.Email = updateCustomerRequest.Email
+		customer.PhoneNumber = updateCustomerRequest.PhoneNumber
+		customer.Password = updateCustomerRequest.Password
+
+		c.store.UpdateCustomer(*customer)
+	} else {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 	}
 }
 
