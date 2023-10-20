@@ -95,6 +95,8 @@ var (
 	ErrMissingCustomer    = errors.New("customer doesn't exists")
 	ErrMissingToken       = errors.New("missing token")
 	ErrInvalidCredentials = errors.New("invalid user credentials")
+	ErrMissingSubject     = errors.New("token does not contain subject field")
+	ErrNonIntegerSubject  = errors.New("token subject field is not an integer")
 )
 
 func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), secretKey []byte) http.HandlerFunc {
@@ -112,7 +114,13 @@ func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *htt
 			return
 		}
 
-		id := getIDFromToken(token)
+		id, err := getIDFromToken(token)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			return
+		}
+
 		r.Header.Add("Subject", strconv.Itoa(id))
 
 		endpointHandler(w, r)
@@ -170,7 +178,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
-		id := getIDFromToken(token)
+		id, _ := getIDFromToken(token)
 		customer, _ := c.store.GetCustomerById(id)
 
 		var updateCustomerRequest UpdateCustomerRequest
@@ -203,7 +211,7 @@ func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
-		id := getIDFromToken(token)
+		id, _ := getIDFromToken(token)
 		err := c.store.DeleteCustomer(id)
 
 		if err != nil {
@@ -262,7 +270,7 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
-		id := getIDFromToken(token)
+		id, _ := getIDFromToken(token)
 		customer, err := c.store.GetCustomerById(id)
 
 		if err != nil {
@@ -290,10 +298,16 @@ func newGetCustomerResponse(customer Customer) *GetCustomerResponse {
 	return &getCustomerResponse
 }
 
-func getIDFromToken(token *jwt.Token) int {
-	subject, _ := token.Claims.GetSubject()
+func getIDFromToken(token *jwt.Token) (int, error) {
+	subject, err := token.Claims.GetSubject()
+	if err != nil || subject == "" {
+		return -1, ErrMissingSubject
+	}
 
-	id, _ := strconv.Atoi(subject)
+	id, err := strconv.Atoi(subject)
+	if err != nil {
+		return -1, ErrNonIntegerSubject
+	}
 
-	return id
+	return id, nil
 }

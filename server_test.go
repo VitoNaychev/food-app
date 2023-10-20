@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
 
@@ -136,11 +137,44 @@ func TestAuthenticationMiddleware(t *testing.T) {
 	})
 
 	t.Run("returns Unauthorized on missing Subject in Token", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/", nil)
+		response := httptest.NewRecorder()
 
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second)),
+		})
+
+		tokenString, _ := token.SignedString(secretKey)
+		request.Header.Add("Token", tokenString)
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+		assertErrorResponse(t, errorResponse, ErrMissingSubject)
 	})
 
 	t.Run("returns Unauthorized on noninteger Subject in Token", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/", nil)
+		response := httptest.NewRecorder()
 
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+			Subject:   "notAnIntegerSubject",
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second)),
+		})
+
+		tokenString, _ := token.SignedString(secretKey)
+		request.Header.Add("Token", tokenString)
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+		assertErrorResponse(t, errorResponse, ErrNonIntegerSubject)
 	})
 
 	t.Run("returns Token's Subject on valid JWT", func(t *testing.T) {
@@ -155,14 +189,13 @@ func TestAuthenticationMiddleware(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusAccepted)
 
-		var subject []string
-		if subject = request.Header["Subject"]; subject == nil {
+		subject := request.Header["Subject"]
+		if subject == nil {
 			t.Fatalf("did not get Subject in request header")
 		}
 
-		var got int
-		var err error
-		if got, err = strconv.Atoi(subject[0]); err != nil {
+		got, err := strconv.Atoi(subject[0])
+		if err != nil {
 			t.Fatalf("expected integer Subject, got %q", subject[0])
 
 		}
