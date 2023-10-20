@@ -97,6 +97,28 @@ var (
 	ErrInvalidCredentials = errors.New("invalid user credentials")
 )
 
+func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), secretKey []byte) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header["Token"] == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
+			return
+		}
+
+		token, err := verifyJWT(r.Header["Token"][0], secretKey)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			return
+		}
+
+		id := getIDFromToken(token)
+		r.Header.Add("Subject", strconv.Itoa(id))
+
+		endpointHandler(w, r)
+	})
+}
+
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginCustomerRequest LoginCustomerRequest
 	json.NewDecoder(r.Body).Decode(&loginCustomerRequest)

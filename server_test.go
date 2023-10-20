@@ -94,6 +94,85 @@ type MalformedRequest struct {
 	s string
 }
 
+func DummyHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func TestAuthenticationMiddleware(t *testing.T) {
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	dummyHandler := authenticationMiddleware(DummyHandler, secretKey)
+
+	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/", nil)
+		response := httptest.NewRecorder()
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+		assertErrorResponse(t, errorResponse, ErrMissingToken)
+	})
+
+	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/", nil)
+		response := httptest.NewRecorder()
+
+		request.Header.Add("Token", "thisIsAnInvalidJWT")
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+
+		var errorResponse ErrorResponse
+		decoder := json.NewDecoder(response.Body)
+		decoder.DisallowUnknownFields()
+		decoder.Decode(&errorResponse)
+		if errorResponse.Message == "" {
+			t.Errorf("expected error message but did not get one")
+		}
+	})
+
+	t.Run("returns Unauthorized on missing Subject in Token", func(t *testing.T) {
+
+	})
+
+	t.Run("returns Unauthorized on noninteger Subject in Token", func(t *testing.T) {
+
+	})
+
+	t.Run("returns Token's Subject on valid JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/", nil)
+		response := httptest.NewRecorder()
+
+		want := 10
+		dummyJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), want)
+		request.Header.Add("Token", dummyJWT)
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusAccepted)
+
+		var subject []string
+		if subject = request.Header["Subject"]; subject == nil {
+			t.Fatalf("did not get Subject in request header")
+		}
+
+		var got int
+		var err error
+		if got, err = strconv.Atoi(subject[0]); err != nil {
+			t.Fatalf("expected integer Subject, got %q", subject[0])
+
+		}
+
+		if got != want {
+			t.Errorf("got %d want %d", got, want)
+		}
+	})
+}
+
 func TestUpdateUser(t *testing.T) {
 	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
 
