@@ -162,65 +162,43 @@ func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request)
 	case http.MethodPost:
 		c.storeCustomer(w, r)
 	case http.MethodGet:
-		c.getCustomer(w, r)
+		authenticationMiddleware(c.getCustomer, c.secretKey)(w, r)
 	case http.MethodDelete:
-		c.deleteCustomer(w, r)
+		authenticationMiddleware(c.deleteCustomer, c.secretKey)(w, r)
 	case http.MethodPut:
-		c.updateCustomer(w, r)
+		authenticationMiddleware(c.updateCustomer, c.secretKey)(w, r)
 	}
 }
 
 func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) {
-	if r.Header["Token"] == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
+	id, _ := strconv.Atoi(r.Header["Subject"][0])
+	customer, _ := c.store.GetCustomerById(id)
+
+	var updateCustomerRequest UpdateCustomerRequest
+	json.NewDecoder(r.Body).Decode(&updateCustomerRequest)
+	valid, _ := govalidator.ValidateStruct(updateCustomerRequest)
+	if !valid {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMalformedRequest.Error()})
 		return
 	}
 
-	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
-		id, _ := getIDFromToken(token)
-		customer, _ := c.store.GetCustomerById(id)
+	customer.FirstName = updateCustomerRequest.FirstName
+	customer.LastName = updateCustomerRequest.LastName
+	customer.Email = updateCustomerRequest.Email
+	customer.PhoneNumber = updateCustomerRequest.PhoneNumber
+	customer.Password = updateCustomerRequest.Password
 
-		var updateCustomerRequest UpdateCustomerRequest
-		json.NewDecoder(r.Body).Decode(&updateCustomerRequest)
-		valid, _ := govalidator.ValidateStruct(updateCustomerRequest)
-		if !valid {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMalformedRequest.Error()})
-			return
-		}
-
-		customer.FirstName = updateCustomerRequest.FirstName
-		customer.LastName = updateCustomerRequest.LastName
-		customer.Email = updateCustomerRequest.Email
-		customer.PhoneNumber = updateCustomerRequest.PhoneNumber
-		customer.Password = updateCustomerRequest.Password
-
-		c.store.UpdateCustomer(*customer)
-	} else {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
-	}
+	c.store.UpdateCustomer(*customer)
 }
 
 func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) {
-	if r.Header["Token"] == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
-		return
-	}
+	id, _ := strconv.Atoi(r.Header["Subject"][0])
+	err := c.store.DeleteCustomer(id)
 
-	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
-		id, _ := getIDFromToken(token)
-		err := c.store.DeleteCustomer(id)
-
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
-		}
-	} else {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
 	}
 }
 
@@ -263,28 +241,18 @@ func getCustomerFromCreateCustomerRequest(createCustomerRequest CreateCustomerRe
 }
 
 func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
-	if r.Header["Token"] == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
+	id, _ := strconv.Atoi(r.Header["Subject"][0])
+	customer, err := c.store.GetCustomerById(id)
+
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
 		return
 	}
 
-	if token, err := verifyJWT(r.Header["Token"][0], c.secretKey); err == nil {
-		id, _ := getIDFromToken(token)
-		customer, err := c.store.GetCustomerById(id)
+	getCustomerResponse := newGetCustomerResponse(*customer)
+	json.NewEncoder(w).Encode(getCustomerResponse)
 
-		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
-			return
-		}
-
-		getCustomerResponse := newGetCustomerResponse(*customer)
-		json.NewEncoder(w).Encode(getCustomerResponse)
-	} else {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
-	}
 }
 
 func newGetCustomerResponse(customer Customer) *GetCustomerResponse {
