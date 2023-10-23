@@ -104,97 +104,88 @@ type DummyRequest struct {
 	I int    `valid:"required"`
 }
 
-type InvalidDummyRequest struct {
+type IncorrectDummyRequest struct {
 	S int
 	I string
 }
 
-func TestValidationMiddleware(t *testing.T) {
-	dummyHandler := validationMiddleware(DummyHandler, reflect.TypeOf(DummyRequest{}))
-
+func TestValidateRequest(t *testing.T) {
 	t.Run("returns Bad Request on empty body", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
-		request, _ := http.NewRequest(http.MethodPost, "/", body)
-		response := httptest.NewRecorder()
 
-		dummyHandler(response, request)
+		var dummyRequest DummyRequest
+		err := validateRequest(body, &dummyRequest)
 
-		assertStatus(t, response.Code, http.StatusBadRequest)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrMissingBody)
+		assertError(t, err, ErrEmptyBody)
 	})
 
 	t.Run("returns Bad Request on empty JSON", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte(`{}`))
-		request, _ := http.NewRequest(http.MethodPost, "/", body)
-		response := httptest.NewRecorder()
 
-		dummyHandler(response, request)
+		var dummyRequest DummyRequest
+		err := validateRequest(body, &dummyRequest)
 
-		assertStatus(t, response.Code, http.StatusBadRequest)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrEmptyJSON)
+		assertError(t, err, ErrEmptyJSON)
 	})
 
 	t.Run("returns Bad Request on incorrect request type", func(t *testing.T) {
-		invalidDummyRequest := InvalidDummyRequest{
+		incorrectDummyRequest := IncorrectDummyRequest{
 			S: 10,
 			I: "Hello, World!",
 		}
 
 		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(invalidDummyRequest)
-		request, _ := http.NewRequest(http.MethodPost, "/", body)
-		response := httptest.NewRecorder()
+		json.NewEncoder(body).Encode(incorrectDummyRequest)
 
-		dummyHandler(response, request)
+		var dummyRequest DummyRequest
+		err := validateRequest(body, &dummyRequest)
 
-		assertStatus(t, response.Code, http.StatusBadRequest)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrIncorrectRequestType)
+		assertError(t, err, ErrIncorrectRequestType)
 	})
 
 	t.Run("returns Bad Request on invalid fields", func(t *testing.T) {
-		dummyRequest := DummyRequest{
+		invalidDummyRequest := DummyRequest{
 			S: "Hello,",
 			I: 10,
 		}
 
 		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(dummyRequest)
-		request, _ := http.NewRequest(http.MethodPost, "/", body)
-		response := httptest.NewRecorder()
+		json.NewEncoder(body).Encode(invalidDummyRequest)
 
-		dummyHandler(response, request)
+		var dummyRequest DummyRequest
+		err := validateRequest(body, &dummyRequest)
 
-		assertStatus(t, response.Code, http.StatusBadRequest)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrInvalidRequestField)
+		assertError(t, err, ErrInvalidRequestField)
 	})
 
 	t.Run("returns Accepted on valid request", func(t *testing.T) {
-		dummyRequest := DummyRequest{
+		wantDummyRequest := DummyRequest{
 			S: "Hello, World!",
 			I: 10,
 		}
 
 		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(dummyRequest)
-		request, _ := http.NewRequest(http.MethodPost, "/", body)
-		response := httptest.NewRecorder()
+		json.NewEncoder(body).Encode(wantDummyRequest)
 
-		dummyHandler(response, request)
+		var gotDummyRequest DummyRequest
+		err := validateRequest(body, &gotDummyRequest)
 
-		assertStatus(t, response.Code, http.StatusAccepted)
+		if err != nil {
+			t.Errorf("did not expect error, got %v", err)
+		}
+
+		if !reflect.DeepEqual(gotDummyRequest, wantDummyRequest) {
+			t.Errorf("got %v want %v", gotDummyRequest, wantDummyRequest)
+		}
 	})
+}
+
+func assertError(t testing.TB, got, want error) {
+	t.Helper()
+
+	if got != want {
+		t.Errorf("got error %v want %v", got, want)
+	}
 }
 
 func TestAuthenticationMiddleware(t *testing.T) {

@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
-	"reflect"
 	"regexp"
 	"strconv"
 	"time"
@@ -99,47 +97,34 @@ var (
 	ErrInvalidCredentials   = errors.New("invalid user credentials")
 	ErrMissingSubject       = errors.New("token does not contain subject field")
 	ErrNonIntegerSubject    = errors.New("token subject field is not an integer")
-	ErrMissingBody          = errors.New("request body is empty")
+	ErrEmptyBody            = errors.New("request body is empty")
 	ErrEmptyJSON            = errors.New("request JSON is empty")
 	ErrIncorrectRequestType = errors.New("request type is incorrect")
 	ErrInvalidRequestField  = errors.New("request contains invalid field(s)")
 )
 
-func validationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), requestType reflect.Type) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var maxRequestSize int64 = 10000
-		body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestSize))
-		if string(body) == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingBody.Error()})
-			return
-		}
+func validateRequest(bodyReader io.Reader, request interface{}) error {
+	var maxRequestSize int64 = 10000
+	body, err := io.ReadAll(io.LimitReader(bodyReader, maxRequestSize))
+	if string(body) == "" {
+		return ErrEmptyBody
+	}
 
-		if string(body) == "{}" {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrEmptyJSON.Error()})
-			return
-		}
+	if string(body) == "{}" {
+		return ErrEmptyJSON
+	}
 
-		requestObject := reflect.New(requestType)
+	err = json.Unmarshal(body, request)
+	if err != nil {
+		return ErrIncorrectRequestType
+	}
 
-		err = json.Unmarshal(body, requestObject.Interface())
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrIncorrectRequestType.Error()})
-			return
-		}
+	valid, _ := govalidator.ValidateStruct(request)
+	if !valid {
+		return ErrInvalidRequestField
+	}
 
-		valid, _ := govalidator.ValidateStruct(requestObject.Interface())
-		if !valid {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
-			return
-		}
-
-		r.Body = io.NopCloser(bytes.NewReader(body))
-		endpointHandler(w, r)
-	})
+	return nil
 }
 
 func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), secretKey []byte) http.HandlerFunc {
@@ -172,12 +157,10 @@ func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *htt
 
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginCustomerRequest LoginCustomerRequest
-	json.NewDecoder(r.Body).Decode(&loginCustomerRequest)
-
-	valid, _ := govalidator.ValidateStruct(loginCustomerRequest)
-	if !valid {
+	err := validateRequest(r.Body, &loginCustomerRequest)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
+		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -218,11 +201,10 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	customer, _ := c.store.GetCustomerById(id)
 
 	var updateCustomerRequest UpdateCustomerRequest
-	json.NewDecoder(r.Body).Decode(&updateCustomerRequest)
-	valid, _ := govalidator.ValidateStruct(updateCustomerRequest)
-	if !valid {
+	err := validateRequest(r.Body, &updateCustomerRequest)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
+		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -247,12 +229,10 @@ func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) 
 
 func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	var createCustomerRequest CreateCustomerRequest
-	json.NewDecoder(r.Body).Decode(&createCustomerRequest)
-
-	valid, _ := govalidator.ValidateStruct(createCustomerRequest)
-	if !valid {
+	err := validateRequest(r.Body, &createCustomerRequest)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
+		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 		return
 	}
 
