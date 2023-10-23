@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strconv"
 	"time"
@@ -90,14 +93,54 @@ type ErrorResponse struct {
 }
 
 var (
-	ErrExistingUser       = errors.New("user with this email already exists")
-	ErrMalformedRequest   = errors.New("there are malformed field(s) in the request")
-	ErrMissingCustomer    = errors.New("customer doesn't exists")
-	ErrMissingToken       = errors.New("missing token")
-	ErrInvalidCredentials = errors.New("invalid user credentials")
-	ErrMissingSubject     = errors.New("token does not contain subject field")
-	ErrNonIntegerSubject  = errors.New("token subject field is not an integer")
+	ErrExistingUser         = errors.New("user with this email already exists")
+	ErrMissingCustomer      = errors.New("customer doesn't exists")
+	ErrMissingToken         = errors.New("missing token")
+	ErrInvalidCredentials   = errors.New("invalid user credentials")
+	ErrMissingSubject       = errors.New("token does not contain subject field")
+	ErrNonIntegerSubject    = errors.New("token subject field is not an integer")
+	ErrMissingBody          = errors.New("request body is empty")
+	ErrEmptyJSON            = errors.New("request JSON is empty")
+	ErrIncorrectRequestType = errors.New("request type is incorrect")
+	ErrInvalidRequestField  = errors.New("request contains invalid field(s)")
 )
+
+func validationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), requestType reflect.Type) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var maxRequestSize int64 = 10000
+		body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestSize))
+		if string(body) == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingBody.Error()})
+			return
+		}
+
+		if string(body) == "{}" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrEmptyJSON.Error()})
+			return
+		}
+
+		requestObject := reflect.New(requestType)
+
+		err = json.Unmarshal(body, requestObject.Interface())
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrIncorrectRequestType.Error()})
+			return
+		}
+
+		valid, _ := govalidator.ValidateStruct(requestObject.Interface())
+		if !valid {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
+			return
+		}
+
+		r.Body = io.NopCloser(bytes.NewReader(body))
+		endpointHandler(w, r)
+	})
+}
 
 func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), secretKey []byte) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +177,7 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	valid, _ := govalidator.ValidateStruct(loginCustomerRequest)
 	if !valid {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMalformedRequest.Error()})
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
 		return
 	}
 
@@ -179,7 +222,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	valid, _ := govalidator.ValidateStruct(updateCustomerRequest)
 	if !valid {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMalformedRequest.Error()})
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
 		return
 	}
 
@@ -209,7 +252,7 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	valid, _ := govalidator.ValidateStruct(createCustomerRequest)
 	if !valid {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMalformedRequest.Error()})
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
 		return
 	}
 

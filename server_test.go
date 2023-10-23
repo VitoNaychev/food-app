@@ -99,6 +99,104 @@ func DummyHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+type DummyRequest struct {
+	S string `valid:"stringlength(10|20),required"`
+	I int    `valid:"required"`
+}
+
+type InvalidDummyRequest struct {
+	S int
+	I string
+}
+
+func TestValidationMiddleware(t *testing.T) {
+	dummyHandler := validationMiddleware(DummyHandler, reflect.TypeOf(DummyRequest{}))
+
+	t.Run("returns Bad Request on empty body", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte{})
+		request, _ := http.NewRequest(http.MethodPost, "/", body)
+		response := httptest.NewRecorder()
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+		assertErrorResponse(t, errorResponse, ErrMissingBody)
+	})
+
+	t.Run("returns Bad Request on empty JSON", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte(`{}`))
+		request, _ := http.NewRequest(http.MethodPost, "/", body)
+		response := httptest.NewRecorder()
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+		assertErrorResponse(t, errorResponse, ErrEmptyJSON)
+	})
+
+	t.Run("returns Bad Request on incorrect request type", func(t *testing.T) {
+		invalidDummyRequest := InvalidDummyRequest{
+			S: 10,
+			I: "Hello, World!",
+		}
+
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(invalidDummyRequest)
+		request, _ := http.NewRequest(http.MethodPost, "/", body)
+		response := httptest.NewRecorder()
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+		assertErrorResponse(t, errorResponse, ErrIncorrectRequestType)
+	})
+
+	t.Run("returns Bad Request on invalid fields", func(t *testing.T) {
+		dummyRequest := DummyRequest{
+			S: "Hello,",
+			I: 10,
+		}
+
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(dummyRequest)
+		request, _ := http.NewRequest(http.MethodPost, "/", body)
+		response := httptest.NewRecorder()
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+
+		var errorResponse ErrorResponse
+		json.NewDecoder(response.Body).Decode(&errorResponse)
+		assertErrorResponse(t, errorResponse, ErrInvalidRequestField)
+	})
+
+	t.Run("returns Accepted on valid request", func(t *testing.T) {
+		dummyRequest := DummyRequest{
+			S: "Hello, World!",
+			I: 10,
+		}
+
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(dummyRequest)
+		request, _ := http.NewRequest(http.MethodPost, "/", body)
+		response := httptest.NewRecorder()
+
+		dummyHandler(response, request)
+
+		assertStatus(t, response.Code, http.StatusAccepted)
+	})
+}
+
 func TestAuthenticationMiddleware(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
@@ -197,7 +295,6 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		got, err := strconv.Atoi(subject[0])
 		if err != nil {
 			t.Fatalf("expected integer Subject, got %q", subject[0])
-
 		}
 
 		if got != want {
@@ -449,7 +546,7 @@ func TestLoginUser(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&errorResponse)
 
 		assertStatus(t, response.Code, http.StatusBadRequest)
-		assertErrorResponse(t, errorResponse, ErrMalformedRequest)
+		assertErrorResponse(t, errorResponse, ErrInvalidRequestField)
 	})
 
 	t.Run("returns Bad Request on malformed request", func(t *testing.T) {
@@ -465,7 +562,7 @@ func TestLoginUser(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&errorResponse)
 
 		assertStatus(t, response.Code, http.StatusBadRequest)
-		assertErrorResponse(t, errorResponse, ErrMalformedRequest)
+		assertErrorResponse(t, errorResponse, ErrInvalidRequestField)
 	})
 }
 
@@ -547,7 +644,7 @@ func TestCreateUser(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&errorResponse)
 
 		assertStatus(t, response.Code, http.StatusBadRequest)
-		assertErrorResponse(t, errorResponse, ErrMalformedRequest)
+		assertErrorResponse(t, errorResponse, ErrInvalidRequestField)
 	})
 
 	t.Run("returns Bad Request on malformed request", func(t *testing.T) {
@@ -563,7 +660,7 @@ func TestCreateUser(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&errorResponse)
 
 		assertStatus(t, response.Code, http.StatusBadRequest)
-		assertErrorResponse(t, errorResponse, ErrMalformedRequest)
+		assertErrorResponse(t, errorResponse, ErrInvalidRequestField)
 	})
 
 	t.Run("return Bad Request on user with same email", func(t *testing.T) {
