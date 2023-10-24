@@ -1,9 +1,8 @@
-package main
+package servers
 
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,21 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/VitoNaychev/bt-customer-svc/auth"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
-
-type StubAddressStore struct {
-	addresses []GetAddressResponse
-}
-
-func (s *StubAddressStore) GetAddressByCustomerId(customerId int) (*GetAddressResponse, error) {
-	if len(s.addresses) < customerId {
-		return nil, errors.New("customer doesn't have an address")
-	}
-
-	return &s.addresses[customerId], nil
-}
 
 type StubCustomerStore struct {
 	customers   []Customer
@@ -104,24 +92,6 @@ var aliceCustomer = Customer{
 	Password:    "helloJohn123",
 }
 
-var peterAddress = GetAddressResponse{
-	Lat:          42.695111,
-	Lon:          23.329184,
-	AddressLine1: "ulitsa Gerogi S. Rakovski 96",
-	AddressLine2: "",
-	City:         "Sofia",
-	Country:      "Bulgaria",
-}
-
-var aliceAddress = GetAddressResponse{
-	Lat:          42.6931204,
-	Lon:          23.3225465,
-	AddressLine1: "ut. Angel Kanchev 1",
-	AddressLine2: "",
-	City:         "Sofia",
-	Country:      "Bulgaria",
-}
-
 func DummyHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -134,47 +104,6 @@ type DummyRequest struct {
 type IncorrectDummyRequest struct {
 	S int
 	I string
-}
-
-func TestGetCustomerAddress(t *testing.T) {
-	stubAddressStore := StubAddressStore{[]GetAddressResponse{peterAddress, aliceAddress}}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, nil, &stubAddressStore)
-
-	t.Run("returns Peter's addresses", func(t *testing.T) {
-		peterJWT, _ := generateJWT(secretKey, expiresAt, peterCustomer.Id)
-		request, _ := http.NewRequest(http.MethodGet, "/customer/address/", nil)
-		request.Header.Add("Token", peterJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		assertStatus(t, response.Code, http.StatusOK)
-		var got GetAddressResponse
-		json.NewDecoder(response.Body).Decode(&got)
-		if !reflect.DeepEqual(peterAddress, got) {
-			t.Errorf("got %v want %v", got, peterAddress)
-		}
-	})
-
-	t.Run("returns Alice's addresses", func(t *testing.T) {
-		aliceJWT, _ := generateJWT(secretKey, expiresAt, aliceCustomer.Id)
-		request, _ := http.NewRequest(http.MethodGet, "/customer/address/", nil)
-		request.Header.Add("Token", aliceJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		assertStatus(t, response.Code, http.StatusOK)
-		var got GetAddressResponse
-		json.NewDecoder(response.Body).Decode(&got)
-		if !reflect.DeepEqual(aliceAddress, got) {
-			t.Errorf("got %v want %v", got, aliceAddress)
-		}
-	})
 }
 
 func TestDecodeRequest(t *testing.T) {
@@ -339,7 +268,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		want := 10
-		dummyJWT, _ := generateJWT(secretKey, time.Now().Add(time.Second), want)
+		dummyJWT, _ := auth.GenerateJWT(secretKey, time.Now().Add(time.Second), want)
 		request.Header.Add("Token", dummyJWT)
 
 		dummyHandler(response, request)
@@ -403,7 +332,7 @@ func newUpdateCustomerRequest(customer Customer, secretKey []byte, expiresAt tim
 	}
 	json.NewEncoder(body).Encode(updateCustomerRequest)
 
-	customerJWT, _ := generateJWT(secretKey, expiresAt, customer.Id)
+	customerJWT, _ := auth.GenerateJWT(secretKey, expiresAt, customer.Id)
 
 	request, _ := http.NewRequest(http.MethodPut, "/customer/", body)
 	request.Header.Add("Token", customerJWT)
@@ -422,7 +351,7 @@ func TestDeleteUser(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 		response := httptest.NewRecorder()
 
-		peterJWT, _ := generateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := auth.GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
 		request.Header.Add("Token", peterJWT)
 
 		server.ServeHTTP(response, request)
@@ -440,7 +369,7 @@ func TestDeleteUser(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 		response := httptest.NewRecorder()
 
-		missingCustomerJWT, _ := generateJWT(secretKey, expiresAt, 10)
+		missingCustomerJWT, _ := auth.GenerateJWT(secretKey, expiresAt, 10)
 		request.Header.Add("Token", missingCustomerJWT)
 
 		server.ServeHTTP(response, request)
@@ -604,7 +533,7 @@ func assertJWT(t testing.TB, header http.Header, secretKey []byte, wantId int) {
 		t.Fatalf("missing JWT in header")
 	}
 
-	token, err := verifyJWT(header["Token"][0], secretKey)
+	token, err := auth.VerifyJWT(header["Token"][0], secretKey)
 	if err != nil {
 		t.Fatalf("error verifying JWT: %v", err)
 	}
@@ -648,7 +577,7 @@ func TestGetUser(t *testing.T) {
 	server := NewCustomerServer(secretKey, expiresAt, store, nil)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
-		peterJWT, _ := generateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := auth.GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
 		request := newGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -664,7 +593,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Alice's customer information", func(t *testing.T) {
-		aliceJWT, _ := generateJWT(secretKey, expiresAt, 1)
+		aliceJWT, _ := auth.GenerateJWT(secretKey, expiresAt, 1)
 		request := newGetCustomerRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
@@ -680,7 +609,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
-		noCustomerJWT, _ := generateJWT(secretKey, expiresAt, 3)
+		noCustomerJWT, _ := auth.GenerateJWT(secretKey, expiresAt, 3)
 		request := newGetCustomerRequest(noCustomerJWT)
 		response := httptest.NewRecorder()
 

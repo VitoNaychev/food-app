@@ -1,4 +1,4 @@
-package main
+package servers
 
 import (
 	"encoding/json"
@@ -11,11 +11,9 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/golang-jwt/jwt/v5"
-)
 
-type CustomerAddressStore interface {
-	GetAddressByCustomerId(customerId int) (*GetAddressResponse, error)
-}
+	"github.com/VitoNaychev/bt-customer-svc/auth"
+)
 
 type CustomerStore interface {
 	GetCustomerById(id int) (*Customer, error)
@@ -49,20 +47,10 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStor
 	router := http.NewServeMux()
 	router.HandleFunc("/customer/", c.CustomerHandler)
 	router.HandleFunc("/customer/login/", c.LoginHandler)
-	router.HandleFunc("/customer/address/", authenticationMiddleware(c.AddressHandler, secretKey))
 
 	c.Handler = router
 
 	return c
-}
-
-type GetAddressResponse struct {
-	Lat          float64
-	Lon          float64
-	AddressLine1 string
-	AddressLine2 string
-	City         string
-	Country      string
 }
 
 type Customer struct {
@@ -119,13 +107,6 @@ var (
 	ErrInvalidRequestField  = errors.New("request contains invalid field(s)")
 )
 
-func (c *CustomerServer) AddressHandler(w http.ResponseWriter, r *http.Request) {
-	id, _ := strconv.Atoi(r.Header["Subject"][0])
-
-	getAddressResponse, _ := c.addressStore.GetAddressByCustomerId(id)
-	json.NewEncoder(w).Encode(getAddressResponse)
-}
-
 func decodeRequest(bodyReader io.Reader, request interface{}) error {
 	var maxRequestSize int64 = 10000
 	body, err := io.ReadAll(io.LimitReader(bodyReader, maxRequestSize))
@@ -158,7 +139,7 @@ func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *htt
 			return
 		}
 
-		token, err := verifyJWT(r.Header["Token"][0], secretKey)
+		token, err := auth.VerifyJWT(r.Header["Token"][0], secretKey)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -200,7 +181,7 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginJWT, _ := generateJWT(c.secretKey, c.expiresAt, customer.Id)
+	loginJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customer.Id)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Add("Token", loginJWT)
@@ -268,7 +249,7 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	customer := getCustomerFromCreateCustomerRequest(createCustomerRequest)
 	customerId := c.store.StoreCustomer(*customer)
 
-	customerJWT, _ := generateJWT(c.secretKey, c.expiresAt, customerId)
+	customerJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customerId)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Add("Token", customerJWT)
