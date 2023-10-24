@@ -103,7 +103,7 @@ var (
 	ErrInvalidRequestField  = errors.New("request contains invalid field(s)")
 )
 
-func validateRequest(bodyReader io.Reader, request interface{}) error {
+func decodeRequest(bodyReader io.Reader, request interface{}) error {
 	var maxRequestSize int64 = 10000
 	body, err := io.ReadAll(io.LimitReader(bodyReader, maxRequestSize))
 	if string(body) == "" {
@@ -157,7 +157,7 @@ func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *htt
 
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginCustomerRequest LoginCustomerRequest
-	err := validateRequest(r.Body, &loginCustomerRequest)
+	err := decodeRequest(r.Body, &loginCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -201,7 +201,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	customer, _ := c.store.GetCustomerById(id)
 
 	var updateCustomerRequest UpdateCustomerRequest
-	err := validateRequest(r.Body, &updateCustomerRequest)
+	err := decodeRequest(r.Body, &updateCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -229,7 +229,7 @@ func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) 
 
 func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	var createCustomerRequest CreateCustomerRequest
-	err := validateRequest(r.Body, &createCustomerRequest)
+	err := decodeRequest(r.Body, &createCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
