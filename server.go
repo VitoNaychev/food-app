@@ -13,6 +13,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type CustomerAddressStore interface {
+	GetAddressByCustomerId(customerId int) (*GetAddressResponse, error)
+}
+
 type CustomerStore interface {
 	GetCustomerById(id int) (*Customer, error)
 	GetCustomerByEmail(email string) (*Customer, error)
@@ -22,13 +26,14 @@ type CustomerStore interface {
 }
 
 type CustomerServer struct {
-	secretKey []byte
-	expiresAt time.Time
-	store     CustomerStore
+	secretKey    []byte
+	expiresAt    time.Time
+	store        CustomerStore
+	addressStore CustomerAddressStore
 	http.Handler
 }
 
-func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStore) *CustomerServer {
+func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStore, addressStore CustomerAddressStore) *CustomerServer {
 	govalidator.TagMap["phonenumber"] = govalidator.Validator(func(str string) bool {
 		matched, _ := regexp.Match(`^\+[\d ]+$`, []byte(str))
 		return matched
@@ -39,14 +44,25 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStor
 	c.secretKey = secretKey
 	c.expiresAt = expiresAt
 	c.store = store
+	c.addressStore = addressStore
 
 	router := http.NewServeMux()
 	router.HandleFunc("/customer/", c.CustomerHandler)
 	router.HandleFunc("/customer/login/", c.LoginHandler)
+	router.HandleFunc("/customer/address/", authenticationMiddleware(c.AddressHandler, secretKey))
 
 	c.Handler = router
 
 	return c
+}
+
+type GetAddressResponse struct {
+	Lat          float64
+	Lon          float64
+	AddressLine1 string
+	AddressLine2 string
+	City         string
+	Country      string
 }
 
 type Customer struct {
@@ -102,6 +118,13 @@ var (
 	ErrIncorrectRequestType = errors.New("request type is incorrect")
 	ErrInvalidRequestField  = errors.New("request contains invalid field(s)")
 )
+
+func (c *CustomerServer) AddressHandler(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.Header["Subject"][0])
+
+	getAddressResponse, _ := c.addressStore.GetAddressByCustomerId(id)
+	json.NewEncoder(w).Encode(getAddressResponse)
+}
 
 func decodeRequest(bodyReader io.Reader, request interface{}) error {
 	var maxRequestSize int64 = 10000

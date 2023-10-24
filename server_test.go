@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
+
+type StubAddressStore struct {
+	addresses []GetAddressResponse
+}
+
+func (s *StubAddressStore) GetAddressByCustomerId(customerId int) (*GetAddressResponse, error) {
+	if len(s.addresses) < customerId {
+		return nil, errors.New("customer doesn't have an address")
+	}
+
+	return &s.addresses[customerId], nil
+}
 
 type StubCustomerStore struct {
 	customers   []Customer
@@ -91,8 +104,22 @@ var aliceCustomer = Customer{
 	Password:    "helloJohn123",
 }
 
-type MalformedRequest struct {
-	s string
+var peterAddress = GetAddressResponse{
+	Lat:          42.695111,
+	Lon:          23.329184,
+	AddressLine1: "ulitsa Gerogi S. Rakovski 96",
+	AddressLine2: "",
+	City:         "Sofia",
+	Country:      "Bulgaria",
+}
+
+var aliceAddress = GetAddressResponse{
+	Lat:          42.6931204,
+	Lon:          23.3225465,
+	AddressLine1: "ut. Angel Kanchev 1",
+	AddressLine2: "",
+	City:         "Sofia",
+	Country:      "Bulgaria",
 }
 
 func DummyHandler(w http.ResponseWriter, r *http.Request) {
@@ -107,6 +134,47 @@ type DummyRequest struct {
 type IncorrectDummyRequest struct {
 	S int
 	I string
+}
+
+func TestGetCustomerAddress(t *testing.T) {
+	stubAddressStore := StubAddressStore{[]GetAddressResponse{peterAddress, aliceAddress}}
+
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	expiresAt := time.Now().Add(time.Second)
+	server := NewCustomerServer(secretKey, expiresAt, nil, &stubAddressStore)
+
+	t.Run("returns Peter's addresses", func(t *testing.T) {
+		peterJWT, _ := generateJWT(secretKey, expiresAt, peterCustomer.Id)
+		request, _ := http.NewRequest(http.MethodGet, "/customer/address/", nil)
+		request.Header.Add("Token", peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusOK)
+		var got GetAddressResponse
+		json.NewDecoder(response.Body).Decode(&got)
+		if !reflect.DeepEqual(peterAddress, got) {
+			t.Errorf("got %v want %v", got, peterAddress)
+		}
+	})
+
+	t.Run("returns Alice's addresses", func(t *testing.T) {
+		aliceJWT, _ := generateJWT(secretKey, expiresAt, aliceCustomer.Id)
+		request, _ := http.NewRequest(http.MethodGet, "/customer/address/", nil)
+		request.Header.Add("Token", aliceJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusOK)
+		var got GetAddressResponse
+		json.NewDecoder(response.Body).Decode(&got)
+		if !reflect.DeepEqual(aliceAddress, got) {
+			t.Errorf("got %v want %v", got, aliceAddress)
+		}
+	})
 }
 
 func TestDecodeRequest(t *testing.T) {
@@ -300,7 +368,7 @@ func TestUpdateUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(secretKey, expiresAt, store, nil)
 
 	t.Run("updates customer information on valid JWT", func(t *testing.T) {
 		customer := peterCustomer
@@ -348,7 +416,7 @@ func TestDeleteUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(secretKey, expiresAt, store, nil)
 
 	t.Run("deletes customer on valid JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
@@ -391,7 +459,7 @@ func TestLoginUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(secretKey, expiresAt, store, nil)
 
 	t.Run("returns JWT on Peter's credentials", func(t *testing.T) {
 		request := newLoginRequest(peterCustomer)
@@ -460,7 +528,7 @@ func TestCreateUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(secretKey, expiresAt, store, nil)
 
 	t.Run("stores customer on POST", func(t *testing.T) {
 		store.Empty()
@@ -577,7 +645,7 @@ func TestGetUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(secretKey, expiresAt, store, nil)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
 		peterJWT, _ := generateJWT(secretKey, expiresAt, peterCustomer.Id)
