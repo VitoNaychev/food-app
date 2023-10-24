@@ -1,4 +1,4 @@
-package servers
+package bt_customer_svc
 
 import (
 	"bytes"
@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/bt-customer-svc/auth"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
 
@@ -74,24 +72,6 @@ func (s *StubCustomerStore) Empty() {
 	s.customers = []Customer{}
 }
 
-var peterCustomer = Customer{
-	Id:          0,
-	FirstName:   "Peter",
-	LastName:    "Smith",
-	PhoneNumber: "+359 88 576 5981",
-	Email:       "petesmith@gmail.com",
-	Password:    "firefirefire",
-}
-
-var aliceCustomer = Customer{
-	Id:          1,
-	FirstName:   "Alice",
-	LastName:    "Johnson",
-	PhoneNumber: "+359 88 444 2222",
-	Email:       "alicejohn@gmail.com",
-	Password:    "helloJohn123",
-}
-
 func DummyHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -104,191 +84,6 @@ type DummyRequest struct {
 type IncorrectDummyRequest struct {
 	S int
 	I string
-}
-
-func TestDecodeRequest(t *testing.T) {
-	t.Run("returns Bad Request on empty body", func(t *testing.T) {
-		body := bytes.NewBuffer([]byte{})
-
-		var dummyRequest DummyRequest
-		err := decodeRequest(body, &dummyRequest)
-
-		assertError(t, err, ErrEmptyBody)
-	})
-
-	t.Run("returns Bad Request on empty JSON", func(t *testing.T) {
-		body := bytes.NewBuffer([]byte(`{}`))
-
-		var dummyRequest DummyRequest
-		err := decodeRequest(body, &dummyRequest)
-
-		assertError(t, err, ErrEmptyJSON)
-	})
-
-	t.Run("returns Bad Request on incorrect request type", func(t *testing.T) {
-		incorrectDummyRequest := IncorrectDummyRequest{
-			S: 10,
-			I: "Hello, World!",
-		}
-
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(incorrectDummyRequest)
-
-		var dummyRequest DummyRequest
-		err := decodeRequest(body, &dummyRequest)
-
-		assertError(t, err, ErrIncorrectRequestType)
-	})
-
-	t.Run("returns Bad Request on invalid fields", func(t *testing.T) {
-		invalidDummyRequest := DummyRequest{
-			S: "Hello,",
-			I: 10,
-		}
-
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(invalidDummyRequest)
-
-		var dummyRequest DummyRequest
-		err := decodeRequest(body, &dummyRequest)
-
-		assertError(t, err, ErrInvalidRequestField)
-	})
-
-	t.Run("returns Accepted on valid request", func(t *testing.T) {
-		wantDummyRequest := DummyRequest{
-			S: "Hello, World!",
-			I: 10,
-		}
-
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(wantDummyRequest)
-
-		var gotDummyRequest DummyRequest
-		err := decodeRequest(body, &gotDummyRequest)
-
-		if err != nil {
-			t.Errorf("did not expect error, got %v", err)
-		}
-
-		if !reflect.DeepEqual(gotDummyRequest, wantDummyRequest) {
-			t.Errorf("got %v want %v", gotDummyRequest, wantDummyRequest)
-		}
-	})
-}
-
-func assertError(t testing.TB, got, want error) {
-	t.Helper()
-
-	if got != want {
-		t.Errorf("got error %v want %v", got, want)
-	}
-}
-
-func TestAuthenticationMiddleware(t *testing.T) {
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	dummyHandler := authenticationMiddleware(DummyHandler, secretKey)
-
-	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodPost, "/", nil)
-		response := httptest.NewRecorder()
-
-		dummyHandler(response, request)
-
-		assertStatus(t, response.Code, http.StatusUnauthorized)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrMissingToken)
-	})
-
-	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodPost, "/", nil)
-		response := httptest.NewRecorder()
-
-		request.Header.Add("Token", "thisIsAnInvalidJWT")
-
-		dummyHandler(response, request)
-
-		assertStatus(t, response.Code, http.StatusUnauthorized)
-
-		var errorResponse ErrorResponse
-		decoder := json.NewDecoder(response.Body)
-		decoder.DisallowUnknownFields()
-		decoder.Decode(&errorResponse)
-		if errorResponse.Message == "" {
-			t.Errorf("expected error message but did not get one")
-		}
-	})
-
-	t.Run("returns Unauthorized on missing Subject in Token", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodPost, "/", nil)
-		response := httptest.NewRecorder()
-
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second)),
-		})
-
-		tokenString, _ := token.SignedString(secretKey)
-		request.Header.Add("Token", tokenString)
-
-		dummyHandler(response, request)
-
-		assertStatus(t, response.Code, http.StatusUnauthorized)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrMissingSubject)
-	})
-
-	t.Run("returns Unauthorized on noninteger Subject in Token", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodPost, "/", nil)
-		response := httptest.NewRecorder()
-
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-			Subject:   "notAnIntegerSubject",
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second)),
-		})
-
-		tokenString, _ := token.SignedString(secretKey)
-		request.Header.Add("Token", tokenString)
-
-		dummyHandler(response, request)
-
-		assertStatus(t, response.Code, http.StatusUnauthorized)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrNonIntegerSubject)
-	})
-
-	t.Run("returns Token's Subject on valid JWT", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodPost, "/", nil)
-		response := httptest.NewRecorder()
-
-		want := 10
-		dummyJWT, _ := auth.GenerateJWT(secretKey, time.Now().Add(time.Second), want)
-		request.Header.Add("Token", dummyJWT)
-
-		dummyHandler(response, request)
-
-		assertStatus(t, response.Code, http.StatusAccepted)
-
-		subject := request.Header["Subject"]
-		if subject == nil {
-			t.Fatalf("did not get Subject in request header")
-		}
-
-		got, err := strconv.Atoi(subject[0])
-		if err != nil {
-			t.Fatalf("expected integer Subject, got %q", subject[0])
-		}
-
-		if got != want {
-			t.Errorf("got %d want %d", got, want)
-		}
-	})
 }
 
 func TestUpdateUser(t *testing.T) {
@@ -332,7 +127,7 @@ func newUpdateCustomerRequest(customer Customer, secretKey []byte, expiresAt tim
 	}
 	json.NewEncoder(body).Encode(updateCustomerRequest)
 
-	customerJWT, _ := auth.GenerateJWT(secretKey, expiresAt, customer.Id)
+	customerJWT, _ := GenerateJWT(secretKey, expiresAt, customer.Id)
 
 	request, _ := http.NewRequest(http.MethodPut, "/customer/", body)
 	request.Header.Add("Token", customerJWT)
@@ -351,7 +146,7 @@ func TestDeleteUser(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 		response := httptest.NewRecorder()
 
-		peterJWT, _ := auth.GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
 		request.Header.Add("Token", peterJWT)
 
 		server.ServeHTTP(response, request)
@@ -369,7 +164,7 @@ func TestDeleteUser(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 		response := httptest.NewRecorder()
 
-		missingCustomerJWT, _ := auth.GenerateJWT(secretKey, expiresAt, 10)
+		missingCustomerJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
 		request.Header.Add("Token", missingCustomerJWT)
 
 		server.ServeHTTP(response, request)
@@ -533,7 +328,7 @@ func assertJWT(t testing.TB, header http.Header, secretKey []byte, wantId int) {
 		t.Fatalf("missing JWT in header")
 	}
 
-	token, err := auth.VerifyJWT(header["Token"][0], secretKey)
+	token, err := VerifyJWT(header["Token"][0], secretKey)
 	if err != nil {
 		t.Fatalf("error verifying JWT: %v", err)
 	}
@@ -577,7 +372,7 @@ func TestGetUser(t *testing.T) {
 	server := NewCustomerServer(secretKey, expiresAt, store, nil)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
-		peterJWT, _ := auth.GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
 		request := newGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -593,7 +388,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Alice's customer information", func(t *testing.T) {
-		aliceJWT, _ := auth.GenerateJWT(secretKey, expiresAt, 1)
+		aliceJWT, _ := GenerateJWT(secretKey, expiresAt, 1)
 		request := newGetCustomerRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
@@ -609,7 +404,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
-		noCustomerJWT, _ := auth.GenerateJWT(secretKey, expiresAt, 3)
+		noCustomerJWT, _ := GenerateJWT(secretKey, expiresAt, 3)
 		request := newGetCustomerRequest(noCustomerJWT)
 		response := httptest.NewRecorder()
 

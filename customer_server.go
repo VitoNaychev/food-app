@@ -1,18 +1,13 @@
-package servers
+package bt_customer_svc
 
 import (
 	"encoding/json"
-	"errors"
-	"io"
 	"net/http"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/golang-jwt/jwt/v5"
-
-	"github.com/VitoNaychev/bt-customer-svc/auth"
 )
 
 type CustomerStore interface {
@@ -24,10 +19,9 @@ type CustomerStore interface {
 }
 
 type CustomerServer struct {
-	secretKey    []byte
-	expiresAt    time.Time
-	store        CustomerStore
-	addressStore CustomerAddressStore
+	secretKey []byte
+	expiresAt time.Time
+	store     CustomerStore
 	http.Handler
 }
 
@@ -42,7 +36,6 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStor
 	c.secretKey = secretKey
 	c.expiresAt = expiresAt
 	c.store = store
-	c.addressStore = addressStore
 
 	router := http.NewServeMux()
 	router.HandleFunc("/customer/", c.CustomerHandler)
@@ -94,74 +87,9 @@ type ErrorResponse struct {
 	Message string
 }
 
-var (
-	ErrExistingUser         = errors.New("user with this email already exists")
-	ErrMissingCustomer      = errors.New("customer doesn't exists")
-	ErrMissingToken         = errors.New("missing token")
-	ErrInvalidCredentials   = errors.New("invalid user credentials")
-	ErrMissingSubject       = errors.New("token does not contain subject field")
-	ErrNonIntegerSubject    = errors.New("token subject field is not an integer")
-	ErrEmptyBody            = errors.New("request body is empty")
-	ErrEmptyJSON            = errors.New("request JSON is empty")
-	ErrIncorrectRequestType = errors.New("request type is incorrect")
-	ErrInvalidRequestField  = errors.New("request contains invalid field(s)")
-)
-
-func decodeRequest(bodyReader io.Reader, request interface{}) error {
-	var maxRequestSize int64 = 10000
-	body, err := io.ReadAll(io.LimitReader(bodyReader, maxRequestSize))
-	if string(body) == "" {
-		return ErrEmptyBody
-	}
-
-	if string(body) == "{}" {
-		return ErrEmptyJSON
-	}
-
-	err = json.Unmarshal(body, request)
-	if err != nil {
-		return ErrIncorrectRequestType
-	}
-
-	valid, _ := govalidator.ValidateStruct(request)
-	if !valid {
-		return ErrInvalidRequestField
-	}
-
-	return nil
-}
-
-func authenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), secretKey []byte) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header["Token"] == nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
-			return
-		}
-
-		token, err := auth.VerifyJWT(r.Header["Token"][0], secretKey)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
-			return
-		}
-
-		id, err := getIDFromToken(token)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
-			return
-		}
-
-		r.Header.Add("Subject", strconv.Itoa(id))
-
-		endpointHandler(w, r)
-	})
-}
-
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginCustomerRequest LoginCustomerRequest
-	err := decodeRequest(r.Body, &loginCustomerRequest)
+	err := ValidateRequest(r.Body, &loginCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -181,7 +109,7 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loginJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customer.Id)
+	loginJWT, _ := GenerateJWT(c.secretKey, c.expiresAt, customer.Id)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Add("Token", loginJWT)
@@ -192,11 +120,11 @@ func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request)
 	case http.MethodPost:
 		c.storeCustomer(w, r)
 	case http.MethodGet:
-		authenticationMiddleware(c.getCustomer, c.secretKey)(w, r)
+		AuthenticationMiddleware(c.getCustomer, c.secretKey)(w, r)
 	case http.MethodDelete:
-		authenticationMiddleware(c.deleteCustomer, c.secretKey)(w, r)
+		AuthenticationMiddleware(c.deleteCustomer, c.secretKey)(w, r)
 	case http.MethodPut:
-		authenticationMiddleware(c.updateCustomer, c.secretKey)(w, r)
+		AuthenticationMiddleware(c.updateCustomer, c.secretKey)(w, r)
 	}
 }
 
@@ -205,7 +133,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	customer, _ := c.store.GetCustomerById(id)
 
 	var updateCustomerRequest UpdateCustomerRequest
-	err := decodeRequest(r.Body, &updateCustomerRequest)
+	err := ValidateRequest(r.Body, &updateCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -233,7 +161,7 @@ func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) 
 
 func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	var createCustomerRequest CreateCustomerRequest
-	err := decodeRequest(r.Body, &createCustomerRequest)
+	err := ValidateRequest(r.Body, &createCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -249,7 +177,7 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	customer := getCustomerFromCreateCustomerRequest(createCustomerRequest)
 	customerId := c.store.StoreCustomer(*customer)
 
-	customerJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customerId)
+	customerJWT, _ := GenerateJWT(c.secretKey, c.expiresAt, customerId)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Add("Token", customerJWT)
@@ -291,18 +219,4 @@ func newGetCustomerResponse(customer Customer) *GetCustomerResponse {
 	}
 
 	return &getCustomerResponse
-}
-
-func getIDFromToken(token *jwt.Token) (int, error) {
-	subject, err := token.Claims.GetSubject()
-	if err != nil || subject == "" {
-		return -1, ErrMissingSubject
-	}
-
-	id, err := strconv.Atoi(subject)
-	if err != nil {
-		return -1, ErrNonIntegerSubject
-	}
-
-	return id, nil
 }

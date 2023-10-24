@@ -1,4 +1,4 @@
-package servers
+package bt_customer_svc
 
 import (
 	"encoding/json"
@@ -7,12 +7,13 @@ import (
 )
 
 type CustomerAddressStore interface {
-	GetAddressByCustomerId(customerId int) (*GetAddressResponse, error)
+	GetAddressesByCustomerId(customerId int) ([]GetAddressResponse, error)
 }
 
 type CustomerAddressServer struct {
-	addressStore CustomerAddressStore
-	secretKey    []byte
+	addressStore  CustomerAddressStore
+	customerStore CustomerStore
+	secretKey     []byte
 }
 
 type GetAddressResponse struct {
@@ -27,13 +28,20 @@ type GetAddressResponse struct {
 func (c *CustomerAddressServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		authenticationMiddleware(c.GetAddressHandler, c.secretKey)(w, r)
+		AuthenticationMiddleware(c.GetAddressHandler, c.secretKey)(w, r)
 	}
 }
 
 func (c *CustomerAddressServer) GetAddressHandler(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.Header["Subject"][0])
 
-	getAddressResponse, _ := c.addressStore.GetAddressByCustomerId(id)
+	_, err := c.customerStore.GetCustomerById(id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		return
+	}
+
+	getAddressResponse, _ := c.addressStore.GetAddressesByCustomerId(id)
 	json.NewEncoder(w).Encode(getAddressResponse)
 }
