@@ -46,7 +46,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
 		invalidJWT := "thisIsAnInvalidJWT"
-		request, _ := http.NewRequest(http.MethodPost, "/customer/address", nil)
+		request := newAddAddressRequest(invalidJWT, nil)
 		request.Header.Add("Token", invalidJWT)
 		response := httptest.NewRecorder()
 
@@ -57,9 +57,8 @@ func TestSaveCustomerAddress(t *testing.T) {
 
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
-		request, _ := http.NewRequest(http.MethodPost, "/customer/address", body)
 		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
-		request.Header.Add("Token", peterJWT)
+		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -69,10 +68,9 @@ func TestSaveCustomerAddress(t *testing.T) {
 
 	t.Run("returns Not Found on missing user", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(peterAddress2)
-		request, _ := http.NewRequest(http.MethodPost, "/customer/address", body)
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
-		request.Header.Add("Token", peterJWT)
+		json.NewEncoder(body).Encode(aliceAddress)
+		missingJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+		request := newAddAddressRequest(missingJWT, body)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -84,7 +82,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(peterAddress1)
 		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
-		request := newStoreAddressRequest(peterJWT, body)
+		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -100,7 +98,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(aliceAddress)
 		peterJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
-		request := newStoreAddressRequest(peterJWT, body)
+		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -113,7 +111,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 	})
 }
 
-func newStoreAddressRequest(customerJWT string, body io.Reader) *http.Request {
+func newAddAddressRequest(customerJWT string, body io.Reader) *http.Request {
 	request, _ := http.NewRequest(http.MethodPost, "/customer/address", body)
 	request.Header.Add("Token", customerJWT)
 
