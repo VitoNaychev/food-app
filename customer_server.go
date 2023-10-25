@@ -89,7 +89,7 @@ type ErrorResponse struct {
 
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginCustomerRequest LoginCustomerRequest
-	err := ValidateRequest(r.Body, &loginCustomerRequest)
+	err := ValidateBody(r.Body, &loginCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -133,7 +133,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	customer, _ := c.store.GetCustomerById(id)
 
 	var updateCustomerRequest UpdateCustomerRequest
-	err := ValidateRequest(r.Body, &updateCustomerRequest)
+	err := ValidateBody(r.Body, &updateCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
@@ -161,7 +161,7 @@ func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) 
 
 func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	var createCustomerRequest CreateCustomerRequest
-	err := ValidateRequest(r.Body, &createCustomerRequest)
+	err := ValidateBody(r.Body, &createCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})

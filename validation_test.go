@@ -7,12 +7,19 @@ import (
 	"testing"
 )
 
-func TestValidateRequest(t *testing.T) {
+func TestValidateBody(t *testing.T) {
+	t.Run("returns Bad Request on no body", func(t *testing.T) {
+		var dummyRequest DummyRequest
+		err := ValidateBody(nil, &dummyRequest)
+
+		assertError(t, err, ErrNoBody)
+	})
+
 	t.Run("returns Bad Request on empty body", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 
 		var dummyRequest DummyRequest
-		err := ValidateRequest(body, &dummyRequest)
+		err := ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, ErrEmptyBody)
 	})
@@ -21,7 +28,7 @@ func TestValidateRequest(t *testing.T) {
 		body := bytes.NewBuffer([]byte(`{}`))
 
 		var dummyRequest DummyRequest
-		err := ValidateRequest(body, &dummyRequest)
+		err := ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, ErrEmptyJSON)
 	})
@@ -36,7 +43,7 @@ func TestValidateRequest(t *testing.T) {
 		json.NewEncoder(body).Encode(incorrectDummyRequest)
 
 		var dummyRequest DummyRequest
-		err := ValidateRequest(body, &dummyRequest)
+		err := ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, ErrIncorrectRequestType)
 	})
@@ -51,7 +58,7 @@ func TestValidateRequest(t *testing.T) {
 		json.NewEncoder(body).Encode(invalidDummyRequest)
 
 		var dummyRequest DummyRequest
-		err := ValidateRequest(body, &dummyRequest)
+		err := ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, ErrInvalidRequestField)
 	})
@@ -66,7 +73,7 @@ func TestValidateRequest(t *testing.T) {
 		json.NewEncoder(body).Encode(wantDummyRequest)
 
 		var gotDummyRequest DummyRequest
-		err := ValidateRequest(body, &gotDummyRequest)
+		err := ValidateBody(body, &gotDummyRequest)
 
 		if err != nil {
 			t.Errorf("did not expect error, got %v", err)

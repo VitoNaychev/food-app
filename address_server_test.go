@@ -1,7 +1,9 @@
 package bt_customer_svc
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,23 +15,113 @@ import (
 )
 
 type StubAddressStore struct {
-	addresses []GetAddressResponse
+	addresses    []Address
+	savedAddress Address
 }
 
-func (s *StubAddressStore) GetAddressesByCustomerId(customerId int) ([]GetAddressResponse, error) {
+func (s *StubAddressStore) GetAddressesByCustomerId(customerId int) ([]Address, error) {
 	if customerId == peterCustomer.Id {
-		return []GetAddressResponse{peterAddress1, peterAddress2}, nil
+		return []Address{peterAddress1, peterAddress2}, nil
 	}
 
 	if customerId == aliceCustomer.Id {
-		return []GetAddressResponse{aliceAddress}, nil
+		return []Address{aliceAddress}, nil
 	}
 
-	return []GetAddressResponse{}, nil
+	return []Address{}, nil
+}
+
+func (s *StubAddressStore) StoreAddress(address Address) {
+	s.savedAddress = address
+}
+
+func TestSaveCustomerAddress(t *testing.T) {
+	stubAddressStore := &StubAddressStore{[]Address{}, Address{}}
+	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
+
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	expiresAt := time.Now().Add(time.Second)
+	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, secretKey}
+
+	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
+		invalidJWT := "thisIsAnInvalidJWT"
+		request, _ := http.NewRequest(http.MethodPost, "/customer/address", nil)
+		request.Header.Add("Token", invalidJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte{})
+		request, _ := http.NewRequest(http.MethodPost, "/customer/address", body)
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		request.Header.Add("Token", peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+	})
+
+	t.Run("returns Not Found on missing user", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(peterAddress2)
+		request, _ := http.NewRequest(http.MethodPost, "/customer/address", body)
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+		request.Header.Add("Token", peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusNotFound)
+	})
+
+	t.Run("saves Peter's new address", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(peterAddress1)
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		request := newStoreAddressRequest(peterJWT, body)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusOK)
+
+		if !reflect.DeepEqual(stubAddressStore.savedAddress, peterAddress1) {
+			t.Errorf("got %v want %v", stubAddressStore.savedAddress, peterAddress1)
+		}
+	})
+
+	t.Run("saves Alice's new address", func(t *testing.T) {
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(aliceAddress)
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
+		request := newStoreAddressRequest(peterJWT, body)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusOK)
+
+		if !reflect.DeepEqual(stubAddressStore.savedAddress, aliceAddress) {
+			t.Errorf("got %v want %v", stubAddressStore.savedAddress, aliceAddress)
+		}
+	})
+}
+
+func newStoreAddressRequest(customerJWT string, body io.Reader) *http.Request {
+	request, _ := http.NewRequest(http.MethodPost, "/customer/address", body)
+	request.Header.Add("Token", customerJWT)
+
+	return request
 }
 
 func TestGetCustomerAddress(t *testing.T) {
-	stubAddressStore := &StubAddressStore{[]GetAddressResponse{peterAddress1, peterAddress2, aliceAddress}}
+	stubAddressStore := &StubAddressStore{[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
 
 	godotenv.Load("test.env")
@@ -46,7 +138,10 @@ func TestGetCustomerAddress(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusOK)
 
-		want := []GetAddressResponse{peterAddress1, peterAddress2}
+		want := []GetAddressResponse{
+			addressToGetAddressResponse(peterAddress1),
+			addressToGetAddressResponse(peterAddress2),
+		}
 		var got []GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
 		assertAddresses(t, got, want)
@@ -61,10 +156,23 @@ func TestGetCustomerAddress(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusOK)
 
-		want := []GetAddressResponse{aliceAddress}
+		want := []GetAddressResponse{
+			addressToGetAddressResponse(aliceAddress),
+		}
 		var got []GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
+
 		assertAddresses(t, got, want)
+	})
+
+	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
+		invalidJWT := "thisIsAnInvalidJWT"
+		request := newGetCustomerAddressRequest(invalidJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
 	})
 
 	t.Run("returns Not Found on missing user", func(t *testing.T) {

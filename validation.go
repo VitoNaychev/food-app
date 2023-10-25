@@ -7,18 +7,22 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
-func ValidateRequest(bodyReader io.Reader, request interface{}) error {
+func ValidateBody(body io.Reader, request interface{}) error {
+	if body == nil {
+		return ErrNoBody
+	}
+
 	var maxRequestSize int64 = 10000
-	body, err := io.ReadAll(io.LimitReader(bodyReader, maxRequestSize))
-	if string(body) == "" {
+	content, err := io.ReadAll(io.LimitReader(body, maxRequestSize))
+	if string(content) == "" {
 		return ErrEmptyBody
 	}
 
-	if string(body) == "{}" {
+	if string(content) == "{}" {
 		return ErrEmptyJSON
 	}
 
-	err = json.Unmarshal(body, request)
+	err = json.Unmarshal(content, request)
 	if err != nil {
 		return ErrIncorrectRequestType
 	}

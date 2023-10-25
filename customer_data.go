@@ -18,7 +18,8 @@ var aliceCustomer = Customer{
 	Password:    "helloJohn123",
 }
 
-var peterAddress1 = GetAddressResponse{
+var peterAddress1 = Address{
+	CustomerId:   0,
 	Lat:          42.695111,
 	Lon:          23.329184,
 	AddressLine1: "Shipka Street 6",
@@ -27,7 +28,8 @@ var peterAddress1 = GetAddressResponse{
 	Country:      "Bulgaria",
 }
 
-var peterAddress2 = GetAddressResponse{
+var peterAddress2 = Address{
+	CustomerId:   0,
 	Lat:          42.6938570,
 	Lon:          23.3362452,
 	AddressLine1: "ulitsa Gerogi S. Rakovski 96",
@@ -36,7 +38,8 @@ var peterAddress2 = GetAddressResponse{
 	Country:      "Bulgaria",
 }
 
-var aliceAddress = GetAddressResponse{
+var aliceAddress = Address{
+	CustomerId:   1,
 	Lat:          42.6931204,
 	Lon:          23.3225465,
 	AddressLine1: "ut. Angel Kanchev 1",
