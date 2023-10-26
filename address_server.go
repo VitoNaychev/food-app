@@ -9,12 +9,18 @@ import (
 type CustomerAddressStore interface {
 	GetAddressesByCustomerId(customerId int) ([]Address, error)
 	StoreAddress(address Address)
+	DeleteAddressById(id int) error
+	GetAddressById(id int) (Address, error)
 }
 
 type CustomerAddressServer struct {
 	addressStore  CustomerAddressStore
 	customerStore CustomerStore
 	secretKey     []byte
+}
+
+type DeleteAddressRequest struct {
+	Id int `valid:""`
 }
 
 type GetAddressResponse struct {
@@ -36,6 +42,7 @@ type AddAddressRequest struct {
 }
 
 type Address struct {
+	Id           int
 	CustomerId   int
 	Lat          float64
 	Lon          float64
@@ -51,7 +58,43 @@ func (c *CustomerAddressServer) ServeHTTP(w http.ResponseWriter, r *http.Request
 		AuthenticationMiddleware(c.StoreAddressHandler, c.secretKey)(w, r)
 	case http.MethodGet:
 		AuthenticationMiddleware(c.GetAddressHandler, c.secretKey)(w, r)
+	case http.MethodDelete:
+		AuthenticationMiddleware(c.DeleteAddressHandler, c.secretKey)(w, r)
 	}
+}
+
+func (c *CustomerAddressServer) DeleteAddressHandler(w http.ResponseWriter, r *http.Request) {
+	var deleteAddressRequest DeleteAddressRequest
+	err := ValidateBody(r.Body, &deleteAddressRequest)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	customerId, _ := strconv.Atoi(r.Header["Subject"][0])
+
+	_, err = c.customerStore.GetCustomerById(customerId)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		return
+	}
+
+	address, err := c.addressStore.GetAddressById(deleteAddressRequest.Id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingAddress.Error()})
+		return
+	}
+
+	if address.CustomerId != customerId {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrUnathorizedAction.Error()})
+		return
+	}
+
+	c.addressStore.DeleteAddressById(deleteAddressRequest.Id)
 }
 
 func (c *CustomerAddressServer) StoreAddressHandler(w http.ResponseWriter, r *http.Request) {

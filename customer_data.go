@@ -19,6 +19,7 @@ var aliceCustomer = Customer{
 }
 
 var peterAddress1 = Address{
+	Id:           0,
 	CustomerId:   0,
 	Lat:          42.695111,
 	Lon:          23.329184,
@@ -29,6 +30,7 @@ var peterAddress1 = Address{
 }
 
 var peterAddress2 = Address{
+	Id:           1,
 	CustomerId:   0,
 	Lat:          42.6938570,
 	Lon:          23.3362452,
@@ -39,6 +41,7 @@ var peterAddress2 = Address{
 }
 
 var aliceAddress = Address{
+	Id:           2,
 	CustomerId:   1,
 	Lat:          42.6931204,
 	Lon:          23.3225465,
