@@ -3,6 +3,7 @@ package bt_customer_svc
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"reflect"
 	"testing"
 )
@@ -22,14 +23,14 @@ type PhoneNumberRequest struct {
 }
 
 func TestValidateBody(t *testing.T) {
-	t.Run("returns Bad Request on no body", func(t *testing.T) {
+	t.Run("returns ErrNoBody on no body", func(t *testing.T) {
 		var dummyRequest DummyRequest
 		err := ValidateBody(nil, &dummyRequest)
 
 		assertError(t, err, ErrNoBody)
 	})
 
-	t.Run("returns Bad Request on empty body", func(t *testing.T) {
+	t.Run("returns ErrEmptyBody on empty body", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 
 		var dummyRequest DummyRequest
@@ -38,7 +39,7 @@ func TestValidateBody(t *testing.T) {
 		assertError(t, err, ErrEmptyBody)
 	})
 
-	t.Run("returns Bad Request on empty JSON", func(t *testing.T) {
+	t.Run("returns ErrEmptyJSON on empty JSON", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte(`{}`))
 
 		var dummyRequest DummyRequest
@@ -47,14 +48,13 @@ func TestValidateBody(t *testing.T) {
 		assertError(t, err, ErrEmptyJSON)
 	})
 
-	t.Run("returns Bad Request on incorrect request type", func(t *testing.T) {
+	t.Run("returns ErrIncorrectRequestType on incorrect request type", func(t *testing.T) {
 		incorrectDummyRequest := IncorrectDummyRequest{
 			S: 10,
 			I: "Hello, World!",
 		}
 
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(incorrectDummyRequest)
+		body := newRequestBody(incorrectDummyRequest)
 
 		var dummyRequest DummyRequest
 		err := ValidateBody(body, &dummyRequest)
@@ -62,14 +62,13 @@ func TestValidateBody(t *testing.T) {
 		assertError(t, err, ErrIncorrectRequestType)
 	})
 
-	t.Run("returns Bad Request on invalid fields", func(t *testing.T) {
+	t.Run("returns ErrInvalidRequestField on invalid fields", func(t *testing.T) {
 		invalidDummyRequest := DummyRequest{
 			S: "Hello,",
 			I: 10,
 		}
 
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(invalidDummyRequest)
+		body := newRequestBody(invalidDummyRequest)
 
 		var dummyRequest DummyRequest
 		err := ValidateBody(body, &dummyRequest)
@@ -77,14 +76,13 @@ func TestValidateBody(t *testing.T) {
 		assertError(t, err, ErrInvalidRequestField)
 	})
 
-	t.Run("returns Accepted on valid request", func(t *testing.T) {
+	t.Run("parses request body on valid request", func(t *testing.T) {
 		wantDummyRequest := DummyRequest{
 			S: "Hello, World!",
 			I: 10,
 		}
 
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(wantDummyRequest)
+		body := newRequestBody(wantDummyRequest)
 
 		var gotDummyRequest DummyRequest
 		err := ValidateBody(body, &gotDummyRequest)
@@ -103,22 +101,20 @@ func TestValidateBody(t *testing.T) {
 			PhoneNumber: "+359 88 4444 abc",
 		}
 
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(invalidPhoneNumberRequest)
+		body := newRequestBody(invalidPhoneNumberRequest)
 
-		var gotDummyRequest DummyRequest
-		err := ValidateBody(body, &gotDummyRequest)
+		var gotPhoneNumber PhoneNumberRequest
+		err := ValidateBody(body, &gotPhoneNumber)
 
 		assertError(t, err, ErrInvalidRequestField)
 	})
 
-	t.Run("succeeds on valid phone number", func(t *testing.T) {
+	t.Run("parses phone number on valid request", func(t *testing.T) {
 		phoneNumberRequest := PhoneNumberRequest{
 			PhoneNumber: "+359 88 4444 321",
 		}
 
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(phoneNumberRequest)
+		body := newRequestBody(phoneNumberRequest)
 
 		var gotPhoneNumberRequest PhoneNumberRequest
 		err := ValidateBody(body, &gotPhoneNumberRequest)
@@ -139,4 +135,11 @@ func assertError(t testing.TB, got, want error) {
 	if got != want {
 		t.Errorf("got error %v want %v", got, want)
 	}
+}
+
+func newRequestBody(data interface{}) io.Reader {
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(data)
+
+	return body
 }
