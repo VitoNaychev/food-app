@@ -19,6 +19,7 @@ type StubAddressStore struct {
 	addresses        []Address
 	savedAddress     Address
 	deletedAddressId int
+	updatedAddress   Address
 }
 
 func (s *StubAddressStore) GetAddressesByCustomerId(customerId int) ([]Address, error) {
@@ -56,9 +57,132 @@ func (s *StubAddressStore) GetAddressById(id int) (Address, error) {
 	return Address{}, fmt.Errorf("address with id %d doesn't exist", id)
 }
 
+func (s *StubAddressStore) UpdateAddress(address Address) error {
+	s.updatedAddress = address
+	return nil
+}
+
+func TestUpdateCustomerAddress(t *testing.T) {
+	stubAddressStore := &StubAddressStore{
+		[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}, 0, Address{},
+	}
+	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
+
+	godotenv.Load("test.env")
+	secretKey := []byte(os.Getenv("SECRET"))
+	expiresAt := time.Now().Add(time.Second)
+	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, secretKey}
+
+	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
+		invalidJWT := "thisIsAnInvalidJWT"
+		request, _ := http.NewRequest(http.MethodPut, "/customer/address/", nil)
+		request.Header.Add("Token", invalidJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("updates address on valid body and credentials", func(t *testing.T) {
+		updatedAddress := peterAddress2
+		updatedAddress.City = "Varna"
+
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+
+		request := newUpdateAddressRequest(updatedAddress, peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		if !reflect.DeepEqual(stubAddressStore.updatedAddress, updatedAddress) {
+			t.Errorf("got %v want %v", stubAddressStore.updatedAddress, updatedAddress)
+		}
+	})
+
+	t.Run("returns Bad Request on invalid request", func(t *testing.T) {
+		invalidAddress := Address{}
+
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+
+		request := newUpdateAddressRequest(invalidAddress, peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusBadRequest)
+		assertErrorResponse(t, response.Body, ErrInvalidRequestField)
+	})
+
+	t.Run("returns Not Found on missing customer", func(t *testing.T) {
+		updatedAddress := peterAddress2
+		updatedAddress.City = "Varna"
+
+		missingJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+
+		request := newUpdateAddressRequest(updatedAddress, missingJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusNotFound)
+		assertErrorResponse(t, response.Body, ErrMissingCustomer)
+	})
+
+	t.Run("returns Not Found on missing address", func(t *testing.T) {
+		updatedAddress := peterAddress2
+		updatedAddress.Id = 10
+
+		missingJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+
+		request := newUpdateAddressRequest(updatedAddress, missingJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusNotFound)
+		assertErrorResponse(t, response.Body, ErrMissingAddress)
+	})
+
+	t.Run("returns Unauthorized on update on another customer's address", func(t *testing.T) {
+		updatedAddress := peterAddress2
+		updatedAddress.City = "Varna"
+
+		peterJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
+
+		request := newUpdateAddressRequest(updatedAddress, peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusUnauthorized)
+		assertErrorResponse(t, response.Body, ErrUnathorizedAction)
+	})
+}
+
+func newUpdateAddressRequest(address Address, customerJWT string) *http.Request {
+	updateAddressRequest := UpdateAddressRequest{
+		Id:           address.Id,
+		Lat:          address.Lat,
+		Lon:          address.Lon,
+		AddressLine1: address.AddressLine1,
+		AddressLine2: address.AddressLine2,
+		City:         address.City,
+		Country:      address.Country,
+	}
+
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(updateAddressRequest)
+
+	request, _ := http.NewRequest(http.MethodPut, "/customer/address/", body)
+	request.Header.Add("Token", customerJWT)
+
+	return request
+}
+
 func TestDeleteCustomerAddress(t *testing.T) {
 	stubAddressStore := &StubAddressStore{
-		[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}, 0,
+		[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}, 0, Address{},
 	}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
 
@@ -119,7 +243,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		assertErrorResponse(t, response.Body, ErrMissingAddress)
 	})
 
-	t.Run("returns Unathorized on attempt to delete another customer's address", func(t *testing.T) {
+	t.Run("returns Unathorized on delete on another customer's address", func(t *testing.T) {
 		deleteAddressRequest := DeleteAddressRequest{Id: 2}
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(deleteAddressRequest)
@@ -162,7 +286,7 @@ func newDeleteAddressRequest(customerJWT string, body io.Reader) *http.Request {
 }
 
 func TestSaveCustomerAddress(t *testing.T) {
-	stubAddressStore := &StubAddressStore{[]Address{}, Address{}, 0}
+	stubAddressStore := &StubAddressStore{[]Address{}, Address{}, 0, Address{}}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
 
 	godotenv.Load("test.env")
@@ -184,6 +308,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+
 		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
 
@@ -195,7 +320,9 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("returns Not Found on missing user", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(aliceAddress)
+
 		missingJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+
 		request := newAddAddressRequest(missingJWT, body)
 		response := httptest.NewRecorder()
 
@@ -207,7 +334,9 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("saves Peter's new address", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(peterAddress1)
+
 		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+
 		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
 
@@ -228,7 +357,9 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("saves Alice's new address", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(aliceAddress)
+
 		peterJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
+
 		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
 
@@ -256,7 +387,7 @@ func newAddAddressRequest(customerJWT string, body io.Reader) *http.Request {
 
 func TestGetCustomerAddress(t *testing.T) {
 	stubAddressStore := &StubAddressStore{
-		[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}, 0,
+		[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}, 0, Address{},
 	}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
 
@@ -280,6 +411,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		}
 		var got []GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
+
 		assertAddresses(t, got, want)
 	})
 

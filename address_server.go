@@ -11,12 +11,23 @@ type CustomerAddressStore interface {
 	StoreAddress(address Address)
 	DeleteAddressById(id int) error
 	GetAddressById(id int) (Address, error)
+	UpdateAddress(address Address) error
 }
 
 type CustomerAddressServer struct {
 	addressStore  CustomerAddressStore
 	customerStore CustomerStore
 	secretKey     []byte
+}
+
+type UpdateAddressRequest struct {
+	Id           int     `validate:"min=0"`
+	Lat          float64 `validate:"latitude,required"`
+	Lon          float64 `validate:"longitude,required"`
+	AddressLine1 string  `validate:"required,max=40"`
+	AddressLine2 string  `validate:"max=40"`
+	City         string  `validate:"required,max=40"`
+	Country      string  `validate:"required,max=20"`
 }
 
 type DeleteAddressRequest struct {
@@ -61,7 +72,61 @@ func (c *CustomerAddressServer) ServeHTTP(w http.ResponseWriter, r *http.Request
 		AuthenticationMiddleware(c.GetAddressHandler, c.secretKey)(w, r)
 	case http.MethodDelete:
 		AuthenticationMiddleware(c.DeleteAddressHandler, c.secretKey)(w, r)
+	case http.MethodPut:
+		AuthenticationMiddleware(c.UpdateAddress, c.secretKey)(w, r)
 	}
+}
+
+func (c *CustomerAddressServer) UpdateAddress(w http.ResponseWriter, r *http.Request) {
+	var updateAddressRequest UpdateAddressRequest
+	err := ValidateBody(r.Body, &updateAddressRequest)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
+		return
+	}
+
+	customerId, _ := strconv.Atoi(r.Header["Subject"][0])
+
+	_, err = c.customerStore.GetCustomerById(customerId)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		return
+	}
+
+	address, err := c.addressStore.GetAddressById(updateAddressRequest.Id)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingAddress.Error()})
+		return
+	}
+
+	if address.CustomerId != customerId {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrUnathorizedAction.Error()})
+		return
+	}
+
+	address = updateAddressRequestToAddress(updateAddressRequest, customerId)
+
+	c.addressStore.UpdateAddress(address)
+
+}
+
+func updateAddressRequestToAddress(UpdateAddressRequest UpdateAddressRequest, customerId int) Address {
+	address := Address{
+		Id:           UpdateAddressRequest.Id,
+		CustomerId:   customerId,
+		Lat:          UpdateAddressRequest.Lat,
+		Lon:          UpdateAddressRequest.Lon,
+		AddressLine1: UpdateAddressRequest.AddressLine1,
+		AddressLine2: UpdateAddressRequest.AddressLine2,
+		City:         UpdateAddressRequest.City,
+		Country:      UpdateAddressRequest.Country,
+	}
+
+	return address
 }
 
 func (c *CustomerAddressServer) DeleteAddressHandler(w http.ResponseWriter, r *http.Request) {
