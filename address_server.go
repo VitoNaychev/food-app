@@ -24,6 +24,7 @@ type DeleteAddressRequest struct {
 }
 
 type GetAddressResponse struct {
+	Id           int     `validate:"min=0"`
 	Lat          float64 `validate:"latitude,required"`
 	Lon          float64 `validate:"longitude,required"`
 	AddressLine1 string  `validate:"required,max=40"`
@@ -156,6 +157,7 @@ func (c *CustomerAddressServer) GetAddressHandler(w http.ResponseWriter, r *http
 
 func addressToGetAddressResponse(address Address) GetAddressResponse {
 	getAddressResponse := GetAddressResponse{
+		Id:           address.Id,
 		Lat:          address.Lat,
 		Lon:          address.Lon,
 		AddressLine1: address.AddressLine1,
