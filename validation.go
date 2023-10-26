@@ -3,9 +3,27 @@ package bt_customer_svc
 import (
 	"encoding/json"
 	"io"
+	"regexp"
 
-	"github.com/asaskevich/govalidator"
+	"github.com/go-playground/validator/v10"
 )
+
+var validate *validator.Validate
+
+func init() {
+	InitValidate()
+}
+
+func validatePhoneNumber(fl validator.FieldLevel) bool {
+	matched, _ := regexp.Match(`^\+[\d ]+$`, []byte(fl.Field().String()))
+	return matched
+}
+
+func InitValidate() {
+	validate = validator.New(validator.WithRequiredStructEnabled())
+
+	validate.RegisterValidation("phonenumber", validatePhoneNumber)
+}
 
 func ValidateBody(body io.Reader, request interface{}) error {
 	if body == nil {
@@ -27,8 +45,8 @@ func ValidateBody(body io.Reader, request interface{}) error {
 		return ErrIncorrectRequestType
 	}
 
-	valid, _ := govalidator.ValidateStruct(request)
-	if !valid {
+	err = validate.Struct(request)
+	if err != nil {
 		return ErrInvalidRequestField
 	}
 

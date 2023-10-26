@@ -20,25 +20,25 @@ type CustomerAddressServer struct {
 }
 
 type DeleteAddressRequest struct {
-	Id int `valid:""`
+	Id int `validate:"min=0"`
 }
 
 type GetAddressResponse struct {
-	Lat          float64 `valid:"latitude,required"`
-	Lon          float64 `valid:"longitude,required"`
-	AddressLine1 string  `valid:"stringlength(2|40),required"`
-	AddressLine2 string  `valid:"stringlength(40)"`
-	City         string  `valid:"stringlength(2|20),required"`
-	Country      string  `valid:"stringlength(2|20),required"`
+	Lat          float64 `validate:"latitude,required"`
+	Lon          float64 `validate:"longitude,required"`
+	AddressLine1 string  `validate:"required,max=40"`
+	AddressLine2 string  `validate:"max=40"`
+	City         string  `validate:"required,max=40"`
+	Country      string  `validate:"required,max=20"`
 }
 
 type AddAddressRequest struct {
-	Lat          float64 `valid:"latitude,required"`
-	Lon          float64 `valid:"longitude,required"`
-	AddressLine1 string  `valid:"stringlength(2|40),required"`
-	AddressLine2 string  `valid:"stringlength(40)"`
-	City         string  `valid:"stringlength(2|20),required"`
-	Country      string  `valid:"stringlength(2|20),required"`
+	Lat          float64 `validate:"latitude,required"`
+	Lon          float64 `validate:"longitude,required"`
+	AddressLine1 string  `validate:"required,max=40"`
+	AddressLine2 string  `validate:"max=40"`
+	City         string  `validate:"required,max=40"`
+	Country      string  `validate:"required,max=20"`
 }
 
 type Address struct {

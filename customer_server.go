@@ -3,11 +3,8 @@ package bt_customer_svc
 import (
 	"encoding/json"
 	"net/http"
-	"regexp"
 	"strconv"
 	"time"
-
-	"github.com/asaskevich/govalidator"
 )
 
 type CustomerStore interface {
@@ -26,11 +23,6 @@ type CustomerServer struct {
 }
 
 func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStore, addressStore CustomerAddressStore) *CustomerServer {
-	govalidator.TagMap["phonenumber"] = govalidator.Validator(func(str string) bool {
-		matched, _ := regexp.Match(`^\+[\d ]+$`, []byte(str))
-		return matched
-	})
-
 	c := new(CustomerServer)
 
 	c.secretKey = secretKey
@@ -63,24 +55,24 @@ type GetCustomerResponse struct {
 }
 
 type CreateCustomerRequest struct {
-	FirstName   string `valid:"stringlength(2|20),required"`
-	LastName    string `valid:"stringlength(2|20),required"`
-	PhoneNumber string `valid:"phonenumber,required"`
-	Email       string `valid:"email,required"`
-	Password    string `valid:"stringlength(2|72),required"`
+	FirstName   string `validate:"required,max=20"`
+	LastName    string `validate:"required,max=20"`
+	PhoneNumber string `validate:"required,phonenumber"`
+	Email       string `validate:"required,email"`
+	Password    string `validate:"required,max=72"`
 }
 
 type LoginCustomerRequest struct {
-	Email    string `valid:"email,required"`
-	Password string `valid:"stringlength(2|72),required"`
+	Email    string `validate:"required,email"`
+	Password string `validate:"required,max=72"`
 }
 
 type UpdateCustomerRequest struct {
-	FirstName   string `valid:"stringlength(2|20),required"`
-	LastName    string `valid:"stringlength(2|20),required"`
-	PhoneNumber string `valid:"phonenumber,required"`
-	Email       string `valid:"email,required"`
-	Password    string `valid:"stringlength(2|72),required"`
+	FirstName   string `validate:"required,max=20"`
+	LastName    string `validate:"required,max=20"`
+	PhoneNumber string `validate:"phonenumber,required"`
+	Email       string `validate:"required,email"`
+	Password    string `validate:"required,max=72"`
 }
 
 type ErrorResponse struct {

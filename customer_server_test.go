@@ -77,16 +77,6 @@ func DummyHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-type DummyRequest struct {
-	S string `valid:"stringlength(10|20),required"`
-	I int    `valid:"required"`
-}
-
-type IncorrectDummyRequest struct {
-	S int
-	I string
-}
-
 func TestUpdateUser(t *testing.T) {
 	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
 
@@ -418,7 +408,7 @@ func assertStatus(t testing.TB, got, want int) {
 	t.Helper()
 
 	if got != want {
-		t.Errorf("got status %d, want %d", got, want)
+		t.Fatalf("got status %d, want %d", got, want)
 	}
 }
 

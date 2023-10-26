@@ -7,6 +7,20 @@ import (
 	"testing"
 )
 
+type DummyRequest struct {
+	S string `validate:"required,max=20,min=10"`
+	I int    `validate:"required"`
+}
+
+type IncorrectDummyRequest struct {
+	S int
+	I string
+}
+
+type PhoneNumberRequest struct {
+	PhoneNumber string `validate:"required,phonenumber"`
+}
+
 func TestValidateBody(t *testing.T) {
 	t.Run("returns Bad Request on no body", func(t *testing.T) {
 		var dummyRequest DummyRequest
@@ -81,6 +95,40 @@ func TestValidateBody(t *testing.T) {
 
 		if !reflect.DeepEqual(gotDummyRequest, wantDummyRequest) {
 			t.Errorf("got %v want %v", gotDummyRequest, wantDummyRequest)
+		}
+	})
+
+	t.Run("returns ErrInvalidRequestField on invalid phone number", func(t *testing.T) {
+		invalidPhoneNumberRequest := PhoneNumberRequest{
+			PhoneNumber: "+359 88 4444 abc",
+		}
+
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(invalidPhoneNumberRequest)
+
+		var gotDummyRequest DummyRequest
+		err := ValidateBody(body, &gotDummyRequest)
+
+		assertError(t, err, ErrInvalidRequestField)
+	})
+
+	t.Run("succeeds on valid phone number", func(t *testing.T) {
+		phoneNumberRequest := PhoneNumberRequest{
+			PhoneNumber: "+359 88 4444 321",
+		}
+
+		body := bytes.NewBuffer([]byte{})
+		json.NewEncoder(body).Encode(phoneNumberRequest)
+
+		var gotPhoneNumberRequest PhoneNumberRequest
+		err := ValidateBody(body, &gotPhoneNumberRequest)
+
+		if err != nil {
+			t.Errorf("did not expect error, got %v", err)
+		}
+
+		if !reflect.DeepEqual(gotPhoneNumberRequest, phoneNumberRequest) {
+			t.Errorf("got %v want %v", gotPhoneNumberRequest, phoneNumberRequest)
 		}
 	})
 }
