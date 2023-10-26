@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -169,11 +170,8 @@ func TestDeleteUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-
 		assertStatus(t, response.Code, http.StatusNotFound)
-		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
+		assertErrorResponse(t, response.Body, ErrMissingCustomer)
 	})
 }
 
@@ -211,11 +209,8 @@ func TestLoginUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-
 		assertStatus(t, response.Code, http.StatusUnauthorized)
-		assertErrorResponse(t, errorResponse, ErrInvalidCredentials)
+		assertErrorResponse(t, response.Body, ErrInvalidCredentials)
 	})
 
 	t.Run("returns Unauthorized on missing user", func(t *testing.T) {
@@ -226,11 +221,8 @@ func TestLoginUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-
 		assertStatus(t, response.Code, http.StatusUnauthorized)
-		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
+		assertErrorResponse(t, response.Body, ErrMissingCustomer)
 	})
 }
 
@@ -305,16 +297,16 @@ func TestCreateUser(t *testing.T) {
 		response = httptest.NewRecorder()
 		server.ServeHTTP(response, request)
 
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-
 		assertStatus(t, response.Code, http.StatusBadRequest)
-		assertErrorResponse(t, errorResponse, ErrExistingUser)
+		assertErrorResponse(t, response.Body, ErrExistingUser)
 	})
 }
 
-func assertErrorResponse(t testing.TB, errorResponse ErrorResponse, expetedError error) {
+func assertErrorResponse(t testing.TB, body io.Reader, expetedError error) {
 	t.Helper()
+
+	var errorResponse ErrorResponse
+	json.NewDecoder(body).Decode(&errorResponse)
 
 	if errorResponse.Message != expetedError.Error() {
 		t.Errorf("got error %q want %q", errorResponse.Message, expetedError.Error())
@@ -409,11 +401,9 @@ func TestGetUser(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
 
 		assertStatus(t, response.Code, http.StatusNotFound)
-		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
+		assertErrorResponse(t, response.Body, ErrMissingCustomer)
 	})
 }
 

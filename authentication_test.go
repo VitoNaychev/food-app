@@ -55,10 +55,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		dummyHandler(response, request)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrMissingToken)
+		assertErrorResponse(t, response.Body, ErrMissingToken)
 	})
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
@@ -94,10 +91,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		dummyHandler(response, request)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrMissingSubject)
+		assertErrorResponse(t, response.Body, ErrMissingSubject)
 	})
 
 	t.Run("returns Unauthorized on noninteger Subject in Token", func(t *testing.T) {
@@ -115,10 +109,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		dummyHandler(response, request)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrNonIntegerSubject)
+		assertErrorResponse(t, response.Body, ErrNonIntegerSubject)
 	})
 
 	t.Run("returns Token's Subject on valid JWT", func(t *testing.T) {

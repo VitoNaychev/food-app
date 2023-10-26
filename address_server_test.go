@@ -101,10 +101,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusNotFound)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
+		assertErrorResponse(t, response.Body, ErrMissingCustomer)
 	})
 
 	t.Run("returns Not Found on missing address", func(t *testing.T) {
@@ -119,10 +116,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusNotFound)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrMissingAddress)
+		assertErrorResponse(t, response.Body, ErrMissingAddress)
 	})
 
 	t.Run("returns Unathorized on attempt to delete another customer's address", func(t *testing.T) {
@@ -137,10 +131,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrUnathorizedAction)
+		assertErrorResponse(t, response.Body, ErrUnathorizedAction)
 	})
 
 	t.Run("deletes address on valid body and credentials", func(t *testing.T) {
@@ -328,10 +319,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		assertStatus(t, response.Code, http.StatusNotFound)
-
-		var errorResponse ErrorResponse
-		json.NewDecoder(response.Body).Decode(&errorResponse)
-		assertErrorResponse(t, errorResponse, ErrMissingCustomer)
+		assertErrorResponse(t, response.Body, ErrMissingCustomer)
 	})
 }
 
