@@ -166,7 +166,7 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	customer := getCustomerFromCreateCustomerRequest(createCustomerRequest)
+	customer := createCustomerRequestToCustomer(createCustomerRequest)
 	customerId := c.store.StoreCustomer(*customer)
 
 	customerJWT, _ := GenerateJWT(c.secretKey, c.expiresAt, customerId)
@@ -175,7 +175,7 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Token", customerJWT)
 }
 
-func getCustomerFromCreateCustomerRequest(createCustomerRequest CreateCustomerRequest) *Customer {
+func createCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest) *Customer {
 	customer := &Customer{
 		Id:          0,
 		FirstName:   createCustomerRequest.FirstName,
@@ -197,12 +197,12 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	getCustomerResponse := newGetCustomerResponse(*customer)
+	getCustomerResponse := customerToGetCustomerResponse(*customer)
 	json.NewEncoder(w).Encode(getCustomerResponse)
 
 }
 
-func newGetCustomerResponse(customer Customer) *GetCustomerResponse {
+func customerToGetCustomerResponse(customer Customer) GetCustomerResponse {
 	getCustomerResponse := GetCustomerResponse{
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
@@ -210,5 +210,5 @@ func newGetCustomerResponse(customer Customer) *GetCustomerResponse {
 		Email:       customer.Email,
 	}
 
-	return &getCustomerResponse
+	return getCustomerResponse
 }

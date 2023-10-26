@@ -360,29 +360,31 @@ func TestGetUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		var got GetCustomerResponse
-		json.NewDecoder(response.Body).Decode(&got)
-
-		customer := store.customers[0]
-
 		assertStatus(t, response.Code, http.StatusOK)
-		assertGetCustomerResponse(t, got, customer)
+
+		var got GetCustomerResponse
+		err := ValidateBody(response.Body, &got)
+		assertValidResponse(t, err)
+
+		want := customerToGetCustomerResponse(peterCustomer)
+		assertGetCustomerResponse(t, got, want)
 	})
 
 	t.Run("returns Alice's customer information", func(t *testing.T) {
-		aliceJWT, _ := GenerateJWT(secretKey, expiresAt, 1)
+		aliceJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
 		request := newGetCustomerRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		var got GetCustomerResponse
-		json.NewDecoder(response.Body).Decode(&got)
-
-		customer := store.customers[1]
-
 		assertStatus(t, response.Code, http.StatusOK)
-		assertGetCustomerResponse(t, got, customer)
+
+		var got GetCustomerResponse
+		err := ValidateBody(response.Body, &got)
+		assertValidResponse(t, err)
+
+		want := customerToGetCustomerResponse(aliceCustomer)
+		assertGetCustomerResponse(t, got, want)
 	})
 
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
@@ -404,6 +406,14 @@ func newGetCustomerRequest(jwt string) *http.Request {
 	return request
 }
 
+func assertValidResponse(t testing.TB, err error) {
+	t.Helper()
+
+	if err != nil {
+		t.Fatalf("couldn't parse response body, got error %v", err)
+	}
+}
+
 func assertStatus(t testing.TB, got, want int) {
 	t.Helper()
 
@@ -412,15 +422,8 @@ func assertStatus(t testing.TB, got, want int) {
 	}
 }
 
-func assertGetCustomerResponse(t testing.TB, got GetCustomerResponse, customer Customer) {
+func assertGetCustomerResponse(t testing.TB, got, want GetCustomerResponse) {
 	t.Helper()
-
-	want := GetCustomerResponse{
-		FirstName:   customer.FirstName,
-		LastName:    customer.LastName,
-		PhoneNumber: customer.PhoneNumber,
-		Email:       customer.Email,
-	}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
