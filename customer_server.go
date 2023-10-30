@@ -8,8 +8,8 @@ import (
 )
 
 type CustomerStore interface {
-	GetCustomerById(id int) (*Customer, error)
-	GetCustomerByEmail(email string) (*Customer, error)
+	GetCustomerById(id int) (Customer, error)
+	GetCustomerByEmail(email string) (Customer, error)
 	StoreCustomer(customer Customer) int
 	DeleteCustomer(id int) error
 	UpdateCustomer(customer Customer) error
@@ -138,7 +138,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	customer.PhoneNumber = updateCustomerRequest.PhoneNumber
 	customer.Password = updateCustomerRequest.Password
 
-	c.store.UpdateCustomer(*customer)
+	c.store.UpdateCustomer(customer)
 }
 
 func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) {
@@ -198,7 +198,7 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	getCustomerResponse := customerToGetCustomerResponse(*customer)
+	getCustomerResponse := customerToGetCustomerResponse(customer)
 	json.NewEncoder(w).Encode(getCustomerResponse)
 
 }

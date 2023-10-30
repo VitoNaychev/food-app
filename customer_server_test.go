@@ -40,24 +40,24 @@ func (s *StubCustomerStore) DeleteCustomer(id int) error {
 	return fmt.Errorf("no customer with id %d", id)
 }
 
-func (s *StubCustomerStore) GetCustomerById(id int) (*Customer, error) {
+func (s *StubCustomerStore) GetCustomerById(id int) (Customer, error) {
 	if len(s.customers) < id {
-		return nil, fmt.Errorf("no customer with id %d", id)
+		return Customer{}, fmt.Errorf("no customer with id %d", id)
 	}
 
 	customer := s.customers[id]
 
-	return &customer, nil
+	return customer, nil
 }
 
-func (s *StubCustomerStore) GetCustomerByEmail(email string) (*Customer, error) {
+func (s *StubCustomerStore) GetCustomerByEmail(email string) (Customer, error) {
 	for _, customer := range s.customers {
 		if customer.Email == email {
-			return &customer, nil
+			return customer, nil
 		}
 	}
 
-	return nil, fmt.Errorf("no customer with email %v", email)
+	return Customer{}, fmt.Errorf("no customer with email %v", email)
 }
 
 func (s *StubCustomerStore) StoreCustomer(customer Customer) int {
