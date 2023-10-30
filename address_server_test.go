@@ -64,7 +64,10 @@ func (s *StubAddressStore) UpdateAddress(address Address) error {
 
 func TestUpdateCustomerAddress(t *testing.T) {
 	stubAddressStore := &StubAddressStore{
-		[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}, 0, Address{},
+		[]Address{peterAddress1, peterAddress2, aliceAddress},
+		Address{},
+		0,
+		Address{},
 	}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
 
@@ -182,7 +185,10 @@ func newUpdateAddressRequest(address Address, customerJWT string) *http.Request 
 
 func TestDeleteCustomerAddress(t *testing.T) {
 	stubAddressStore := &StubAddressStore{
-		[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}, 0, Address{},
+		[]Address{peterAddress1, peterAddress2, aliceAddress},
+		Address{},
+		0,
+		Address{},
 	}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
 
@@ -387,7 +393,10 @@ func newAddAddressRequest(customerJWT string, body io.Reader) *http.Request {
 
 func TestGetCustomerAddress(t *testing.T) {
 	stubAddressStore := &StubAddressStore{
-		[]Address{peterAddress1, peterAddress2, aliceAddress}, Address{}, 0, Address{},
+		[]Address{peterAddress1, peterAddress2, aliceAddress},
+		Address{},
+		0,
+		Address{},
 	}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
 

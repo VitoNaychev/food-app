@@ -160,7 +160,8 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := c.store.GetCustomerByEmail(createCustomerRequest.Email); err == nil {
+	_, err = c.store.GetCustomerByEmail(createCustomerRequest.Email)
+	if err == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrExistingUser.Error()})
 		return
