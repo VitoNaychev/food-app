@@ -38,13 +38,13 @@ func (s *StubCustomerStore) DeleteCustomer(id int) error {
 }
 
 func (s *StubCustomerStore) GetCustomerById(id int) (Customer, error) {
-	if len(s.customers) < id {
-		return Customer{}, fmt.Errorf("no customer with id %d", id)
+	for _, customer := range s.customers {
+		if customer.Id == id {
+			return customer, nil
+		}
 	}
 
-	customer := s.customers[id]
-
-	return customer, nil
+	return Customer{}, fmt.Errorf("no customer with id %d", id)
 }
 
 func (s *StubCustomerStore) GetCustomerByEmail(email string) (Customer, error) {
@@ -58,7 +58,7 @@ func (s *StubCustomerStore) GetCustomerByEmail(email string) (Customer, error) {
 }
 
 func (s *StubCustomerStore) StoreCustomer(customer Customer) int {
-	id := len(s.customers)
+	id := len(s.customers) + 1
 
 	customer.Id = id
 	s.customers = append(s.customers, customer)

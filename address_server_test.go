@@ -238,7 +238,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Unathorized on delete on another customer's address", func(t *testing.T) {
-		deleteAddressRequest := DeleteAddressRequest{Id: 2}
+		deleteAddressRequest := DeleteAddressRequest{aliceAddress.Id}
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(deleteAddressRequest)
 		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
@@ -253,7 +253,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("deletes address on valid body and credentials", func(t *testing.T) {
-		deleteAddressRequest := DeleteAddressRequest{Id: 1}
+		deleteAddressRequest := DeleteAddressRequest{peterAddress1.Id}
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(deleteAddressRequest)
 		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)

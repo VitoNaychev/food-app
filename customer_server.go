@@ -40,9 +40,9 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store Customer
 
 type Customer struct {
 	Id          int
-	FirstName   string
-	LastName    string
-	PhoneNumber string
+	FirstName   string `db:"first_name"`
+	LastName    string `db:"last_name"`
+	PhoneNumber string `db:"phone_number"`
 	Email       string
 	Password    string
 }

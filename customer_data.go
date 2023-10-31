@@ -1,7 +1,7 @@
 package bt_customer_svc
 
 var peterCustomer = Customer{
-	Id:          0,
+	Id:          1,
 	FirstName:   "Peter",
 	LastName:    "Smith",
 	PhoneNumber: "+359 88 576 5981",
@@ -10,7 +10,7 @@ var peterCustomer = Customer{
 }
 
 var aliceCustomer = Customer{
-	Id:          1,
+	Id:          2,
 	FirstName:   "Alice",
 	LastName:    "Johnson",
 	PhoneNumber: "+359 88 444 2222",
@@ -19,8 +19,8 @@ var aliceCustomer = Customer{
 }
 
 var peterAddress1 = Address{
-	Id:           0,
-	CustomerId:   0,
+	Id:           1,
+	CustomerId:   1,
 	Lat:          42.695111,
 	Lon:          23.329184,
 	AddressLine1: "Shipka Street 6",
@@ -30,8 +30,8 @@ var peterAddress1 = Address{
 }
 
 var peterAddress2 = Address{
-	Id:           1,
-	CustomerId:   0,
+	Id:           2,
+	CustomerId:   1,
 	Lat:          42.6938570,
 	Lon:          23.3362452,
 	AddressLine1: "ulitsa Gerogi S. Rakovski 96",
@@ -41,8 +41,8 @@ var peterAddress2 = Address{
 }
 
 var aliceAddress = Address{
-	Id:           2,
-	CustomerId:   1,
+	Id:           3,
+	CustomerId:   2,
 	Lat:          42.6931204,
 	Lon:          23.3225465,
 	AddressLine1: "ut. Angel Kanchev 1",
