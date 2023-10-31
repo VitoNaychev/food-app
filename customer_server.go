@@ -22,7 +22,7 @@ type CustomerServer struct {
 	http.Handler
 }
 
-func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStore, addressStore CustomerAddressStore) *CustomerServer {
+func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStore) *CustomerServer {
 	c := new(CustomerServer)
 
 	c.secretKey = secretKey

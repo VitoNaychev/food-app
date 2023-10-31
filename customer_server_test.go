@@ -83,7 +83,7 @@ func TestUpdateUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store, nil)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
 	t.Run("updates customer information on valid JWT", func(t *testing.T) {
 		customer := peterCustomer
@@ -131,7 +131,7 @@ func TestDeleteUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store, nil)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
 	t.Run("deletes customer on valid JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
@@ -171,7 +171,7 @@ func TestLoginUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store, nil)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
 	t.Run("returns JWT on Peter's credentials", func(t *testing.T) {
 		request := newLoginRequest(peterCustomer)
@@ -234,7 +234,7 @@ func TestCreateUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store, nil)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
 	t.Run("stores customer on POST", func(t *testing.T) {
 		store.Empty()
@@ -351,7 +351,7 @@ func TestGetUser(t *testing.T) {
 	godotenv.Load("test.env")
 	secretKey := []byte(os.Getenv("SECRET"))
 	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store, nil)
+	server := NewCustomerServer(secretKey, expiresAt, store)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
 		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
