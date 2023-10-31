@@ -9,10 +9,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateJWT(secretKey []byte, expiresAt time.Time, subject int) (string, error) {
+func GenerateJWT(secretKey []byte, expiresAt time.Duration, subject int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Subject:   strconv.FormatInt(int64(subject), 10),
-		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresAt)),
 	})
 
 	tokenString, err := token.SignedString(secretKey)

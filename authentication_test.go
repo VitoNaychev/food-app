@@ -4,29 +4,25 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/joho/godotenv"
 )
 
 func TestJWTVerification(t *testing.T) {
-	secretKey := []byte("mySecretKey")
-
 	t.Run("returns Token on valid JWT ", func(t *testing.T) {
-		jwtString, _ := GenerateJWT(secretKey, time.Now().Add(time.Second), 0)
+		jwtString, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, 0)
 
-		_, err := VerifyJWT(jwtString, secretKey)
+		_, err := VerifyJWT(jwtString, testEnv.secretKey)
 		if err != nil {
 			t.Errorf("did not expect error, got %v", err)
 		}
 	})
 
 	t.Run("returns error on invalid JWT", func(t *testing.T) {
-		jwtString, _ := GenerateJWT(secretKey, time.Now().Add(time.Second), 0)
+		jwtString, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, 0)
 
 		jwtByteArr := []byte(jwtString)
 		if jwtByteArr[10] == 'A' {
@@ -36,7 +32,7 @@ func TestJWTVerification(t *testing.T) {
 		}
 		jwtString = string(jwtByteArr)
 
-		_, err := VerifyJWT(jwtString, secretKey)
+		_, err := VerifyJWT(jwtString, testEnv.secretKey)
 		if err == nil {
 			t.Errorf("did not get error but expected one")
 		}
@@ -44,9 +40,7 @@ func TestJWTVerification(t *testing.T) {
 }
 
 func TestAuthenticationMiddleware(t *testing.T) {
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	dummyHandler := AuthenticationMiddleware(DummyHandler, secretKey)
+	dummyHandler := AuthenticationMiddleware(DummyHandler, testEnv.secretKey)
 
 	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodPost, "/", nil)
@@ -82,10 +76,10 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(testEnv.expiresAt)),
 		})
 
-		tokenString, _ := token.SignedString(secretKey)
+		tokenString, _ := token.SignedString(testEnv.secretKey)
 		request.Header.Add("Token", tokenString)
 
 		dummyHandler(response, request)
@@ -100,10 +94,10 @@ func TestAuthenticationMiddleware(t *testing.T) {
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 			Subject:   "notAnIntegerSubject",
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(testEnv.expiresAt)),
 		})
 
-		tokenString, _ := token.SignedString(secretKey)
+		tokenString, _ := token.SignedString(testEnv.secretKey)
 		request.Header.Add("Token", tokenString)
 
 		dummyHandler(response, request)
@@ -117,7 +111,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		want := 10
-		dummyJWT, _ := GenerateJWT(secretKey, time.Now().Add(time.Second), want)
+		dummyJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, want)
 		request.Header.Add("Token", dummyJWT)
 
 		dummyHandler(response, request)

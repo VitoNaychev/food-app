@@ -7,12 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"testing"
-	"time"
-
-	"github.com/joho/godotenv"
 )
 
 type StubAddressStore struct {
@@ -70,11 +66,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		Address{},
 	}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, secretKey}
+	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, testEnv.secretKey}
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
 		invalidJWT := "thisIsAnInvalidJWT"
@@ -91,7 +83,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		updatedAddress := peterAddress2
 		updatedAddress.City = "Varna"
 
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 
 		request := newUpdateAddressRequest(updatedAddress, peterJWT)
 		response := httptest.NewRecorder()
@@ -106,7 +98,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 	t.Run("returns Bad Request on invalid request", func(t *testing.T) {
 		invalidAddress := Address{}
 
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 
 		request := newUpdateAddressRequest(invalidAddress, peterJWT)
 		response := httptest.NewRecorder()
@@ -121,7 +113,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		updatedAddress := peterAddress2
 		updatedAddress.City = "Varna"
 
-		missingJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+		missingJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, 10)
 
 		request := newUpdateAddressRequest(updatedAddress, missingJWT)
 		response := httptest.NewRecorder()
@@ -136,7 +128,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		updatedAddress := peterAddress2
 		updatedAddress.Id = 10
 
-		missingJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		missingJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 
 		request := newUpdateAddressRequest(updatedAddress, missingJWT)
 		response := httptest.NewRecorder()
@@ -151,7 +143,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		updatedAddress := peterAddress2
 		updatedAddress.City = "Varna"
 
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, aliceCustomer.Id)
 
 		request := newUpdateAddressRequest(updatedAddress, peterJWT)
 		response := httptest.NewRecorder()
@@ -191,11 +183,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		Address{},
 	}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, secretKey}
+	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, testEnv.secretKey}
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
 		invalidJWT := "thisIsAnInvalidJWT"
@@ -210,7 +198,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 		request := newDeleteAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
 
@@ -223,7 +211,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		deleteAddressRequest := DeleteAddressRequest{Id: 0}
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(deleteAddressRequest)
-		missingJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+		missingJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, 10)
 
 		request := newDeleteAddressRequest(missingJWT, body)
 		response := httptest.NewRecorder()
@@ -238,7 +226,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		deleteMissingAddressRequest := DeleteAddressRequest{Id: 10}
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(deleteMissingAddressRequest)
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 
 		request := newDeleteAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
@@ -253,7 +241,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		deleteAddressRequest := DeleteAddressRequest{Id: 2}
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(deleteAddressRequest)
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 
 		request := newDeleteAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
@@ -268,7 +256,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		deleteAddressRequest := DeleteAddressRequest{Id: 1}
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(deleteAddressRequest)
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 
 		request := newDeleteAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
@@ -294,11 +282,7 @@ func newDeleteAddressRequest(customerJWT string, body io.Reader) *http.Request {
 func TestSaveCustomerAddress(t *testing.T) {
 	stubAddressStore := &StubAddressStore{[]Address{}, Address{}, 0, Address{}}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, secretKey}
+	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, testEnv.secretKey}
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
 		invalidJWT := "thisIsAnInvalidJWT"
@@ -313,7 +297,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 
 		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
@@ -327,7 +311,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(aliceAddress)
 
-		missingJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+		missingJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, 10)
 
 		request := newAddAddressRequest(missingJWT, body)
 		response := httptest.NewRecorder()
@@ -341,7 +325,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(peterAddress1)
 
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 
 		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
@@ -364,7 +348,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		json.NewEncoder(body).Encode(aliceAddress)
 
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, aliceCustomer.Id)
 
 		request := newAddAddressRequest(peterJWT, body)
 		response := httptest.NewRecorder()
@@ -399,14 +383,10 @@ func TestGetCustomerAddress(t *testing.T) {
 		Address{},
 	}
 	stubCustomerStore := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, nil, nil}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, secretKey}
+	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, testEnv.secretKey}
 
 	t.Run("returns Peter's addresses", func(t *testing.T) {
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 		request := newGetCustomerAddressRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -425,7 +405,7 @@ func TestGetCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Alice's addresses", func(t *testing.T) {
-		aliceJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
+		aliceJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, aliceCustomer.Id)
 		request := newGetCustomerAddressRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
@@ -453,7 +433,7 @@ func TestGetCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on missing user", func(t *testing.T) {
-		aliceJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+		aliceJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, 10)
 		request := newGetCustomerAddressRequest(aliceJWT)
 		response := httptest.NewRecorder()
 

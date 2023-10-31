@@ -7,13 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 type StubCustomerStore struct {
@@ -79,18 +76,14 @@ func DummyHandler(w http.ResponseWriter, r *http.Request) {
 
 func TestUpdateUser(t *testing.T) {
 	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(testEnv.secretKey, testEnv.expiresAt, store)
 
 	t.Run("updates customer information on valid JWT", func(t *testing.T) {
 		customer := peterCustomer
 		customer.FirstName = "John"
 		customer.PhoneNumber = "+359 88 1234 213"
 
-		request := newUpdateCustomerRequest(customer, secretKey, expiresAt)
+		request := newUpdateCustomerRequest(customer, testEnv.secretKey, testEnv.expiresAt)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -107,7 +100,7 @@ func TestUpdateUser(t *testing.T) {
 	})
 }
 
-func newUpdateCustomerRequest(customer Customer, secretKey []byte, expiresAt time.Time) *http.Request {
+func newUpdateCustomerRequest(customer Customer, secretKey []byte, expiresAt time.Duration) *http.Request {
 	body := bytes.NewBuffer([]byte{})
 	updateCustomerRequest := UpdateCustomerRequest{
 		FirstName:   customer.FirstName,
@@ -127,17 +120,13 @@ func newUpdateCustomerRequest(customer Customer, secretKey []byte, expiresAt tim
 
 func TestDeleteUser(t *testing.T) {
 	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(testEnv.secretKey, testEnv.expiresAt, store)
 
 	t.Run("deletes customer on valid JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 		response := httptest.NewRecorder()
 
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 		request.Header.Add("Token", peterJWT)
 
 		server.ServeHTTP(response, request)
@@ -155,7 +144,7 @@ func TestDeleteUser(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 		response := httptest.NewRecorder()
 
-		missingCustomerJWT, _ := GenerateJWT(secretKey, expiresAt, 10)
+		missingCustomerJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, 10)
 		request.Header.Add("Token", missingCustomerJWT)
 
 		server.ServeHTTP(response, request)
@@ -167,11 +156,7 @@ func TestDeleteUser(t *testing.T) {
 
 func TestLoginUser(t *testing.T) {
 	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(testEnv.secretKey, testEnv.expiresAt, store)
 
 	t.Run("returns JWT on Peter's credentials", func(t *testing.T) {
 		request := newLoginRequest(peterCustomer)
@@ -179,7 +164,7 @@ func TestLoginUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		assertJWT(t, response.Header(), secretKey, peterCustomer.Id)
+		assertJWT(t, response.Header(), testEnv.secretKey, peterCustomer.Id)
 	})
 
 	t.Run("returns JWT on Alice's credentials", func(t *testing.T) {
@@ -188,7 +173,7 @@ func TestLoginUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		assertJWT(t, response.Header(), secretKey, aliceCustomer.Id)
+		assertJWT(t, response.Header(), testEnv.secretKey, aliceCustomer.Id)
 	})
 
 	t.Run("returns Unauthorized on invalid credentials", func(t *testing.T) {
@@ -230,11 +215,7 @@ func newLoginRequest(customer Customer) *http.Request {
 
 func TestCreateUser(t *testing.T) {
 	store := &StubCustomerStore{}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(testEnv.secretKey, testEnv.expiresAt, store)
 
 	t.Run("stores customer on POST", func(t *testing.T) {
 		store.Empty()
@@ -270,7 +251,7 @@ func TestCreateUser(t *testing.T) {
 		want := http.StatusAccepted
 
 		assertStatus(t, got, want)
-		assertJWT(t, response.Header(), secretKey, peterCustomer.Id)
+		assertJWT(t, response.Header(), testEnv.secretKey, peterCustomer.Id)
 	})
 
 	t.Run("return Bad Request on user with same email", func(t *testing.T) {
@@ -347,14 +328,10 @@ func newCreateCustomerRequest(customer Customer) *http.Request {
 
 func TestGetUser(t *testing.T) {
 	store := &StubCustomerStore{[]Customer{peterCustomer, aliceCustomer}, []int{}, []Customer{}}
-
-	godotenv.Load("test.env")
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := time.Now().Add(time.Second)
-	server := NewCustomerServer(secretKey, expiresAt, store)
+	server := NewCustomerServer(testEnv.secretKey, testEnv.expiresAt, store)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
-		peterJWT, _ := GenerateJWT(secretKey, expiresAt, peterCustomer.Id)
+		peterJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, peterCustomer.Id)
 		request := newGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -371,7 +348,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Alice's customer information", func(t *testing.T) {
-		aliceJWT, _ := GenerateJWT(secretKey, expiresAt, aliceCustomer.Id)
+		aliceJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, aliceCustomer.Id)
 		request := newGetCustomerRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
@@ -388,7 +365,7 @@ func TestGetUser(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
-		noCustomerJWT, _ := GenerateJWT(secretKey, expiresAt, 3)
+		noCustomerJWT, _ := GenerateJWT(testEnv.secretKey, testEnv.expiresAt, 3)
 		request := newGetCustomerRequest(noCustomerJWT)
 		response := httptest.NewRecorder()
 

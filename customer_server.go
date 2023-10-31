@@ -17,12 +17,12 @@ type CustomerStore interface {
 
 type CustomerServer struct {
 	secretKey []byte
-	expiresAt time.Time
+	expiresAt time.Duration
 	store     CustomerStore
 	http.Handler
 }
 
-func NewCustomerServer(secretKey []byte, expiresAt time.Time, store CustomerStore) *CustomerServer {
+func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store CustomerStore) *CustomerServer {
 	c := new(CustomerServer)
 
 	c.secretKey = secretKey
