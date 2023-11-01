@@ -1,51 +1,15 @@
-package bt_customer_svc
+package customer
 
 import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
+
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
+	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
+	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
+	"github.com/VitoNaychev/bt-customer-svc/models/customer_store"
 )
-
-type CustomerStore interface {
-	GetCustomerById(id int) (Customer, error)
-	GetCustomerByEmail(email string) (Customer, error)
-	StoreCustomer(customer Customer) int
-	DeleteCustomer(id int) error
-	UpdateCustomer(customer Customer) error
-}
-
-type CustomerServer struct {
-	secretKey []byte
-	expiresAt time.Duration
-	store     CustomerStore
-	http.Handler
-}
-
-func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store CustomerStore) *CustomerServer {
-	c := new(CustomerServer)
-
-	c.secretKey = secretKey
-	c.expiresAt = expiresAt
-	c.store = store
-
-	router := http.NewServeMux()
-	router.HandleFunc("/customer/", c.CustomerHandler)
-	router.HandleFunc("/customer/login/", c.LoginHandler)
-
-	c.Handler = router
-
-	return c
-}
-
-type Customer struct {
-	Id          int
-	FirstName   string `db:"first_name"`
-	LastName    string `db:"last_name"`
-	PhoneNumber string `db:"phone_number"`
-	Email       string
-	Password    string
-}
 
 type GetCustomerResponse struct {
 	FirstName   string
@@ -75,49 +39,32 @@ type UpdateCustomerRequest struct {
 	Password    string `validate:"required,max=72"`
 }
 
-type ErrorResponse struct {
-	Message string
-}
-
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginCustomerRequest LoginCustomerRequest
-	err := ValidateBody(r.Body, &loginCustomerRequest)
+	err := validation.ValidateBody(r.Body, &loginCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
 		return
 	}
 
 	customer, err := c.store.GetCustomerByEmail(loginCustomerRequest.Email)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
 		return
 	}
 
 	if customer.Password != loginCustomerRequest.Password {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidCredentials.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrInvalidCredentials.Error()})
 		return
 	}
 
-	loginJWT, _ := GenerateJWT(c.secretKey, c.expiresAt, customer.Id)
+	loginJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customer.Id)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Add("Token", loginJWT)
-}
-
-func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		c.storeCustomer(w, r)
-	case http.MethodGet:
-		AuthenticationMiddleware(c.getCustomer, c.secretKey)(w, r)
-	case http.MethodDelete:
-		AuthenticationMiddleware(c.deleteCustomer, c.secretKey)(w, r)
-	case http.MethodPut:
-		AuthenticationMiddleware(c.updateCustomer, c.secretKey)(w, r)
-	}
 }
 
 func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) {
@@ -125,10 +72,10 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	customer, _ := c.store.GetCustomerById(id)
 
 	var updateCustomerRequest UpdateCustomerRequest
-	err := ValidateBody(r.Body, &updateCustomerRequest)
+	err := validation.ValidateBody(r.Body, &updateCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -147,37 +94,37 @@ func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
 	}
 }
 
 func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	var createCustomerRequest CreateCustomerRequest
-	err := ValidateBody(r.Body, &createCustomerRequest)
+	err := validation.ValidateBody(r.Body, &createCustomerRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
 		return
 	}
 
 	_, err = c.store.GetCustomerByEmail(createCustomerRequest.Email)
 	if err == nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrExistingUser.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrExistingUser.Error()})
 		return
 	}
 
 	customer := createCustomerRequestToCustomer(createCustomerRequest)
 	customerId := c.store.StoreCustomer(*customer)
 
-	customerJWT, _ := GenerateJWT(c.secretKey, c.expiresAt, customerId)
+	customerJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customerId)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Add("Token", customerJWT)
 }
 
-func createCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest) *Customer {
-	customer := &Customer{
+func createCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest) *customer_store.Customer {
+	customer := &customer_store.Customer{
 		Id:          0,
 		FirstName:   createCustomerRequest.FirstName,
 		LastName:    createCustomerRequest.LastName,
@@ -194,7 +141,7 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
 		return
 	}
 
@@ -203,7 +150,7 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func customerToGetCustomerResponse(customer Customer) GetCustomerResponse {
+func customerToGetCustomerResponse(customer customer_store.Customer) GetCustomerResponse {
 	getCustomerResponse := GetCustomerResponse{
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,

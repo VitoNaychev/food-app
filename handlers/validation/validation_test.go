@@ -1,4 +1,4 @@
-package bt_customer_svc
+package validation
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"io"
 	"reflect"
 	"testing"
+
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
 )
 
 type DummyRequest struct {
@@ -27,7 +29,7 @@ func TestValidateBody(t *testing.T) {
 		var dummyRequest DummyRequest
 		err := ValidateBody(nil, &dummyRequest)
 
-		assertError(t, err, ErrNoBody)
+		assertError(t, err, handlers.ErrNoBody)
 	})
 
 	t.Run("returns ErrEmptyBody on empty body", func(t *testing.T) {
@@ -36,7 +38,7 @@ func TestValidateBody(t *testing.T) {
 		var dummyRequest DummyRequest
 		err := ValidateBody(body, &dummyRequest)
 
-		assertError(t, err, ErrEmptyBody)
+		assertError(t, err, handlers.ErrEmptyBody)
 	})
 
 	t.Run("returns ErrEmptyJSON on empty JSON", func(t *testing.T) {
@@ -45,7 +47,7 @@ func TestValidateBody(t *testing.T) {
 		var dummyRequest DummyRequest
 		err := ValidateBody(body, &dummyRequest)
 
-		assertError(t, err, ErrEmptyJSON)
+		assertError(t, err, handlers.ErrEmptyJSON)
 	})
 
 	t.Run("returns ErrIncorrectRequestType on incorrect request type", func(t *testing.T) {
@@ -59,7 +61,7 @@ func TestValidateBody(t *testing.T) {
 		var dummyRequest DummyRequest
 		err := ValidateBody(body, &dummyRequest)
 
-		assertError(t, err, ErrIncorrectRequestType)
+		assertError(t, err, handlers.ErrIncorrectRequestType)
 	})
 
 	t.Run("returns ErrInvalidRequestField on invalid fields", func(t *testing.T) {
@@ -73,7 +75,7 @@ func TestValidateBody(t *testing.T) {
 		var dummyRequest DummyRequest
 		err := ValidateBody(body, &dummyRequest)
 
-		assertError(t, err, ErrInvalidRequestField)
+		assertError(t, err, handlers.ErrInvalidRequestField)
 	})
 
 	t.Run("parses request body on valid request", func(t *testing.T) {
@@ -106,7 +108,7 @@ func TestValidateBody(t *testing.T) {
 		var gotPhoneNumber PhoneNumberRequest
 		err := ValidateBody(body, &gotPhoneNumber)
 
-		assertError(t, err, ErrInvalidRequestField)
+		assertError(t, err, handlers.ErrInvalidRequestField)
 	})
 
 	t.Run("parses phone number on valid request", func(t *testing.T) {

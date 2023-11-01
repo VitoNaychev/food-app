@@ -1,4 +1,4 @@
-package bt_customer_svc
+package customer_store
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package bt_customer_svc
+package auth
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
 )
 
 func GenerateJWT(secretKey []byte, expiresAt time.Duration, subject int) (string, error) {
@@ -40,21 +42,21 @@ func AuthenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *htt
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil {
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingToken.Error()})
+			json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingToken.Error()})
 			return
 		}
 
 		token, err := VerifyJWT(r.Header["Token"][0], secretKey)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
 			return
 		}
 
 		id, err := getIDFromToken(token)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+			json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
 			return
 		}
 
@@ -67,12 +69,12 @@ func AuthenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *htt
 func getIDFromToken(token *jwt.Token) (int, error) {
 	subject, err := token.Claims.GetSubject()
 	if err != nil || subject == "" {
-		return -1, ErrMissingSubject
+		return -1, handlers.ErrMissingSubject
 	}
 
 	id, err := strconv.Atoi(subject)
 	if err != nil {
-		return -1, ErrNonIntegerSubject
+		return -1, handlers.ErrNonIntegerSubject
 	}
 
 	return id, nil

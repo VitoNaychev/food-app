@@ -1,4 +1,4 @@
-package bt_customer_svc
+package router
 
 import (
 	"net/http"

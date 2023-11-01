@@ -1,24 +1,14 @@
-package bt_customer_svc
+package address
 
 import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
+	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
+	"github.com/VitoNaychev/bt-customer-svc/models/address_store"
 )
-
-type CustomerAddressStore interface {
-	GetAddressesByCustomerId(customerId int) ([]Address, error)
-	StoreAddress(address Address)
-	DeleteAddressById(id int) error
-	GetAddressById(id int) (Address, error)
-	UpdateAddress(address Address) error
-}
-
-type CustomerAddressServer struct {
-	addressStore  CustomerAddressStore
-	customerStore CustomerStore
-	secretKey     []byte
-}
 
 type UpdateAddressRequest struct {
 	Id           int     `validate:"min=0"`
@@ -53,36 +43,12 @@ type AddAddressRequest struct {
 	Country      string  `validate:"required,max=20"`
 }
 
-type Address struct {
-	Id           int
-	CustomerId   int
-	Lat          float64
-	Lon          float64
-	AddressLine1 string
-	AddressLine2 string
-	City         string
-	Country      string
-}
-
-func (c *CustomerAddressServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		AuthenticationMiddleware(c.StoreAddressHandler, c.secretKey)(w, r)
-	case http.MethodGet:
-		AuthenticationMiddleware(c.GetAddressHandler, c.secretKey)(w, r)
-	case http.MethodDelete:
-		AuthenticationMiddleware(c.DeleteAddressHandler, c.secretKey)(w, r)
-	case http.MethodPut:
-		AuthenticationMiddleware(c.UpdateAddress, c.secretKey)(w, r)
-	}
-}
-
 func (c *CustomerAddressServer) UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	var updateAddressRequest UpdateAddressRequest
-	err := ValidateBody(r.Body, &updateAddressRequest)
+	err := validation.ValidateBody(r.Body, &updateAddressRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrInvalidRequestField.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrInvalidRequestField.Error()})
 		return
 	}
 
@@ -91,20 +57,20 @@ func (c *CustomerAddressServer) UpdateAddress(w http.ResponseWriter, r *http.Req
 	_, err = c.customerStore.GetCustomerById(customerId)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
 		return
 	}
 
 	address, err := c.addressStore.GetAddressById(updateAddressRequest.Id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingAddress.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingAddress.Error()})
 		return
 	}
 
 	if address.CustomerId != customerId {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrUnathorizedAction.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrUnathorizedAction.Error()})
 		return
 	}
 
@@ -114,8 +80,8 @@ func (c *CustomerAddressServer) UpdateAddress(w http.ResponseWriter, r *http.Req
 
 }
 
-func updateAddressRequestToAddress(UpdateAddressRequest UpdateAddressRequest, customerId int) Address {
-	address := Address{
+func updateAddressRequestToAddress(UpdateAddressRequest UpdateAddressRequest, customerId int) address_store.Address {
+	address := address_store.Address{
 		Id:           UpdateAddressRequest.Id,
 		CustomerId:   customerId,
 		Lat:          UpdateAddressRequest.Lat,
@@ -131,10 +97,10 @@ func updateAddressRequestToAddress(UpdateAddressRequest UpdateAddressRequest, cu
 
 func (c *CustomerAddressServer) DeleteAddressHandler(w http.ResponseWriter, r *http.Request) {
 	var deleteAddressRequest DeleteAddressRequest
-	err := ValidateBody(r.Body, &deleteAddressRequest)
+	err := validation.ValidateBody(r.Body, &deleteAddressRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -143,20 +109,20 @@ func (c *CustomerAddressServer) DeleteAddressHandler(w http.ResponseWriter, r *h
 	_, err = c.customerStore.GetCustomerById(customerId)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
 		return
 	}
 
 	address, err := c.addressStore.GetAddressById(deleteAddressRequest.Id)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingAddress.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingAddress.Error()})
 		return
 	}
 
 	if address.CustomerId != customerId {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrUnathorizedAction.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrUnathorizedAction.Error()})
 		return
 	}
 
@@ -165,10 +131,10 @@ func (c *CustomerAddressServer) DeleteAddressHandler(w http.ResponseWriter, r *h
 
 func (c *CustomerAddressServer) StoreAddressHandler(w http.ResponseWriter, r *http.Request) {
 	var addAddressRequest AddAddressRequest
-	err := ValidateBody(r.Body, &addAddressRequest)
+	err := validation.ValidateBody(r.Body, &addAddressRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
 		return
 	}
 
@@ -177,7 +143,7 @@ func (c *CustomerAddressServer) StoreAddressHandler(w http.ResponseWriter, r *ht
 	_, err = c.customerStore.GetCustomerById(customerId)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
 		return
 	}
 
@@ -186,8 +152,8 @@ func (c *CustomerAddressServer) StoreAddressHandler(w http.ResponseWriter, r *ht
 	c.addressStore.StoreAddress(address)
 }
 
-func addAddressRequestToAddress(addAddressRequest AddAddressRequest, customerId int) Address {
-	address := Address{
+func addAddressRequestToAddress(addAddressRequest AddAddressRequest, customerId int) address_store.Address {
+	address := address_store.Address{
 		CustomerId:   customerId,
 		Lat:          addAddressRequest.Lat,
 		Lon:          addAddressRequest.Lon,
@@ -206,7 +172,7 @@ func (c *CustomerAddressServer) GetAddressHandler(w http.ResponseWriter, r *http
 	_, err := c.customerStore.GetCustomerById(customerId)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(ErrorResponse{Message: ErrMissingCustomer.Error()})
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
 		return
 	}
 
@@ -220,7 +186,7 @@ func (c *CustomerAddressServer) GetAddressHandler(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(getAddressResponse)
 }
 
-func addressToGetAddressResponse(address Address) GetAddressResponse {
+func addressToGetAddressResponse(address address_store.Address) GetAddressResponse {
 	getAddressResponse := GetAddressResponse{
 		Id:           address.Id,
 		Lat:          address.Lat,

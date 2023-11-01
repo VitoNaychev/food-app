@@ -1,4 +1,4 @@
-package bt_customer_svc
+package handlers
 
 import "errors"
 
@@ -17,3 +17,7 @@ var (
 	ErrMissingAddress       = errors.New("address doesn't exists")
 	ErrUnathorizedAction    = errors.New("customer does not have permission to perform this action")
 )
+
+type ErrorResponse struct {
+	Message string
+}

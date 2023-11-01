@@ -1,4 +1,4 @@
-package bt_customer_svc
+package router
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/VitoNaychev/bt-customer-svc/testutil"
 )
 
 var customerHandlerMessage = "Hello from customer handler"
@@ -34,7 +36,7 @@ func TestRouterServer(t *testing.T) {
 
 		routerServer.ServeHTTP(response, request)
 
-		assertStatus(t, response.Code, http.StatusAccepted)
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
 		want := customerHandlerMessage
 		got := getMessageFromBody(response.Body)
@@ -48,7 +50,7 @@ func TestRouterServer(t *testing.T) {
 
 		routerServer.ServeHTTP(response, request)
 
-		assertStatus(t, response.Code, http.StatusAccepted)
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
 		want := addressHandlerMessage
 		got := getMessageFromBody(response.Body)
@@ -62,7 +64,7 @@ func TestRouterServer(t *testing.T) {
 
 		routerServer.ServeHTTP(response, request)
 
-		assertStatus(t, response.Code, http.StatusNotFound)
+		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
 	})
 }
 

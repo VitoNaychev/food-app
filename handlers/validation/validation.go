@@ -1,10 +1,11 @@
-package bt_customer_svc
+package validation
 
 import (
 	"encoding/json"
 	"io"
 	"regexp"
 
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -27,27 +28,27 @@ func InitValidate() {
 
 func ValidateBody(body io.Reader, request interface{}) error {
 	if body == nil {
-		return ErrNoBody
+		return handlers.ErrNoBody
 	}
 
 	var maxRequestSize int64 = 10000
 	content, err := io.ReadAll(io.LimitReader(body, maxRequestSize))
 	if string(content) == "" {
-		return ErrEmptyBody
+		return handlers.ErrEmptyBody
 	}
 
 	if string(content) == "{}" {
-		return ErrEmptyJSON
+		return handlers.ErrEmptyJSON
 	}
 
 	err = json.Unmarshal(content, request)
 	if err != nil {
-		return ErrIncorrectRequestType
+		return handlers.ErrIncorrectRequestType
 	}
 
 	err = validate.Struct(request)
 	if err != nil {
-		return ErrInvalidRequestField
+		return handlers.ErrInvalidRequestField
 	}
 
 	return nil
