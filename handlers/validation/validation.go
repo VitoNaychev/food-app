@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"regexp"
@@ -41,7 +42,7 @@ func ValidateBody(body io.Reader, request interface{}) error {
 		return handlers.ErrEmptyJSON
 	}
 
-	err = json.Unmarshal(content, request)
+	err = strictUnmarshal(content, request)
 	if err != nil {
 		return handlers.ErrIncorrectRequestType
 	}
@@ -52,4 +53,10 @@ func ValidateBody(body io.Reader, request interface{}) error {
 	}
 
 	return nil
+}
+
+func strictUnmarshal(data []byte, v interface{}) error {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	return dec.Decode(v)
 }

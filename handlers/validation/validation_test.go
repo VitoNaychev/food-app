@@ -20,6 +20,13 @@ type IncorrectDummyRequest struct {
 	I string
 }
 
+type UnkownFieldsDummyRequest struct {
+	S string `validate:"required,max=20,min=10"`
+	I int    `validate:"required"`
+	F float32
+	B []byte
+}
+
 type PhoneNumberRequest struct {
 	PhoneNumber string `validate:"required,phonenumber"`
 }
@@ -57,6 +64,22 @@ func TestValidateBody(t *testing.T) {
 		}
 
 		body := newRequestBody(incorrectDummyRequest)
+
+		var dummyRequest DummyRequest
+		err := ValidateBody(body, &dummyRequest)
+
+		assertError(t, err, handlers.ErrIncorrectRequestType)
+	})
+
+	t.Run("returns ErrIncorrectRequestType on unknown fields", func(t *testing.T) {
+		unkownFieldsDummyRequest := UnkownFieldsDummyRequest{
+			S: "Hello, World!",
+			I: 42,
+			F: 3.14,
+			B: []byte{'M', 'D', 'M', 'A'},
+		}
+
+		body := newRequestBody(unkownFieldsDummyRequest)
 
 		var dummyRequest DummyRequest
 		err := ValidateBody(body, &dummyRequest)

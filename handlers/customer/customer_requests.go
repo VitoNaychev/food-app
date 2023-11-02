@@ -12,13 +12,7 @@ import (
 
 func NewUpdateCustomerRequest(customer cs.Customer, SecretKey []byte, ExpiresAt time.Duration) *http.Request {
 	body := bytes.NewBuffer([]byte{})
-	updateCustomerRequest := UpdateCustomerRequest{
-		FirstName:   customer.FirstName,
-		LastName:    customer.LastName,
-		Email:       customer.Email,
-		PhoneNumber: customer.PhoneNumber,
-		Password:    customer.Password,
-	}
+	updateCustomerRequest := CustomerToUpdateCustomerRequest(customer)
 	json.NewEncoder(body).Encode(updateCustomerRequest)
 
 	customerJWT, _ := auth.GenerateJWT(SecretKey, ExpiresAt, customer.Id)
@@ -29,10 +23,7 @@ func NewUpdateCustomerRequest(customer cs.Customer, SecretKey []byte, ExpiresAt 
 }
 
 func NewLoginRequest(customer cs.Customer) *http.Request {
-	loginCustomerRequest := LoginCustomerRequest{
-		Email:    customer.Email,
-		Password: customer.Password,
-	}
+	loginCustomerRequest := CustomerToLoginCustomerRequest(customer)
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(loginCustomerRequest)
 
@@ -41,13 +32,7 @@ func NewLoginRequest(customer cs.Customer) *http.Request {
 }
 
 func NewCreateCustomerRequest(customer cs.Customer) *http.Request {
-	createCustomerRequest := CreateCustomerRequest{
-		FirstName:   customer.FirstName,
-		LastName:    customer.LastName,
-		PhoneNumber: customer.PhoneNumber,
-		Email:       customer.Email,
-		Password:    customer.Password,
-	}
+	createCustomerRequest := CustomerToCreateCustomerRequest(customer)
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(createCustomerRequest)
 

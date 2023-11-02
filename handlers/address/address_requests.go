@@ -3,22 +3,13 @@ package address
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
 
 	as "github.com/VitoNaychev/bt-customer-svc/models/address_store"
 )
 
 func NewUpdateAddressRequest(address as.Address, customerJWT string) *http.Request {
-	updateAddressRequest := UpdateAddressRequest{
-		Id:           address.Id,
-		Lat:          address.Lat,
-		Lon:          address.Lon,
-		AddressLine1: address.AddressLine1,
-		AddressLine2: address.AddressLine2,
-		City:         address.City,
-		Country:      address.Country,
-	}
+	updateAddressRequest := AddressToUpdateAddressRequest(address)
 
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(updateAddressRequest)
@@ -29,14 +20,22 @@ func NewUpdateAddressRequest(address as.Address, customerJWT string) *http.Reque
 	return request
 }
 
-func NewDeleteAddressRequest(customerJWT string, body io.Reader) *http.Request {
+func NewDeleteAddressRequest(customerJWT string, id int) *http.Request {
+	deleteAddressRequest := DeleteAddressRequest{Id: id}
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(deleteAddressRequest)
+
 	request, _ := http.NewRequest(http.MethodDelete, "/customer/address", body)
 	request.Header.Add("Token", customerJWT)
 
 	return request
 }
 
-func NewAddAddressRequest(customerJWT string, body io.Reader) *http.Request {
+func NewAddAddressRequest(customerJWT string, address as.Address) *http.Request {
+	addAddressRequest := AddressToAddAddressRequest(address)
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(addAddressRequest)
+
 	request, _ := http.NewRequest(http.MethodPost, "/customer/address", body)
 	request.Header.Add("Token", customerJWT)
 

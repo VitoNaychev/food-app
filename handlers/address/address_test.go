@@ -128,7 +128,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
 		invalidJWT := "thisIsAnInvalidJWT"
-		request := NewDeleteAddressRequest(invalidJWT, nil)
+		request := NewDeleteAddressRequest(invalidJWT, td.PeterAddress1.Id)
 		request.Header.Add("Token", invalidJWT)
 		response := httptest.NewRecorder()
 
@@ -140,7 +140,10 @@ func TestDeleteCustomerAddress(t *testing.T) {
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
-		request := NewDeleteAddressRequest(peterJWT, body)
+
+		request, _ := http.NewRequest(http.MethodDelete, "/customer/address", body)
+		request.Header.Add("Token", peterJWT)
+
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -149,12 +152,9 @@ func TestDeleteCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on missing user", func(t *testing.T) {
-		deleteAddressRequest := DeleteAddressRequest{Id: 0}
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(deleteAddressRequest)
 		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
 
-		request := NewDeleteAddressRequest(missingJWT, body)
+		request := NewDeleteAddressRequest(missingJWT, td.PeterAddress1.Id)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -164,12 +164,9 @@ func TestDeleteCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on missing address", func(t *testing.T) {
-		deleteMissingAddressRequest := DeleteAddressRequest{Id: 10}
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(deleteMissingAddressRequest)
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := NewDeleteAddressRequest(peterJWT, body)
+		request := NewDeleteAddressRequest(peterJWT, 10)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -179,12 +176,9 @@ func TestDeleteCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Unathorized on delete on another customer's address", func(t *testing.T) {
-		deleteAddressRequest := DeleteAddressRequest{td.AliceAddress.Id}
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(deleteAddressRequest)
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := NewDeleteAddressRequest(peterJWT, body)
+		request := NewDeleteAddressRequest(peterJWT, td.AliceAddress.Id)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -194,12 +188,9 @@ func TestDeleteCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("deletes address on valid body and credentials", func(t *testing.T) {
-		deleteAddressRequest := DeleteAddressRequest{td.PeterAddress1.Id}
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(deleteAddressRequest)
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := NewDeleteAddressRequest(peterJWT, body)
+		request := NewDeleteAddressRequest(peterJWT, td.PeterAddress1.Id)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -218,7 +209,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
 		invalidJWT := "thisIsAnInvalidJWT"
-		request := NewAddAddressRequest(invalidJWT, nil)
+		request := NewAddAddressRequest(invalidJWT, td.AliceAddress)
 		request.Header.Add("Token", invalidJWT)
 		response := httptest.NewRecorder()
 
@@ -228,10 +219,9 @@ func TestSaveCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
-		body := bytes.NewBuffer([]byte{})
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := NewAddAddressRequest(peterJWT, body)
+		request := NewAddAddressRequest(peterJWT, as.Address{})
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -240,12 +230,9 @@ func TestSaveCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Not Found on missing user", func(t *testing.T) {
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(td.AliceAddress)
-
 		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
 
-		request := NewAddAddressRequest(missingJWT, body)
+		request := NewAddAddressRequest(missingJWT, td.AliceAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -254,12 +241,9 @@ func TestSaveCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("saves Peter's new address", func(t *testing.T) {
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(td.PeterAddress1)
-
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := NewAddAddressRequest(peterJWT, body)
+		request := NewAddAddressRequest(peterJWT, td.PeterAddress1)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -271,12 +255,9 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("saves Alice's new address", func(t *testing.T) {
 		stubAddressStore.Empty()
 
-		body := bytes.NewBuffer([]byte{})
-		json.NewEncoder(body).Encode(td.AliceAddress)
+		aliceJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.AliceCustomer.Id)
 
-		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.AliceCustomer.Id)
-
-		request := NewAddAddressRequest(peterJWT, body)
+		request := NewAddAddressRequest(aliceJWT, td.AliceAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -303,8 +284,8 @@ func TestGetCustomerAddress(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []GetAddressResponse{
-			addressToGetAddressResponse(td.PeterAddress1),
-			addressToGetAddressResponse(td.PeterAddress2),
+			AddressToGetAddressResponse(td.PeterAddress1),
+			AddressToGetAddressResponse(td.PeterAddress2),
 		}
 		var got []GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
@@ -322,7 +303,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []GetAddressResponse{
-			addressToGetAddressResponse(td.AliceAddress),
+			AddressToGetAddressResponse(td.AliceAddress),
 		}
 		var got []GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)

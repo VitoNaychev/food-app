@@ -8,36 +8,7 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
-	"github.com/VitoNaychev/bt-customer-svc/models/customer_store"
 )
-
-type GetCustomerResponse struct {
-	FirstName   string
-	LastName    string
-	PhoneNumber string
-	Email       string
-}
-
-type CreateCustomerRequest struct {
-	FirstName   string `validate:"required,max=20"`
-	LastName    string `validate:"required,max=20"`
-	PhoneNumber string `validate:"required,phonenumber"`
-	Email       string `validate:"required,email"`
-	Password    string `validate:"required,max=72"`
-}
-
-type LoginCustomerRequest struct {
-	Email    string `validate:"required,email"`
-	Password string `validate:"required,max=72"`
-}
-
-type UpdateCustomerRequest struct {
-	FirstName   string `validate:"required,max=20"`
-	LastName    string `validate:"required,max=20"`
-	PhoneNumber string `validate:"phonenumber,required"`
-	Email       string `validate:"required,email"`
-	Password    string `validate:"required,max=72"`
-}
 
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginCustomerRequest LoginCustomerRequest
@@ -79,12 +50,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	customer.FirstName = updateCustomerRequest.FirstName
-	customer.LastName = updateCustomerRequest.LastName
-	customer.Email = updateCustomerRequest.Email
-	customer.PhoneNumber = updateCustomerRequest.PhoneNumber
-	customer.Password = updateCustomerRequest.Password
-
+	customer = UpdateCustomerRequestToCustomer(updateCustomerRequest, id)
 	c.store.UpdateCustomer(customer)
 }
 
@@ -114,25 +80,13 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	customer := createCustomerRequestToCustomer(createCustomerRequest)
-	customerId := c.store.StoreCustomer(*customer)
+	customer := CreateCustomerRequestToCustomer(createCustomerRequest)
+	customerId := c.store.StoreCustomer(customer)
 
 	customerJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customerId)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Add("Token", customerJWT)
-}
-
-func createCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest) *customer_store.Customer {
-	customer := &customer_store.Customer{
-		Id:          0,
-		FirstName:   createCustomerRequest.FirstName,
-		LastName:    createCustomerRequest.LastName,
-		PhoneNumber: createCustomerRequest.PhoneNumber,
-		Email:       createCustomerRequest.Email,
-		Password:    createCustomerRequest.Password,
-	}
-	return customer
 }
 
 func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
@@ -145,18 +99,7 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	getCustomerResponse := customerToGetCustomerResponse(customer)
+	getCustomerResponse := CustomerToGetCustomerResponse(customer)
 	json.NewEncoder(w).Encode(getCustomerResponse)
 
-}
-
-func customerToGetCustomerResponse(customer customer_store.Customer) GetCustomerResponse {
-	getCustomerResponse := GetCustomerResponse{
-		FirstName:   customer.FirstName,
-		LastName:    customer.LastName,
-		PhoneNumber: customer.PhoneNumber,
-		Email:       customer.Email,
-	}
-
-	return getCustomerResponse
 }
