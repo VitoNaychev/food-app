@@ -1,4 +1,4 @@
-package validation
+package unittest
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
+	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
 )
 
 type DummyRequest struct {
@@ -34,7 +35,7 @@ type PhoneNumberRequest struct {
 func TestValidateBody(t *testing.T) {
 	t.Run("returns ErrNoBody on no body", func(t *testing.T) {
 		var dummyRequest DummyRequest
-		err := ValidateBody(nil, &dummyRequest)
+		err := validation.ValidateBody(nil, &dummyRequest)
 
 		assertError(t, err, handlers.ErrNoBody)
 	})
@@ -43,7 +44,7 @@ func TestValidateBody(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 
 		var dummyRequest DummyRequest
-		err := ValidateBody(body, &dummyRequest)
+		err := validation.ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, handlers.ErrEmptyBody)
 	})
@@ -52,7 +53,7 @@ func TestValidateBody(t *testing.T) {
 		body := bytes.NewBuffer([]byte(`{}`))
 
 		var dummyRequest DummyRequest
-		err := ValidateBody(body, &dummyRequest)
+		err := validation.ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, handlers.ErrEmptyJSON)
 	})
@@ -66,7 +67,7 @@ func TestValidateBody(t *testing.T) {
 		body := newRequestBody(incorrectDummyRequest)
 
 		var dummyRequest DummyRequest
-		err := ValidateBody(body, &dummyRequest)
+		err := validation.ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, handlers.ErrIncorrectRequestType)
 	})
@@ -82,7 +83,7 @@ func TestValidateBody(t *testing.T) {
 		body := newRequestBody(unkownFieldsDummyRequest)
 
 		var dummyRequest DummyRequest
-		err := ValidateBody(body, &dummyRequest)
+		err := validation.ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, handlers.ErrIncorrectRequestType)
 	})
@@ -96,7 +97,7 @@ func TestValidateBody(t *testing.T) {
 		body := newRequestBody(invalidDummyRequest)
 
 		var dummyRequest DummyRequest
-		err := ValidateBody(body, &dummyRequest)
+		err := validation.ValidateBody(body, &dummyRequest)
 
 		assertError(t, err, handlers.ErrInvalidRequestField)
 	})
@@ -110,7 +111,7 @@ func TestValidateBody(t *testing.T) {
 		body := newRequestBody(wantDummyRequest)
 
 		var gotDummyRequest DummyRequest
-		err := ValidateBody(body, &gotDummyRequest)
+		err := validation.ValidateBody(body, &gotDummyRequest)
 
 		if err != nil {
 			t.Errorf("did not expect error, got %v", err)
@@ -129,7 +130,7 @@ func TestValidateBody(t *testing.T) {
 		body := newRequestBody(invalidPhoneNumberRequest)
 
 		var gotPhoneNumber PhoneNumberRequest
-		err := ValidateBody(body, &gotPhoneNumber)
+		err := validation.ValidateBody(body, &gotPhoneNumber)
 
 		assertError(t, err, handlers.ErrInvalidRequestField)
 	})
@@ -142,7 +143,7 @@ func TestValidateBody(t *testing.T) {
 		body := newRequestBody(phoneNumberRequest)
 
 		var gotPhoneNumberRequest PhoneNumberRequest
-		err := ValidateBody(body, &gotPhoneNumberRequest)
+		err := validation.ValidateBody(body, &gotPhoneNumberRequest)
 
 		if err != nil {
 			t.Errorf("did not expect error, got %v", err)

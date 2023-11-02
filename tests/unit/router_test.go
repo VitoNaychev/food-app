@@ -1,4 +1,4 @@
-package router
+package unittest
 
 import (
 	"bytes"
@@ -7,7 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/testutil"
+	"github.com/VitoNaychev/bt-customer-svc/handlers/router"
+	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
 )
 
 var customerHandlerMessage = "Hello from customer handler"
@@ -28,7 +29,7 @@ func TestRouterServer(t *testing.T) {
 	fakeCustomerServer := http.HandlerFunc(fakeCustomerHandler)
 	fakeAddressServer := http.HandlerFunc(fakeAddressHandler)
 
-	routerServer := InitRouterServer(fakeCustomerServer, fakeAddressServer)
+	routerServer := router.InitRouterServer(fakeCustomerServer, fakeAddressServer)
 
 	t.Run("routes requests to the customer server", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodPost, "/customer/", nil)

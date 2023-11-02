@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/VitoNaychev/bt-customer-svc/models"
-	td "github.com/VitoNaychev/bt-customer-svc/testdata"
+	td "github.com/VitoNaychev/bt-customer-svc/tests/testdata"
 )
 
 type StubAddressStore struct {

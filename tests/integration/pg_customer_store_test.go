@@ -1,4 +1,4 @@
-package integration
+package integrationtest
 
 import (
 	"context"
@@ -14,8 +14,8 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
 	"github.com/VitoNaychev/bt-customer-svc/models"
-	"github.com/VitoNaychev/bt-customer-svc/testdata"
-	"github.com/VitoNaychev/bt-customer-svc/testutil"
+	"github.com/VitoNaychev/bt-customer-svc/tests/testdata"
+	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"

@@ -1,16 +1,16 @@
-package auth
+package unittest
 
 import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/testutil"
+	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
+	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -18,27 +18,18 @@ func DummyHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-var testEnv handlers.TestEnv
-
-func TestMain(m *testing.M) {
-	testEnv = handlers.LoadTestEnviornment()
-
-	code := m.Run()
-	os.Exit(code)
-}
-
 func TestJWTVerification(t *testing.T) {
 	t.Run("returns Token on valid JWT ", func(t *testing.T) {
-		jwtString, _ := GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 0)
+		jwtString, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 0)
 
-		_, err := VerifyJWT(jwtString, testEnv.SecretKey)
+		_, err := auth.VerifyJWT(jwtString, testEnv.SecretKey)
 		if err != nil {
 			t.Errorf("did not expect error, got %v", err)
 		}
 	})
 
 	t.Run("returns error on invalid JWT", func(t *testing.T) {
-		jwtString, _ := GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 0)
+		jwtString, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 0)
 
 		jwtByteArr := []byte(jwtString)
 		if jwtByteArr[10] == 'A' {
@@ -48,7 +39,7 @@ func TestJWTVerification(t *testing.T) {
 		}
 		jwtString = string(jwtByteArr)
 
-		_, err := VerifyJWT(jwtString, testEnv.SecretKey)
+		_, err := auth.VerifyJWT(jwtString, testEnv.SecretKey)
 		if err == nil {
 			t.Errorf("did not get error but expected one")
 		}
@@ -56,7 +47,7 @@ func TestJWTVerification(t *testing.T) {
 }
 
 func TestAuthenticationMiddleware(t *testing.T) {
-	dummyHandler := AuthenticationMiddleware(DummyHandler, testEnv.SecretKey)
+	dummyHandler := auth.AuthenticationMiddleware(DummyHandler, testEnv.SecretKey)
 
 	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodPost, "/", nil)
@@ -127,7 +118,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		want := 10
-		dummyJWT, _ := GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, want)
+		dummyJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, want)
 		request.Header.Add("Token", dummyJWT)
 
 		dummyHandler(response, request)
