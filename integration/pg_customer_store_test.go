@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -61,7 +62,7 @@ func SetupDatabaseContainer(t testing.TB) string {
 	return connStr
 }
 
-func TestCreateCustomerAndRetrievThem(t *testing.T) {
+func TestCustomerServerOperations(t *testing.T) {
 	connStr := SetupDatabaseContainer(t)
 
 	store, err := models.NewPgCustomerStore(context.Background(), connStr)
@@ -71,25 +72,70 @@ func TestCreateCustomerAndRetrievThem(t *testing.T) {
 
 	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, &store)
 
-	request := customer.NewCreateCustomerRequest(testdata.PeterCustomer)
+	peterJWT := createNewCustomer(server, testdata.PeterCustomer)
+	aliceJWT := createNewCustomer(server, testdata.AliceCustomer)
+
+	t.Run("retrieving customer", func(t *testing.T) {
+		request := customer.NewGetCustomerRequest(peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		want := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
+		var got customer.CustomerResponse
+		json.NewDecoder(response.Body).Decode(&got)
+		AssertCustomerResponse(t, got, want)
+	})
+
+	t.Run("updating customer", func(t *testing.T) {
+		updateCustomer := testdata.AliceCustomer
+		updateCustomer.LastName = "Roper"
+
+		request := customer.NewUpdateCustomerRequest(updateCustomer, aliceJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		want := customer.CustomerToCustomerResponse(updateCustomer)
+		var got customer.CustomerResponse
+		json.NewDecoder(response.Body).Decode(&got)
+		AssertCustomerResponse(t, got, want)
+	})
+
+	t.Run("deleting customer", func(t *testing.T) {
+		request := customer.NewDeleteCustomerRequest(peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		request = customer.NewGetCustomerRequest(peterJWT)
+		response = httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
+	})
+}
+
+func createNewCustomer(server http.Handler, c models.Customer) string {
+	request := customer.NewCreateCustomerRequest(c)
 	response := httptest.NewRecorder()
 
 	server.ServeHTTP(response, request)
 
-	if response.Header()["Token"] == nil {
-		t.Fatalf("server didn't return JWT")
+	return response.Header()["Token"][0]
+}
+
+func AssertCustomerResponse(t testing.TB, got, want customer.CustomerResponse) {
+	t.Helper()
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got response %v want %v", got, want)
 	}
-
-	request = customer.NewGetCustomerRequest(response.Header()["Token"][0])
-	response = httptest.NewRecorder()
-
-	server.ServeHTTP(response, request)
-
-	// want := customerToGetCustomerResponse(testdata.PeterCustomer)
-
-	var got customer.GetCustomerResponse
-	json.NewDecoder(response.Body).Decode(&got)
-
-	testutil.AssertStatus(t, response.Code, http.StatusOK)
-	// assertGetCustomerResponse(t, got, want)
 }

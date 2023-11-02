@@ -56,6 +56,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+		return
 	}
 
 	json.NewEncoder(w).Encode(CustomerToCustomerResponse(customer))
@@ -93,6 +94,7 @@ func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+		return
 	}
 
 	customerJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customer.Id)

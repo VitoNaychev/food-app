@@ -4,21 +4,25 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"time"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
-func NewUpdateCustomerRequest(customer models.Customer, SecretKey []byte, ExpiresAt time.Duration) *http.Request {
+func NewDeleteCustomerRequest(customerJWT string) *http.Request {
+	request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
+	request.Header.Add("Token", customerJWT)
+
+	return request
+}
+
+func NewUpdateCustomerRequest(customer models.Customer, customerJWT string) *http.Request {
 	body := bytes.NewBuffer([]byte{})
 	updateCustomerRequest := CustomerToUpdateCustomerRequest(customer)
 	json.NewEncoder(body).Encode(updateCustomerRequest)
 
-	customerJWT, _ := auth.GenerateJWT(SecretKey, ExpiresAt, customer.Id)
-
 	request, _ := http.NewRequest(http.MethodPut, "/customer/", body)
 	request.Header.Add("Token", customerJWT)
+
 	return request
 }
 

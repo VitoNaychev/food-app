@@ -34,7 +34,9 @@ func TestUpdateUser(t *testing.T) {
 		customer.FirstName = "John"
 		customer.PhoneNumber = "+359 88 1234 213"
 
-		request := NewUpdateCustomerRequest(customer, testEnv.SecretKey, testEnv.ExpiresAt)
+		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
+
+		request := NewUpdateCustomerRequest(customer, peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -50,22 +52,20 @@ func TestDeleteUser(t *testing.T) {
 	server := NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("deletes customer on valid JWT", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
-		response := httptest.NewRecorder()
-
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
-		request.Header.Add("Token", peterJWT)
+
+		request := NewDeleteCustomerRequest(peterJWT)
+		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 		testutil.AssertDeletedCustomer(t, store, td.PeterCustomer)
 	})
 
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
-		response := httptest.NewRecorder()
-
 		missingCustomerJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-		request.Header.Add("Token", missingCustomerJWT)
+
+		request := NewDeleteCustomerRequest(missingCustomerJWT)
+		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 

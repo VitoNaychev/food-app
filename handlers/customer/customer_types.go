@@ -12,6 +12,7 @@ type GetCustomerResponse struct {
 
 func CustomerToGetCustomerResponse(customer models.Customer) GetCustomerResponse {
 	getCustomerResponse := GetCustomerResponse{
+		Id:          customer.Id,
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
 		PhoneNumber: customer.PhoneNumber,

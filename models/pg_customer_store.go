@@ -21,31 +21,6 @@ func NewPgCustomerStore(ctx context.Context, connString string) (PgCustomerStore
 	return pgCustomerStore, nil
 }
 
-func (p *PgCustomerStore) DeleteCustomer(id int) error {
-	panic("unimplemented")
-}
-
-func (p *PgCustomerStore) UpdateCustomer(customer *Customer) error {
-	panic("unimplemented")
-}
-
-func (p *PgCustomerStore) CreateCustomer(customer *Customer) error {
-	query := `insert into customers(first_name, last_name, email, phone_number, password) 
-		values (@firstName, @lastName, @email, @phoneNumber, @password) returning id`
-	args := pgx.NamedArgs{
-		"firstName":   customer.FirstName,
-		"lastName":    customer.LastName,
-		"email":       customer.Email,
-		"phoneNumber": customer.PhoneNumber,
-		"password":    customer.Password,
-	}
-
-	var customerId int
-	err := p.conn.QueryRow(context.Background(), query, args).Scan(&customerId)
-
-	return err
-}
-
 func (p *PgCustomerStore) GetCustomerByEmail(email string) (Customer, error) {
 	query := `select * from customers where email=@email`
 	args := pgx.NamedArgs{
@@ -76,4 +51,45 @@ func (p *PgCustomerStore) GetCustomerByID(id int) (Customer, error) {
 	}
 
 	return customer, nil
+}
+
+func (p *PgCustomerStore) CreateCustomer(customer *Customer) error {
+	query := `insert into customers(first_name, last_name, email, phone_number, password) 
+		values (@firstName, @lastName, @email, @phone_number, @password) returning id`
+	args := pgx.NamedArgs{
+		"firstName":    customer.FirstName,
+		"lastName":     customer.LastName,
+		"email":        customer.Email,
+		"phone_number": customer.PhoneNumber,
+		"password":     customer.Password,
+	}
+
+	err := p.conn.QueryRow(context.Background(), query, args).Scan(&customer.Id)
+	return err
+}
+
+func (p *PgCustomerStore) DeleteCustomer(id int) error {
+	query := `delete from customers where id=@id`
+	args := pgx.NamedArgs{
+		"id": id,
+	}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	return err
+}
+
+func (p *PgCustomerStore) UpdateCustomer(customer *Customer) error {
+	query := `update customers set first_name=@first_name, last_name=@last_name, 
+		email=@email, phone_number=@phone_number, password=@password where id=@id`
+	args := pgx.NamedArgs{
+		"id":           customer.Id,
+		"first_name":   customer.FirstName,
+		"last_name":    customer.LastName,
+		"email":        customer.Email,
+		"phone_number": customer.PhoneNumber,
+		"password":     customer.Password,
+	}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	return err
 }
