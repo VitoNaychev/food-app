@@ -1,9 +1,9 @@
 package models
 
 type CustomerStore interface {
-	GetCustomerById(id int) (Customer, error)
+	GetCustomerByID(id int) (Customer, error)
 	GetCustomerByEmail(email string) (Customer, error)
-	StoreCustomer(customer Customer) int
+	CreateCustomer(customer *Customer) error
 	DeleteCustomer(id int) error
-	UpdateCustomer(customer Customer) error
+	UpdateCustomer(customer *Customer) error
 }

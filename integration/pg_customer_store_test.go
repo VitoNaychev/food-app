@@ -1,4 +1,4 @@
-package customer_store
+package integration
 
 import (
 	"context"
@@ -34,7 +34,7 @@ func SetupDatabaseContainer(t testing.TB) string {
 
 	pgContainer, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:15.3-alpine"),
-		postgres.WithInitScripts(filepath.Join("testdata", "init-db.sql")),
+		postgres.WithInitScripts(filepath.Join("..", "testdata", "init-db.sql")),
 		postgres.WithDatabase(testEnv.Dbname),
 		postgres.WithUsername(testEnv.Dbuser),
 		postgres.WithPassword(testEnv.Dbpass),
@@ -64,7 +64,7 @@ func SetupDatabaseContainer(t testing.TB) string {
 func TestCreateCustomerAndRetrievThem(t *testing.T) {
 	connStr := SetupDatabaseContainer(t)
 
-	store, err := models.NewPostgresCustomerStore(context.Background(), connStr)
+	store, err := models.NewPgCustomerStore(context.Background(), connStr)
 	if err != nil {
 		t.Fatal(err)
 	}

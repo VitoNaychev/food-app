@@ -1,9 +1,9 @@
 package models
 
 type CustomerAddressStore interface {
-	GetAddressesByCustomerId(customerId int) ([]Address, error)
-	StoreAddress(address Address)
-	DeleteAddressById(id int) error
-	GetAddressById(id int) (Address, error)
-	UpdateAddress(address Address) error
+	GetAddressByID(id int) (Address, error)
+	GetAddressesByCustomerID(customerID int) ([]Address, error)
+	CreateAddress(address *Address) error
+	DeleteAddress(id int) error
+	UpdateAddress(address *Address) error
 }

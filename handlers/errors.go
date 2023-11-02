@@ -16,6 +16,7 @@ var (
 	ErrInvalidRequestField  = errors.New("request contains invalid field(s)")
 	ErrMissingAddress       = errors.New("address doesn't exists")
 	ErrUnathorizedAction    = errors.New("customer does not have permission to perform this action")
+	ErrDatabaseError        = errors.New("operation encountered a database error")
 )
 
 type ErrorResponse struct {

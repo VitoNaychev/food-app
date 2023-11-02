@@ -34,7 +34,7 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store models.C
 func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		c.storeCustomer(w, r)
+		c.createCustomer(w, r)
 	case http.MethodGet:
 		auth.AuthenticationMiddleware(c.getCustomer, c.secretKey)(w, r)
 	case http.MethodDelete:

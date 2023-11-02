@@ -7,29 +7,29 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type PostgresCustomerStore struct {
+type PgCustomerStore struct {
 	conn *pgx.Conn
 }
 
-func NewPostgresCustomerStore(ctx context.Context, connString string) (PostgresCustomerStore, error) {
+func NewPgCustomerStore(ctx context.Context, connString string) (PgCustomerStore, error) {
 	conn, err := pgx.Connect(ctx, connString)
 	if err != nil {
-		return PostgresCustomerStore{}, fmt.Errorf("unable to connect to database: %w", err)
+		return PgCustomerStore{}, fmt.Errorf("unable to connect to database: %w", err)
 	}
 
-	pgCustomerStore := PostgresCustomerStore{conn}
+	pgCustomerStore := PgCustomerStore{conn}
 	return pgCustomerStore, nil
 }
 
-func (p *PostgresCustomerStore) DeleteCustomer(id int) error {
+func (p *PgCustomerStore) DeleteCustomer(id int) error {
 	panic("unimplemented")
 }
 
-func (p *PostgresCustomerStore) UpdateCustomer(customer Customer) error {
+func (p *PgCustomerStore) UpdateCustomer(customer *Customer) error {
 	panic("unimplemented")
 }
 
-func (p *PostgresCustomerStore) StoreCustomer(customer Customer) int {
+func (p *PgCustomerStore) CreateCustomer(customer *Customer) error {
 	query := `insert into customers(first_name, last_name, email, phone_number, password) 
 		values (@firstName, @lastName, @email, @phoneNumber, @password) returning id`
 	args := pgx.NamedArgs{
@@ -41,12 +41,12 @@ func (p *PostgresCustomerStore) StoreCustomer(customer Customer) int {
 	}
 
 	var customerId int
-	_ = p.conn.QueryRow(context.Background(), query, args).Scan(&customerId)
+	err := p.conn.QueryRow(context.Background(), query, args).Scan(&customerId)
 
-	return customerId
+	return err
 }
 
-func (p *PostgresCustomerStore) GetCustomerByEmail(email string) (Customer, error) {
+func (p *PgCustomerStore) GetCustomerByEmail(email string) (Customer, error) {
 	query := `select * from customers where email=@email`
 	args := pgx.NamedArgs{
 		"email": email,
@@ -62,7 +62,7 @@ func (p *PostgresCustomerStore) GetCustomerByEmail(email string) (Customer, erro
 	return customer, nil
 }
 
-func (p *PostgresCustomerStore) GetCustomerById(id int) (Customer, error) {
+func (p *PgCustomerStore) GetCustomerByID(id int) (Customer, error) {
 	query := `select * from customers where id=@id`
 	args := pgx.NamedArgs{
 		"id": id,

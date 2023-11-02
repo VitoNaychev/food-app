@@ -17,7 +17,7 @@ type TestEnv struct {
 }
 
 func LoadTestEnviornment() TestEnv {
-	godotenv.Load("test.env")
+	godotenv.Load("../test.env")
 
 	testEnv := TestEnv{}
 	testEnv.SecretKey = []byte(os.Getenv("SECRET"))

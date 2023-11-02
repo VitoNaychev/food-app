@@ -23,7 +23,16 @@ func NewStubAddressStore(data []models.Address) *StubAddressStore {
 	}
 }
 
-func (s *StubAddressStore) GetAddressesByCustomerId(customerId int) ([]models.Address, error) {
+func (s *StubAddressStore) GetAddressByID(id int) (models.Address, error) {
+	for _, address := range s.addresses {
+		if address.Id == id {
+			return address, nil
+		}
+	}
+	return models.Address{}, fmt.Errorf("address with id %d doesn't exist", id)
+}
+
+func (s *StubAddressStore) GetAddressesByCustomerID(customerId int) ([]models.Address, error) {
 	if customerId == td.PeterCustomer.Id {
 		return []models.Address{td.PeterAddress1, td.PeterAddress2}, nil
 	}
@@ -35,32 +44,27 @@ func (s *StubAddressStore) GetAddressesByCustomerId(customerId int) ([]models.Ad
 	return []models.Address{}, nil
 }
 
-func (s *StubAddressStore) StoreAddress(address models.Address) {
-	s.storeCalls = append(s.storeCalls, address)
+func (s *StubAddressStore) CreateAddress(address *models.Address) error {
+	address.Id = len(s.addresses) + 1
+	s.addresses = append(s.addresses, *address)
+	s.storeCalls = append(s.storeCalls, *address)
+
+	return nil
 }
 
-func (s *StubAddressStore) DeleteAddressById(id int) error {
-	_, err := s.GetAddressById(id)
+func (s *StubAddressStore) UpdateAddress(address *models.Address) error {
+	s.updateCalls = append(s.updateCalls, *address)
+	return nil
+}
+
+func (s *StubAddressStore) DeleteAddress(id int) error {
+	_, err := s.GetAddressByID(id)
 	if err != nil {
 		return err
 	} else {
 		s.deleteCalls = append(s.deleteCalls, id)
 		return nil
 	}
-}
-
-func (s *StubAddressStore) GetAddressById(id int) (models.Address, error) {
-	for _, address := range s.addresses {
-		if address.Id == id {
-			return address, nil
-		}
-	}
-	return models.Address{}, fmt.Errorf("address with id %d doesn't exist", id)
-}
-
-func (s *StubAddressStore) UpdateAddress(address models.Address) error {
-	s.updateCalls = append(s.updateCalls, address)
-	return nil
 }
 
 func (s *StubAddressStore) Empty() {

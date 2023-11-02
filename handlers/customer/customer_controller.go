@@ -40,7 +40,7 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.Header["Subject"][0])
-	customer, _ := c.store.GetCustomerById(id)
+	customer, _ := c.store.GetCustomerByID(id)
 
 	var updateCustomerRequest UpdateCustomerRequest
 	err := validation.ValidateBody(r.Body, &updateCustomerRequest)
@@ -51,7 +51,14 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 	}
 
 	customer = UpdateCustomerRequestToCustomer(updateCustomerRequest, id)
-	c.store.UpdateCustomer(customer)
+
+	err = c.store.UpdateCustomer(&customer)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+	}
+
+	json.NewEncoder(w).Encode(CustomerToCustomerResponse(customer))
 }
 
 func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +71,7 @@ func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
+func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) {
 	var createCustomerRequest CreateCustomerRequest
 	err := validation.ValidateBody(r.Body, &createCustomerRequest)
 	if err != nil {
@@ -81,17 +88,23 @@ func (c *CustomerServer) storeCustomer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	customer := CreateCustomerRequestToCustomer(createCustomerRequest)
-	customerId := c.store.StoreCustomer(customer)
 
-	customerJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customerId)
+	err = c.store.CreateCustomer(&customer)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+	}
+
+	customerJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customer.Id)
 
 	w.WriteHeader(http.StatusAccepted)
 	w.Header().Add("Token", customerJWT)
+	json.NewEncoder(w).Encode(CustomerToCustomerResponse(customer))
 }
 
 func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.Header["Subject"][0])
-	customer, err := c.store.GetCustomerById(id)
+	customer, err := c.store.GetCustomerByID(id)
 
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)

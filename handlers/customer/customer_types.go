@@ -53,7 +53,7 @@ func CreateCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest
 	return customer
 }
 
-type CreateCustomerResponse struct {
+type CustomerResponse struct {
 	Id          int
 	FirstName   string
 	LastName    string
@@ -61,8 +61,9 @@ type CreateCustomerResponse struct {
 	Email       string
 }
 
-func CustomerToCreateCustomerResponse(customer models.Customer) CreateCustomerResponse {
-	createCustomerResponse := CreateCustomerResponse{
+func CustomerToCustomerResponse(customer models.Customer) CustomerResponse {
+	createCustomerResponse := CustomerResponse{
+		Id:          customer.Id,
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
 		PhoneNumber: customer.PhoneNumber,
