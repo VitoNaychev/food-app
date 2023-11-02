@@ -5,17 +5,17 @@ import (
 	"time"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
-	"github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
 type CustomerServer struct {
 	secretKey []byte
 	expiresAt time.Duration
-	store     customer_store.CustomerStore
+	store     models.CustomerStore
 	http.Handler
 }
 
-func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store customer_store.CustomerStore) *CustomerServer {
+func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store models.CustomerStore) *CustomerServer {
 	c := new(CustomerServer)
 
 	c.secretKey = secretKey

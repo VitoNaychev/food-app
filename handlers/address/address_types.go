@@ -1,6 +1,6 @@
 package address
 
-import "github.com/VitoNaychev/bt-customer-svc/models/address_store"
+import "github.com/VitoNaychev/bt-customer-svc/models"
 
 type UpdateAddressRequest struct {
 	Id           int     `validate:"min=0"`
@@ -12,7 +12,7 @@ type UpdateAddressRequest struct {
 	Country      string  `validate:"required,max=20"`
 }
 
-func AddressToUpdateAddressRequest(address address_store.Address) UpdateAddressRequest {
+func AddressToUpdateAddressRequest(address models.Address) UpdateAddressRequest {
 	updateAddressRequest := UpdateAddressRequest{
 		Id:           address.Id,
 		Lat:          address.Lat,
@@ -26,8 +26,8 @@ func AddressToUpdateAddressRequest(address address_store.Address) UpdateAddressR
 	return updateAddressRequest
 }
 
-func UpdateAddressRequestToAddress(UpdateAddressRequest UpdateAddressRequest, customerId int) address_store.Address {
-	address := address_store.Address{
+func UpdateAddressRequestToAddress(UpdateAddressRequest UpdateAddressRequest, customerId int) models.Address {
+	address := models.Address{
 		Id:           UpdateAddressRequest.Id,
 		CustomerId:   customerId,
 		Lat:          UpdateAddressRequest.Lat,
@@ -54,7 +54,7 @@ type AddAddressRequest struct {
 	Country      string  `validate:"required,max=20"`
 }
 
-func AddressToAddAddressRequest(address address_store.Address) AddAddressRequest {
+func AddressToAddAddressRequest(address models.Address) AddAddressRequest {
 	addAddressRequest := AddAddressRequest{
 		Lat:          address.Lat,
 		Lon:          address.Lon,
@@ -67,8 +67,8 @@ func AddressToAddAddressRequest(address address_store.Address) AddAddressRequest
 	return addAddressRequest
 }
 
-func AddAddressRequestToAddress(addAddressRequest AddAddressRequest, customerId int) address_store.Address {
-	address := address_store.Address{
+func AddAddressRequestToAddress(addAddressRequest AddAddressRequest, customerId int) models.Address {
+	address := models.Address{
 		CustomerId:   customerId,
 		Lat:          addAddressRequest.Lat,
 		Lon:          addAddressRequest.Lon,
@@ -91,7 +91,7 @@ type GetAddressResponse struct {
 	Country      string  `validate:"required,max=20"`
 }
 
-func AddressToGetAddressResponse(address address_store.Address) GetAddressResponse {
+func AddressToGetAddressResponse(address models.Address) GetAddressResponse {
 	getAddressResponse := GetAddressResponse{
 		Id:           address.Id,
 		Lat:          address.Lat,

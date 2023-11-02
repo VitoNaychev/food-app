@@ -3,39 +3,39 @@ package testutil
 import (
 	"fmt"
 
-	as "github.com/VitoNaychev/bt-customer-svc/models/address_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 	td "github.com/VitoNaychev/bt-customer-svc/testdata"
 )
 
 type StubAddressStore struct {
-	addresses   []as.Address
-	storeCalls  []as.Address
+	addresses   []models.Address
+	storeCalls  []models.Address
 	deleteCalls []int
-	updateCalls []as.Address
+	updateCalls []models.Address
 }
 
-func NewStubAddressStore(data []as.Address) *StubAddressStore {
+func NewStubAddressStore(data []models.Address) *StubAddressStore {
 	return &StubAddressStore{
 		addresses:   data,
-		storeCalls:  []as.Address{},
+		storeCalls:  []models.Address{},
 		deleteCalls: []int{},
-		updateCalls: []as.Address{},
+		updateCalls: []models.Address{},
 	}
 }
 
-func (s *StubAddressStore) GetAddressesByCustomerId(customerId int) ([]as.Address, error) {
+func (s *StubAddressStore) GetAddressesByCustomerId(customerId int) ([]models.Address, error) {
 	if customerId == td.PeterCustomer.Id {
-		return []as.Address{td.PeterAddress1, td.PeterAddress2}, nil
+		return []models.Address{td.PeterAddress1, td.PeterAddress2}, nil
 	}
 
 	if customerId == td.AliceCustomer.Id {
-		return []as.Address{td.AliceAddress}, nil
+		return []models.Address{td.AliceAddress}, nil
 	}
 
-	return []as.Address{}, nil
+	return []models.Address{}, nil
 }
 
-func (s *StubAddressStore) StoreAddress(address as.Address) {
+func (s *StubAddressStore) StoreAddress(address models.Address) {
 	s.storeCalls = append(s.storeCalls, address)
 }
 
@@ -49,21 +49,21 @@ func (s *StubAddressStore) DeleteAddressById(id int) error {
 	}
 }
 
-func (s *StubAddressStore) GetAddressById(id int) (as.Address, error) {
+func (s *StubAddressStore) GetAddressById(id int) (models.Address, error) {
 	for _, address := range s.addresses {
 		if address.Id == id {
 			return address, nil
 		}
 	}
-	return as.Address{}, fmt.Errorf("address with id %d doesn't exist", id)
+	return models.Address{}, fmt.Errorf("address with id %d doesn't exist", id)
 }
 
-func (s *StubAddressStore) UpdateAddress(address as.Address) error {
+func (s *StubAddressStore) UpdateAddress(address models.Address) error {
 	s.updateCalls = append(s.updateCalls, address)
 	return nil
 }
 
 func (s *StubAddressStore) Empty() {
-	s.addresses = []as.Address{}
-	s.storeCalls = []as.Address{}
+	s.addresses = []models.Address{}
+	s.storeCalls = []models.Address{}
 }

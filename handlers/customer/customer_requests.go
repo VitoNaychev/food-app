@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
-	cs "github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
-func NewUpdateCustomerRequest(customer cs.Customer, SecretKey []byte, ExpiresAt time.Duration) *http.Request {
+func NewUpdateCustomerRequest(customer models.Customer, SecretKey []byte, ExpiresAt time.Duration) *http.Request {
 	body := bytes.NewBuffer([]byte{})
 	updateCustomerRequest := CustomerToUpdateCustomerRequest(customer)
 	json.NewEncoder(body).Encode(updateCustomerRequest)
@@ -22,7 +22,7 @@ func NewUpdateCustomerRequest(customer cs.Customer, SecretKey []byte, ExpiresAt 
 	return request
 }
 
-func NewLoginRequest(customer cs.Customer) *http.Request {
+func NewLoginRequest(customer models.Customer) *http.Request {
 	loginCustomerRequest := CustomerToLoginCustomerRequest(customer)
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(loginCustomerRequest)
@@ -31,7 +31,7 @@ func NewLoginRequest(customer cs.Customer) *http.Request {
 	return request
 }
 
-func NewCreateCustomerRequest(customer cs.Customer) *http.Request {
+func NewCreateCustomerRequest(customer models.Customer) *http.Request {
 	createCustomerRequest := CustomerToCreateCustomerRequest(customer)
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(createCustomerRequest)

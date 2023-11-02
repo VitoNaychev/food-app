@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	as "github.com/VitoNaychev/bt-customer-svc/models/address_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
-func NewUpdateAddressRequest(address as.Address, customerJWT string) *http.Request {
+func NewUpdateAddressRequest(address models.Address, customerJWT string) *http.Request {
 	updateAddressRequest := AddressToUpdateAddressRequest(address)
 
 	body := bytes.NewBuffer([]byte{})
@@ -31,7 +31,7 @@ func NewDeleteAddressRequest(customerJWT string, id int) *http.Request {
 	return request
 }
 
-func NewAddAddressRequest(customerJWT string, address as.Address) *http.Request {
+func NewAddAddressRequest(customerJWT string, address models.Address) *http.Request {
 	addAddressRequest := AddressToAddAddressRequest(address)
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(addAddressRequest)

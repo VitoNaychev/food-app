@@ -10,7 +10,7 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
-	cs "github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 	td "github.com/VitoNaychev/bt-customer-svc/testdata"
 	"github.com/VitoNaychev/bt-customer-svc/testutil"
 )
@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	customerData := []cs.Customer{td.PeterCustomer, td.AliceCustomer}
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
 	server := NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
@@ -45,7 +45,7 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	customerData := []cs.Customer{td.PeterCustomer, td.AliceCustomer}
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
 	server := NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
@@ -75,7 +75,7 @@ func TestDeleteUser(t *testing.T) {
 }
 
 func TestLoginUser(t *testing.T) {
-	customerData := []cs.Customer{td.PeterCustomer, td.AliceCustomer}
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
 	server := NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
@@ -123,7 +123,7 @@ func TestLoginUser(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	customerData := []cs.Customer{}
+	customerData := []models.Customer{}
 	store := testutil.NewStubCustomerStore(customerData)
 	server := NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
@@ -177,7 +177,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestGetUser(t *testing.T) {
-	customerData := []cs.Customer{td.PeterCustomer, td.AliceCustomer}
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
 	server := NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 

@@ -9,8 +9,7 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	as "github.com/VitoNaychev/bt-customer-svc/models/address_store"
-	cs "github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -71,7 +70,7 @@ func AssertJWT(t testing.TB, header http.Header, secretKey []byte, wantId int) {
 	}
 }
 
-func AssertUpdatedCustomer(t testing.TB, store *StubCustomerStore, customer cs.Customer) {
+func AssertUpdatedCustomer(t testing.TB, store *StubCustomerStore, customer models.Customer) {
 	t.Helper()
 
 	if len(store.updateCalls) != 1 {
@@ -83,7 +82,7 @@ func AssertUpdatedCustomer(t testing.TB, store *StubCustomerStore, customer cs.C
 	}
 }
 
-func AssertDeletedCustomer(t testing.TB, store *StubCustomerStore, customer cs.Customer) {
+func AssertDeletedCustomer(t testing.TB, store *StubCustomerStore, customer models.Customer) {
 	t.Helper()
 
 	if len(store.deleteCalls) != 1 {
@@ -95,7 +94,7 @@ func AssertDeletedCustomer(t testing.TB, store *StubCustomerStore, customer cs.C
 	}
 }
 
-func AssertStoredCustomer(t testing.TB, store *StubCustomerStore, customer cs.Customer) {
+func AssertStoredCustomer(t testing.TB, store *StubCustomerStore, customer models.Customer) {
 	t.Helper()
 
 	if len(store.storeCalls) != 1 {
@@ -112,7 +111,7 @@ func AssertStoredCustomer(t testing.TB, store *StubCustomerStore, customer cs.Cu
 	}
 }
 
-func AssertUpdatedAddress(t testing.TB, store *StubAddressStore, address as.Address) {
+func AssertUpdatedAddress(t testing.TB, store *StubAddressStore, address models.Address) {
 	t.Helper()
 
 	if len(store.updateCalls) != 1 {
@@ -124,7 +123,7 @@ func AssertUpdatedAddress(t testing.TB, store *StubAddressStore, address as.Addr
 	}
 }
 
-func AssertDeletedAddress(t testing.TB, store *StubAddressStore, address as.Address) {
+func AssertDeletedAddress(t testing.TB, store *StubAddressStore, address models.Address) {
 	t.Helper()
 
 	if len(store.deleteCalls) != 1 {
@@ -136,7 +135,7 @@ func AssertDeletedAddress(t testing.TB, store *StubAddressStore, address as.Addr
 	}
 }
 
-func AssertStoredAddress(t testing.TB, store *StubAddressStore, address as.Address) {
+func AssertStoredAddress(t testing.TB, store *StubAddressStore, address models.Address) {
 	t.Helper()
 
 	if len(store.storeCalls) != 1 {

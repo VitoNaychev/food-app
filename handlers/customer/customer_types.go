@@ -1,6 +1,6 @@
 package customer
 
-import "github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+import "github.com/VitoNaychev/bt-customer-svc/models"
 
 type GetCustomerResponse struct {
 	Id          int
@@ -10,7 +10,7 @@ type GetCustomerResponse struct {
 	Email       string
 }
 
-func CustomerToGetCustomerResponse(customer customer_store.Customer) GetCustomerResponse {
+func CustomerToGetCustomerResponse(customer models.Customer) GetCustomerResponse {
 	getCustomerResponse := GetCustomerResponse{
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
@@ -29,7 +29,7 @@ type CreateCustomerRequest struct {
 	Password    string `validate:"required,max=72"`
 }
 
-func CustomerToCreateCustomerRequest(customer customer_store.Customer) CreateCustomerRequest {
+func CustomerToCreateCustomerRequest(customer models.Customer) CreateCustomerRequest {
 	createCustomerRequest := CreateCustomerRequest{
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
@@ -41,8 +41,8 @@ func CustomerToCreateCustomerRequest(customer customer_store.Customer) CreateCus
 	return createCustomerRequest
 }
 
-func CreateCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest) customer_store.Customer {
-	customer := customer_store.Customer{
+func CreateCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest) models.Customer {
+	customer := models.Customer{
 		Id:          0,
 		FirstName:   createCustomerRequest.FirstName,
 		LastName:    createCustomerRequest.LastName,
@@ -61,7 +61,7 @@ type CreateCustomerResponse struct {
 	Email       string
 }
 
-func CustomerToCreateCustomerResponse(customer customer_store.Customer) CreateCustomerResponse {
+func CustomerToCreateCustomerResponse(customer models.Customer) CreateCustomerResponse {
 	createCustomerResponse := CreateCustomerResponse{
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
@@ -77,7 +77,7 @@ type LoginCustomerRequest struct {
 	Password string `validate:"required,max=72"`
 }
 
-func CustomerToLoginCustomerRequest(customer customer_store.Customer) LoginCustomerRequest {
+func CustomerToLoginCustomerRequest(customer models.Customer) LoginCustomerRequest {
 	loginCustomerRequest := LoginCustomerRequest{
 		Email:    customer.Email,
 		Password: customer.Password,
@@ -94,7 +94,7 @@ type UpdateCustomerRequest struct {
 	Password    string `validate:"required,max=72"`
 }
 
-func CustomerToUpdateCustomerRequest(customer customer_store.Customer) UpdateCustomerRequest {
+func CustomerToUpdateCustomerRequest(customer models.Customer) UpdateCustomerRequest {
 	updateCustomerRequest := UpdateCustomerRequest{
 		FirstName:   customer.FirstName,
 		LastName:    customer.LastName,
@@ -106,8 +106,8 @@ func CustomerToUpdateCustomerRequest(customer customer_store.Customer) UpdateCus
 	return updateCustomerRequest
 }
 
-func UpdateCustomerRequestToCustomer(updateCustomerRequest UpdateCustomerRequest, id int) customer_store.Customer {
-	customer := customer_store.Customer{
+func UpdateCustomerRequestToCustomer(updateCustomerRequest UpdateCustomerRequest, id int) models.Customer {
+	customer := models.Customer{
 		Id:          id,
 		FirstName:   updateCustomerRequest.FirstName,
 		LastName:    updateCustomerRequest.LastName,

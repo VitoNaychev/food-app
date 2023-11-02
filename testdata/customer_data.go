@@ -1,11 +1,10 @@
 package testdata
 
 import (
-	"github.com/VitoNaychev/bt-customer-svc/models/address_store"
-	"github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
-var PeterCustomer = customer_store.Customer{
+var PeterCustomer = models.Customer{
 	Id:          1,
 	FirstName:   "Peter",
 	LastName:    "Smith",
@@ -14,7 +13,7 @@ var PeterCustomer = customer_store.Customer{
 	Password:    "firefirefire",
 }
 
-var AliceCustomer = customer_store.Customer{
+var AliceCustomer = models.Customer{
 	Id:          2,
 	FirstName:   "Alice",
 	LastName:    "Johnson",
@@ -23,7 +22,7 @@ var AliceCustomer = customer_store.Customer{
 	Password:    "helloJohn123",
 }
 
-var PeterAddress1 = address_store.Address{
+var PeterAddress1 = models.Address{
 	Id:           1,
 	CustomerId:   1,
 	Lat:          42.695111,
@@ -34,7 +33,7 @@ var PeterAddress1 = address_store.Address{
 	Country:      "Bulgaria",
 }
 
-var PeterAddress2 = address_store.Address{
+var PeterAddress2 = models.Address{
 	Id:           2,
 	CustomerId:   1,
 	Lat:          42.6938570,
@@ -45,7 +44,7 @@ var PeterAddress2 = address_store.Address{
 	Country:      "Bulgaria",
 }
 
-var AliceAddress = address_store.Address{
+var AliceAddress = models.Address{
 	Id:           3,
 	CustomerId:   2,
 	Lat:          42.6931204,

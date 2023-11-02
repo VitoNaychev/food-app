@@ -12,7 +12,7 @@ import (
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
-	"github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 	"github.com/VitoNaychev/bt-customer-svc/testdata"
 	"github.com/VitoNaychev/bt-customer-svc/testutil"
 	"github.com/testcontainers/testcontainers-go"
@@ -64,7 +64,7 @@ func SetupDatabaseContainer(t testing.TB) string {
 func TestCreateCustomerAndRetrievThem(t *testing.T) {
 	connStr := SetupDatabaseContainer(t)
 
-	store, err := customer_store.NewPostgresCustomerStore(context.Background(), connStr)
+	store, err := models.NewPostgresCustomerStore(context.Background(), connStr)
 	if err != nil {
 		t.Fatal(err)
 	}

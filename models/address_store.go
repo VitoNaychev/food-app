@@ -1,4 +1,4 @@
-package address_store
+package models
 
 type CustomerAddressStore interface {
 	GetAddressesByCustomerId(customerId int) ([]Address, error)

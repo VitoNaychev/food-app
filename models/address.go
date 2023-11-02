@@ -1,4 +1,4 @@
-package address_store
+package models
 
 type Address struct {
 	Id           int

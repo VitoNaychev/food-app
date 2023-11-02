@@ -11,8 +11,7 @@ import (
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
-	as "github.com/VitoNaychev/bt-customer-svc/models/address_store"
-	cs "github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 	td "github.com/VitoNaychev/bt-customer-svc/testdata"
 	"github.com/VitoNaychev/bt-customer-svc/testutil"
 )
@@ -27,8 +26,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestUpdateCustomerAddress(t *testing.T) {
-	addressData := []as.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
-	customerData := []cs.Customer{td.PeterCustomer, td.AliceCustomer}
+	addressData := []models.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	stubAddressStore := testutil.NewStubAddressStore(addressData)
 	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
 	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, testEnv.SecretKey}
@@ -60,7 +59,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 	})
 
 	t.Run("returns Bad Request on invalid request", func(t *testing.T) {
-		invalidAddress := as.Address{}
+		invalidAddress := models.Address{}
 
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
@@ -120,8 +119,8 @@ func TestUpdateCustomerAddress(t *testing.T) {
 }
 
 func TestDeleteCustomerAddress(t *testing.T) {
-	addressData := []as.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
-	customerData := []cs.Customer{td.PeterCustomer, td.AliceCustomer}
+	addressData := []models.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	stubAddressStore := testutil.NewStubAddressStore(addressData)
 	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
 	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, testEnv.SecretKey}
@@ -201,8 +200,8 @@ func TestDeleteCustomerAddress(t *testing.T) {
 }
 
 func TestSaveCustomerAddress(t *testing.T) {
-	addressData := []as.Address{}
-	customerData := []cs.Customer{td.PeterCustomer, td.AliceCustomer}
+	addressData := []models.Address{}
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	stubAddressStore := testutil.NewStubAddressStore(addressData)
 	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
 	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, testEnv.SecretKey}
@@ -221,7 +220,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := NewAddAddressRequest(peterJWT, as.Address{})
+		request := NewAddAddressRequest(peterJWT, models.Address{})
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -268,8 +267,8 @@ func TestSaveCustomerAddress(t *testing.T) {
 }
 
 func TestGetCustomerAddress(t *testing.T) {
-	addressData := []as.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
-	customerData := []cs.Customer{td.PeterCustomer, td.AliceCustomer}
+	addressData := []models.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	stubAddressStore := testutil.NewStubAddressStore(addressData)
 	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
 	server := CustomerAddressServer{stubAddressStore, stubCustomerStore, testEnv.SecretKey}

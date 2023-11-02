@@ -1,4 +1,4 @@
-package customer_store
+package models
 
 type CustomerStore interface {
 	GetCustomerById(id int) (Customer, error)

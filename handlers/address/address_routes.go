@@ -4,13 +4,12 @@ import (
 	"net/http"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
-	"github.com/VitoNaychev/bt-customer-svc/models/address_store"
-	"github.com/VitoNaychev/bt-customer-svc/models/customer_store"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
 type CustomerAddressServer struct {
-	addressStore  address_store.CustomerAddressStore
-	customerStore customer_store.CustomerStore
+	addressStore  models.CustomerAddressStore
+	customerStore models.CustomerStore
 	secretKey     []byte
 }
 
