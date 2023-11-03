@@ -31,7 +31,7 @@ func TestAddressServerOperations(t *testing.T) {
 	customerServer := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, &customerStore)
 	addressServer := address.NewCustomerAddressServer(&addressStore, &customerStore, testEnv.SecretKey)
 
-	server := router.InitRouterServer(customerServer, addressServer)
+	server := router.NewRouterServer(customerServer, addressServer)
 
 	peterJWT := createNewCustomer(server, testdata.PeterCustomer)
 	aliceJWT := createNewCustomer(server, testdata.AliceCustomer)

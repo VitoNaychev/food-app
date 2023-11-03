@@ -29,7 +29,7 @@ func TestRouterServer(t *testing.T) {
 	fakeCustomerServer := http.HandlerFunc(fakeCustomerHandler)
 	fakeAddressServer := http.HandlerFunc(fakeAddressHandler)
 
-	routerServer := router.InitRouterServer(fakeCustomerServer, fakeAddressServer)
+	routerServer := router.NewRouterServer(fakeCustomerServer, fakeAddressServer)
 
 	t.Run("routes requests to the customer server", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodPost, "/customer/", nil)

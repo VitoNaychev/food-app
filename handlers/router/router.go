@@ -8,7 +8,7 @@ type RouterServer struct {
 	http.Handler
 }
 
-func InitRouterServer(customerServer http.Handler, addressServer http.Handler) *RouterServer {
+func NewRouterServer(customerServer http.Handler, addressServer http.Handler) *RouterServer {
 	routerServer := new(RouterServer)
 
 	router := http.NewServeMux()
