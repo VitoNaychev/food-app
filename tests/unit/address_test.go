@@ -198,7 +198,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
 		invalidJWT := "thisIsAnInvalidJWT"
-		request := address.NewAddAddressRequest(invalidJWT, td.AliceAddress)
+		request := address.NewCreateAddressRequest(invalidJWT, td.AliceAddress)
 		request.Header.Add("Token", invalidJWT)
 		response := httptest.NewRecorder()
 
@@ -210,7 +210,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := address.NewAddAddressRequest(peterJWT, models.Address{})
+		request := address.NewCreateAddressRequest(peterJWT, models.Address{})
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -221,7 +221,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("returns Not Found on missing user", func(t *testing.T) {
 		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
 
-		request := address.NewAddAddressRequest(missingJWT, td.AliceAddress)
+		request := address.NewCreateAddressRequest(missingJWT, td.AliceAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -232,7 +232,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 	t.Run("saves Peter's new address", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := address.NewAddAddressRequest(peterJWT, td.PeterAddress1)
+		request := address.NewCreateAddressRequest(peterJWT, td.PeterAddress1)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -246,7 +246,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 
 		aliceJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.AliceCustomer.Id)
 
-		request := address.NewAddAddressRequest(aliceJWT, td.AliceAddress)
+		request := address.NewCreateAddressRequest(aliceJWT, td.AliceAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)

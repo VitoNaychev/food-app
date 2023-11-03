@@ -131,7 +131,7 @@ func TestAddressServerOperations(t *testing.T) {
 }
 
 func createNewAddress(t testing.TB, server http.Handler, a models.Address, customerJWT string) {
-	request := address.NewAddAddressRequest(customerJWT, a)
+	request := address.NewCreateAddressRequest(customerJWT, a)
 	response := httptest.NewRecorder()
 
 	server.ServeHTTP(response, request)

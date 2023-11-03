@@ -31,10 +31,10 @@ func NewDeleteAddressRequest(customerJWT string, id int) *http.Request {
 	return request
 }
 
-func NewAddAddressRequest(customerJWT string, address models.Address) *http.Request {
-	addAddressRequest := AddressToAddAddressRequest(address)
+func NewCreateAddressRequest(customerJWT string, address models.Address) *http.Request {
+	createAddressRequest := AddressToCreateAddressRequest(address)
 	body := bytes.NewBuffer([]byte{})
-	json.NewEncoder(body).Encode(addAddressRequest)
+	json.NewEncoder(body).Encode(createAddressRequest)
 
 	request, _ := http.NewRequest(http.MethodPost, "/customer/address/", body)
 	request.Header.Add("Token", customerJWT)

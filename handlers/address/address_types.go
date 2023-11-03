@@ -45,7 +45,7 @@ type DeleteAddressRequest struct {
 	Id int `validate:"min=0"`
 }
 
-type AddAddressRequest struct {
+type CreateAddressRequest struct {
 	Lat          float64 `validate:"latitude,required"`
 	Lon          float64 `validate:"longitude,required"`
 	AddressLine1 string  `validate:"required,max=40"`
@@ -54,8 +54,8 @@ type AddAddressRequest struct {
 	Country      string  `validate:"required,max=20"`
 }
 
-func AddressToAddAddressRequest(address models.Address) AddAddressRequest {
-	addAddressRequest := AddAddressRequest{
+func AddressToCreateAddressRequest(address models.Address) CreateAddressRequest {
+	createAddressRequest := CreateAddressRequest{
 		Lat:          address.Lat,
 		Lon:          address.Lon,
 		AddressLine1: address.AddressLine1,
@@ -64,18 +64,18 @@ func AddressToAddAddressRequest(address models.Address) AddAddressRequest {
 		Country:      address.Country,
 	}
 
-	return addAddressRequest
+	return createAddressRequest
 }
 
-func AddAddressRequestToAddress(addAddressRequest AddAddressRequest, customerId int) models.Address {
+func CreateAddressRequestToAddress(createAddressRequest CreateAddressRequest, customerId int) models.Address {
 	address := models.Address{
 		CustomerId:   customerId,
-		Lat:          addAddressRequest.Lat,
-		Lon:          addAddressRequest.Lon,
-		AddressLine1: addAddressRequest.AddressLine1,
-		AddressLine2: addAddressRequest.AddressLine2,
-		City:         addAddressRequest.City,
-		Country:      addAddressRequest.Country,
+		Lat:          createAddressRequest.Lat,
+		Lon:          createAddressRequest.Lon,
+		AddressLine1: createAddressRequest.AddressLine1,
+		AddressLine2: createAddressRequest.AddressLine2,
+		City:         createAddressRequest.City,
+		Country:      createAddressRequest.Country,
 	}
 
 	return address

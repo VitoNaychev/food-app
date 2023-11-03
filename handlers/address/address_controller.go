@@ -90,8 +90,8 @@ func (c *CustomerAddressServer) deleteAddress(w http.ResponseWriter, r *http.Req
 }
 
 func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Request) {
-	var addAddressRequest AddAddressRequest
-	err := validation.ValidateBody(r.Body, &addAddressRequest)
+	var createAddressRequest CreateAddressRequest
+	err := validation.ValidateBody(r.Body, &createAddressRequest)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
@@ -107,7 +107,7 @@ func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	address := AddAddressRequestToAddress(addAddressRequest, customerId)
+	address := CreateAddressRequestToAddress(createAddressRequest, customerId)
 
 	err = c.addressStore.CreateAddress(&address)
 	if err != nil {
