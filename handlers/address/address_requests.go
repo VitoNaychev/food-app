@@ -25,7 +25,7 @@ func NewDeleteAddressRequest(customerJWT string, id int) *http.Request {
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(deleteAddressRequest)
 
-	request, _ := http.NewRequest(http.MethodDelete, "/customer/address", body)
+	request, _ := http.NewRequest(http.MethodDelete, "/customer/address/", body)
 	request.Header.Add("Token", customerJWT)
 
 	return request
@@ -36,7 +36,7 @@ func NewAddAddressRequest(customerJWT string, address models.Address) *http.Requ
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(addAddressRequest)
 
-	request, _ := http.NewRequest(http.MethodPost, "/customer/address", body)
+	request, _ := http.NewRequest(http.MethodPost, "/customer/address/", body)
 	request.Header.Add("Token", customerJWT)
 
 	return request

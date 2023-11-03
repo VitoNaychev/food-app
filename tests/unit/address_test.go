@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
@@ -280,7 +279,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		var got []address.GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		assertAddresses(t, got, want)
+		testutil.AssertAddresses(t, got, want)
 	})
 
 	t.Run("returns Alice's addresses", func(t *testing.T) {
@@ -298,7 +297,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		var got []address.GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		assertAddresses(t, got, want)
+		testutil.AssertAddresses(t, got, want)
 	})
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
@@ -321,12 +320,4 @@ func TestGetCustomerAddress(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
 	})
-}
-
-func assertAddresses(t testing.TB, got, want []address.GetAddressResponse) {
-	t.Helper()
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v want %v", got, td.AliceAddress)
-	}
 }

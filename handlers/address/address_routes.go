@@ -13,14 +13,14 @@ type CustomerAddressServer struct {
 	secretKey     []byte
 }
 
-func NewCustomerAddressServer(addressStore models.CustomerAddressStore, customerStore models.CustomerStore, secretKey []byte) CustomerAddressServer {
+func NewCustomerAddressServer(addressStore models.CustomerAddressStore, customerStore models.CustomerStore, secretKey []byte) *CustomerAddressServer {
 	customerAddressServer := CustomerAddressServer{
 		addressStore:  addressStore,
 		customerStore: customerStore,
 		secretKey:     secretKey,
 	}
 
-	return customerAddressServer
+	return &customerAddressServer
 }
 
 func (c *CustomerAddressServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {

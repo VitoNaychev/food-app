@@ -128,7 +128,11 @@ func (c *CustomerAddressServer) getAddress(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	addresses, _ := c.addressStore.GetAddressesByCustomerID(customerId)
+	addresses, err := c.addressStore.GetAddressesByCustomerID(customerId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+	}
 
 	getAddressResponse := []GetAddressResponse{}
 	for _, address := range addresses {
