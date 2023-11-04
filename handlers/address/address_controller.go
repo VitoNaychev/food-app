@@ -2,19 +2,20 @@ package address
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
+	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
 func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 	var updateAddressRequest UpdateAddressRequest
 	err := validation.ValidateBody(r.Body, &updateAddressRequest)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrInvalidRequestField.Error()})
+		writeJSONError(w, http.StatusBadRequest, handlers.ErrInvalidRequestField)
 		return
 	}
 
@@ -22,21 +23,18 @@ func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Req
 
 	_, err = c.customerStore.GetCustomerByID(customerId)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
+		handleStoreError(w, err, handlers.ErrMissingCustomer)
 		return
 	}
 
 	address, err := c.addressStore.GetAddressByID(updateAddressRequest.Id)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingAddress.Error()})
+		handleStoreError(w, err, handlers.ErrMissingAddress)
 		return
 	}
 
 	if address.CustomerId != customerId {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrUnathorizedAction.Error()})
+		writeJSONError(w, http.StatusUnauthorized, handlers.ErrUnathorizedAction)
 		return
 	}
 
@@ -44,8 +42,7 @@ func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Req
 
 	err = c.addressStore.UpdateAddress(&address)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
 	}
 
 	json.NewEncoder(w).Encode(address)
@@ -55,8 +52,7 @@ func (c *CustomerAddressServer) deleteAddress(w http.ResponseWriter, r *http.Req
 	var deleteAddressRequest DeleteAddressRequest
 	err := validation.ValidateBody(r.Body, &deleteAddressRequest)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
+		writeJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -64,28 +60,24 @@ func (c *CustomerAddressServer) deleteAddress(w http.ResponseWriter, r *http.Req
 
 	_, err = c.customerStore.GetCustomerByID(customerId)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
+		handleStoreError(w, err, handlers.ErrMissingCustomer)
 		return
 	}
 
 	address, err := c.addressStore.GetAddressByID(deleteAddressRequest.Id)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingAddress.Error()})
+		handleStoreError(w, err, handlers.ErrMissingAddress)
 		return
 	}
 
 	if address.CustomerId != customerId {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrUnathorizedAction.Error()})
+		writeJSONError(w, http.StatusUnauthorized, handlers.ErrUnathorizedAction)
 		return
 	}
 
 	err = c.addressStore.DeleteAddress(deleteAddressRequest.Id)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
 	}
 }
 
@@ -93,8 +85,7 @@ func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Req
 	var createAddressRequest CreateAddressRequest
 	err := validation.ValidateBody(r.Body, &createAddressRequest)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
+		writeJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -102,8 +93,7 @@ func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Req
 
 	_, err = c.customerStore.GetCustomerByID(customerId)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
+		handleStoreError(w, err, handlers.ErrMissingCustomer)
 		return
 	}
 
@@ -111,8 +101,7 @@ func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Req
 
 	err = c.addressStore.CreateAddress(&address)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
 	}
 
 	json.NewEncoder(w).Encode(address)
@@ -123,15 +112,13 @@ func (c *CustomerAddressServer) getAddress(w http.ResponseWriter, r *http.Reques
 
 	_, err := c.customerStore.GetCustomerByID(customerId)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrMissingCustomer.Error()})
+		handleStoreError(w, err, handlers.ErrMissingCustomer)
 		return
 	}
 
 	addresses, err := c.addressStore.GetAddressesByCustomerID(customerId)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: handlers.ErrDatabaseError.Error()})
+		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
 	}
 
 	getAddressResponse := []GetAddressResponse{}
@@ -140,4 +127,20 @@ func (c *CustomerAddressServer) getAddress(w http.ResponseWriter, r *http.Reques
 	}
 
 	json.NewEncoder(w).Encode(getAddressResponse)
+}
+
+func writeJSONError(w http.ResponseWriter, statusCode int, err error) {
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
+}
+
+func handleStoreError(w http.ResponseWriter, err error, missingEntityError error) {
+	if errors.Is(err, models.ErrNotFound) {
+		// wrap models.ErrNotFound in customer handlers error type?
+		writeJSONError(w, http.StatusNotFound, missingEntityError)
+		return
+	} else {
+		writeJSONError(w, http.StatusInternalServerError, missingEntityError)
+		return
+	}
 }
