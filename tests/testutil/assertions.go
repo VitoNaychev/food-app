@@ -15,7 +15,15 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AssertAddresses(t testing.TB, got, want []address.GetAddressResponse) {
+func AssertAddressResponse(t testing.TB, got, want models.Address) {
+	t.Helper()
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
+	}
+}
+
+func AssertGetAddressResponse(t testing.TB, got, want []address.GetAddressResponse) {
 	t.Helper()
 
 	if !reflect.DeepEqual(got, want) {
@@ -112,7 +120,7 @@ func AssertDeletedCustomer(t testing.TB, store *StubCustomerStore, customer mode
 	}
 }
 
-func AssertStoredCustomer(t testing.TB, store *StubCustomerStore, customer models.Customer) {
+func AssertCreatedCustomer(t testing.TB, store *StubCustomerStore, customer models.Customer) {
 	t.Helper()
 
 	if len(store.storeCalls) != 1 {

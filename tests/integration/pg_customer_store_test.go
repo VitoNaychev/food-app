@@ -2,11 +2,11 @@ package integrationtest
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 	"github.com/VitoNaychev/bt-customer-svc/tests/testdata"
@@ -23,10 +23,30 @@ func TestCustomerServerOperations(t *testing.T) {
 
 	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, &store)
 
-	peterJWT := createNewCustomer(server, testdata.PeterCustomer)
-	aliceJWT := createNewCustomer(server, testdata.AliceCustomer)
+	var peterJWT string
+	var createdSuccessfully bool
 
-	t.Run("retrieving customer", func(t *testing.T) {
+	createdSuccessfully = t.Run("create new customer", func(t *testing.T) {
+		request := customer.NewCreateCustomerRequest(testdata.PeterCustomer)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
+
+		want := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
+		got := testutil.ParseCustomerResponse(t, response.Body)
+
+		testutil.AssertCustomerResponse(t, got, want)
+
+		peterJWT = response.Header()["Token"][0]
+	})
+
+	if !createdSuccessfully {
+		return
+	}
+
+	t.Run("retrieve customer", func(t *testing.T) {
 		request := customer.NewGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -35,16 +55,17 @@ func TestCustomerServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
-		var got customer.CustomerResponse
-		json.NewDecoder(response.Body).Decode(&got)
+		got := testutil.ParseCustomerResponse(t, response.Body)
+
 		testutil.AssertCustomerResponse(t, got, want)
 	})
 
-	t.Run("updating customer", func(t *testing.T) {
-		updateCustomer := testdata.AliceCustomer
+	t.Run("update customer", func(t *testing.T) {
+		updateCustomer := testdata.PeterCustomer
 		updateCustomer.LastName = "Roper"
+		updateCustomer.Email = "peteroper@gmail.com"
 
-		request := customer.NewUpdateCustomerRequest(updateCustomer, aliceJWT)
+		request := customer.NewUpdateCustomerRequest(updateCustomer, peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -52,12 +73,12 @@ func TestCustomerServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := customer.CustomerToCustomerResponse(updateCustomer)
-		var got customer.CustomerResponse
-		json.NewDecoder(response.Body).Decode(&got)
+		got := testutil.ParseCustomerResponse(t, response.Body)
+
 		testutil.AssertCustomerResponse(t, got, want)
 	})
 
-	t.Run("deleting customer", func(t *testing.T) {
+	t.Run("delete customer", func(t *testing.T) {
 		request := customer.NewDeleteCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -65,20 +86,15 @@ func TestCustomerServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		request = customer.NewGetCustomerRequest(peterJWT)
-		response = httptest.NewRecorder()
+	})
+
+	t.Run("retrieve deleted customer", func(t *testing.T) {
+		request := customer.NewGetCustomerRequest(peterJWT)
+		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
 	})
-}
-
-func createNewCustomer(server http.Handler, c models.Customer) string {
-	request := customer.NewCreateCustomerRequest(c)
-	response := httptest.NewRecorder()
-
-	server.ServeHTTP(response, request)
-
-	return response.Header()["Token"][0]
 }

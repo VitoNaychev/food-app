@@ -279,7 +279,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		var got []address.GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertAddresses(t, got, want)
+		testutil.AssertGetAddressResponse(t, got, want)
 	})
 
 	t.Run("returns Alice's addresses", func(t *testing.T) {
@@ -297,7 +297,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		var got []address.GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertAddresses(t, got, want)
+		testutil.AssertGetAddressResponse(t, got, want)
 	})
 
 	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {

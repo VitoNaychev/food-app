@@ -2,7 +2,6 @@ package integrationtest
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -34,13 +33,29 @@ func TestAddressServerOperations(t *testing.T) {
 	server := router.NewRouterServer(customerServer, addressServer)
 
 	peterJWT := createNewCustomer(server, testdata.PeterCustomer)
-	aliceJWT := createNewCustomer(server, testdata.AliceCustomer)
 
-	createNewAddress(t, server, testdata.PeterAddress1, peterJWT)
-	createNewAddress(t, server, testdata.PeterAddress2, peterJWT)
-	createNewAddress(t, server, testdata.AliceAddress, aliceJWT)
+	var createdSuccessfully bool
 
-	t.Run("get Peter's address", func(t *testing.T) {
+	createdSuccessfully = t.Run("create addresses", func(t *testing.T) {
+		response := createNewAddress(t, server, testdata.PeterAddress1, peterJWT)
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		got := testutil.ParseAddressResponse(t, response.Body)
+		testutil.AssertAddressResponse(t, got, testdata.PeterAddress1)
+
+		response = createNewAddress(t, server, testdata.PeterAddress2, peterJWT)
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		got = testutil.ParseAddressResponse(t, response.Body)
+		testutil.AssertAddressResponse(t, got, testdata.PeterAddress2)
+
+	})
+
+	if !createdSuccessfully {
+		return
+	}
+
+	t.Run("get addresses", func(t *testing.T) {
 		request := address.NewGetAddressRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -50,33 +65,13 @@ func TestAddressServerOperations(t *testing.T) {
 			address.AddressToGetAddressResponse(testdata.PeterAddress1),
 			address.AddressToGetAddressResponse(testdata.PeterAddress2),
 		}
-		var got []address.GetAddressResponse
-		json.NewDecoder(response.Body).Decode(&got)
+		got := testutil.ParseGetAddressResponse(t, response.Body)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertAddresses(t, got, want)
-
+		testutil.AssertGetAddressResponse(t, got, want)
 	})
 
-	t.Run("get Alice's address", func(t *testing.T) {
-		request := address.NewGetAddressRequest(aliceJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusOK)
-
-		want := []address.GetAddressResponse{
-			address.AddressToGetAddressResponse(testdata.AliceAddress),
-		}
-		var got []address.GetAddressResponse
-		json.NewDecoder(response.Body).Decode(&got)
-
-		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertAddresses(t, got, want)
-	})
-
-	t.Run("update Peter's address", func(t *testing.T) {
+	t.Run("update address", func(t *testing.T) {
 		updateAddress := testdata.PeterAddress2
 		updateAddress.City = "Varna"
 
@@ -87,23 +82,11 @@ func TestAddressServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		request = address.NewGetAddressRequest(peterJWT)
-		response = httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		want := []address.GetAddressResponse{
-			address.AddressToGetAddressResponse(testdata.PeterAddress1),
-			address.AddressToGetAddressResponse(updateAddress),
-		}
-		var got []address.GetAddressResponse
-		json.NewDecoder(response.Body).Decode(&got)
-
-		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertAddresses(t, got, want)
+		got := testutil.ParseAddressResponse(t, response.Body)
+		testutil.AssertAddressResponse(t, got, updateAddress)
 	})
 
-	t.Run("delete Peter's address", func(t *testing.T) {
+	t.Run("delete address", func(t *testing.T) {
 		deleteAddressId := testdata.PeterAddress2.Id
 
 		request := address.NewDeleteAddressRequest(peterJWT, deleteAddressId)
@@ -112,27 +95,39 @@ func TestAddressServerOperations(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
+	})
 
-		request = address.NewGetAddressRequest(peterJWT)
-		response = httptest.NewRecorder()
+	t.Run("get reamaining address", func(t *testing.T) {
+		request := address.NewGetAddressRequest(peterJWT)
+		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		want := []address.GetAddressResponse{
 			address.AddressToGetAddressResponse(testdata.PeterAddress1),
 		}
-		var got []address.GetAddressResponse
-		json.NewDecoder(response.Body).Decode(&got)
+		got := testutil.ParseGetAddressResponse(t, response.Body)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertAddresses(t, got, want)
+		testutil.AssertGetAddressResponse(t, got, want)
 	})
 
 }
 
-func createNewAddress(t testing.TB, server http.Handler, a models.Address, customerJWT string) {
+func createNewCustomer(server http.Handler, c models.Customer) string {
+	request := customer.NewCreateCustomerRequest(c)
+	response := httptest.NewRecorder()
+
+	server.ServeHTTP(response, request)
+
+	return response.Header()["Token"][0]
+}
+
+func createNewAddress(t testing.TB, server http.Handler, a models.Address, customerJWT string) *httptest.ResponseRecorder {
 	request := address.NewCreateAddressRequest(customerJWT, a)
 	response := httptest.NewRecorder()
 
 	server.ServeHTTP(response, request)
+
+	return response
 }

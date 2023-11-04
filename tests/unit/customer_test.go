@@ -130,7 +130,7 @@ func TestCreateUser(t *testing.T) {
 		want := http.StatusAccepted
 
 		testutil.AssertStatus(t, got, want)
-		testutil.AssertStoredCustomer(t, store, td.PeterCustomer)
+		testutil.AssertCreatedCustomer(t, store, td.PeterCustomer)
 	})
 
 	t.Run("returns JWT on POST", func(t *testing.T) {
