@@ -1,8 +1,6 @@
 package testutil
 
 import (
-	"fmt"
-
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
@@ -29,7 +27,7 @@ func (s *StubCustomerStore) GetCustomerByID(id int) (models.Customer, error) {
 		}
 	}
 
-	return models.Customer{}, fmt.Errorf("no customer with id %d", id)
+	return models.Customer{}, models.ErrNotFound
 }
 
 func (s *StubCustomerStore) GetCustomerByEmail(email string) (models.Customer, error) {
@@ -39,7 +37,7 @@ func (s *StubCustomerStore) GetCustomerByEmail(email string) (models.Customer, e
 		}
 	}
 
-	return models.Customer{}, fmt.Errorf("no customer with email %v", email)
+	return models.Customer{}, models.ErrNotFound
 }
 
 func (s *StubCustomerStore) CreateCustomer(customer *models.Customer) error {
@@ -65,7 +63,7 @@ func (s *StubCustomerStore) DeleteCustomer(id int) error {
 		}
 	}
 
-	return fmt.Errorf("no customer with id %d", id)
+	return models.ErrNotFound
 }
 
 func (s *StubCustomerStore) Empty() {

@@ -1,8 +1,6 @@
 package testutil
 
 import (
-	"fmt"
-
 	"github.com/VitoNaychev/bt-customer-svc/models"
 	td "github.com/VitoNaychev/bt-customer-svc/tests/testdata"
 )
@@ -29,7 +27,7 @@ func (s *StubAddressStore) GetAddressByID(id int) (models.Address, error) {
 			return address, nil
 		}
 	}
-	return models.Address{}, fmt.Errorf("address with id %d doesn't exist", id)
+	return models.Address{}, models.ErrNotFound
 }
 
 func (s *StubAddressStore) GetAddressesByCustomerID(customerId int) ([]models.Address, error) {
