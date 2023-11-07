@@ -12,8 +12,7 @@ import (
 )
 
 func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
-	var updateAddressRequest UpdateAddressRequest
-	err := validation.ValidateBody(r.Body, &updateAddressRequest)
+	updateAddressRequest, err := validation.ValidateBody[UpdateAddressRequest](r.Body)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, handlers.ErrInvalidRequestField)
 		return
@@ -49,8 +48,7 @@ func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Req
 }
 
 func (c *CustomerAddressServer) deleteAddress(w http.ResponseWriter, r *http.Request) {
-	var deleteAddressRequest DeleteAddressRequest
-	err := validation.ValidateBody(r.Body, &deleteAddressRequest)
+	deleteAddressRequest, err := validation.ValidateBody[DeleteAddressRequest](r.Body)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, err)
 		return
@@ -82,8 +80,7 @@ func (c *CustomerAddressServer) deleteAddress(w http.ResponseWriter, r *http.Req
 }
 
 func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Request) {
-	var createAddressRequest CreateAddressRequest
-	err := validation.ValidateBody(r.Body, &createAddressRequest)
+	createAddressRequest, err := validation.ValidateBody[CreateAddressRequest](r.Body)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, err)
 		return

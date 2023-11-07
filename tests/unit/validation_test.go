@@ -34,8 +34,7 @@ type PhoneNumberRequest struct {
 
 func TestValidateBody(t *testing.T) {
 	t.Run("returns ErrNoBody on no body", func(t *testing.T) {
-		var dummyRequest DummyRequest
-		err := validation.ValidateBody(nil, &dummyRequest)
+		_, err := validation.ValidateBody[DummyRequest](nil)
 
 		assertError(t, err, handlers.ErrNoBody)
 	})
@@ -43,8 +42,7 @@ func TestValidateBody(t *testing.T) {
 	t.Run("returns ErrEmptyBody on empty body", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 
-		var dummyRequest DummyRequest
-		err := validation.ValidateBody(body, &dummyRequest)
+		_, err := validation.ValidateBody[DummyRequest](body)
 
 		assertError(t, err, handlers.ErrEmptyBody)
 	})
@@ -52,8 +50,7 @@ func TestValidateBody(t *testing.T) {
 	t.Run("returns ErrEmptyJSON on empty JSON", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte(`{}`))
 
-		var dummyRequest DummyRequest
-		err := validation.ValidateBody(body, &dummyRequest)
+		_, err := validation.ValidateBody[DummyRequest](body)
 
 		assertError(t, err, handlers.ErrEmptyJSON)
 	})
@@ -66,8 +63,7 @@ func TestValidateBody(t *testing.T) {
 
 		body := newRequestBody(incorrectDummyRequest)
 
-		var dummyRequest DummyRequest
-		err := validation.ValidateBody(body, &dummyRequest)
+		_, err := validation.ValidateBody[DummyRequest](body)
 
 		assertError(t, err, handlers.ErrIncorrectRequestType)
 	})
@@ -82,8 +78,7 @@ func TestValidateBody(t *testing.T) {
 
 		body := newRequestBody(unkownFieldsDummyRequest)
 
-		var dummyRequest DummyRequest
-		err := validation.ValidateBody(body, &dummyRequest)
+		_, err := validation.ValidateBody[DummyRequest](body)
 
 		assertError(t, err, handlers.ErrIncorrectRequestType)
 	})
@@ -96,8 +91,7 @@ func TestValidateBody(t *testing.T) {
 
 		body := newRequestBody(invalidDummyRequest)
 
-		var dummyRequest DummyRequest
-		err := validation.ValidateBody(body, &dummyRequest)
+		_, err := validation.ValidateBody[DummyRequest](body)
 
 		assertError(t, err, handlers.ErrInvalidRequestField)
 	})
@@ -110,8 +104,7 @@ func TestValidateBody(t *testing.T) {
 
 		body := newRequestBody(wantDummyRequest)
 
-		var gotDummyRequest DummyRequest
-		err := validation.ValidateBody(body, &gotDummyRequest)
+		gotDummyRequest, err := validation.ValidateBody[DummyRequest](body)
 
 		if err != nil {
 			t.Errorf("did not expect error, got %v", err)
@@ -129,8 +122,7 @@ func TestValidateBody(t *testing.T) {
 
 		body := newRequestBody(invalidPhoneNumberRequest)
 
-		var gotPhoneNumber PhoneNumberRequest
-		err := validation.ValidateBody(body, &gotPhoneNumber)
+		_, err := validation.ValidateBody[PhoneNumberRequest](body)
 
 		assertError(t, err, handlers.ErrInvalidRequestField)
 	})
@@ -142,8 +134,7 @@ func TestValidateBody(t *testing.T) {
 
 		body := newRequestBody(phoneNumberRequest)
 
-		var gotPhoneNumberRequest PhoneNumberRequest
-		err := validation.ValidateBody(body, &gotPhoneNumberRequest)
+		gotPhoneNumberRequest, err := validation.ValidateBody[PhoneNumberRequest](body)
 
 		if err != nil {
 			t.Errorf("did not expect error, got %v", err)

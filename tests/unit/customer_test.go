@@ -181,8 +181,7 @@ func TestGetUser(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		var got customer.GetCustomerResponse
-		err := validation.ValidateBody(response.Body, &got)
+		got, err := validation.ValidateBody[customer.GetCustomerResponse](response.Body)
 		testutil.AssertValidResponse(t, err)
 
 		want := customer.CustomerToGetCustomerResponse(td.PeterCustomer)
@@ -198,8 +197,7 @@ func TestGetUser(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		var got customer.GetCustomerResponse
-		err := validation.ValidateBody(response.Body, &got)
+		got, err := validation.ValidateBody[customer.GetCustomerResponse](response.Body)
 		testutil.AssertValidResponse(t, err)
 
 		want := customer.CustomerToGetCustomerResponse(td.AliceCustomer)

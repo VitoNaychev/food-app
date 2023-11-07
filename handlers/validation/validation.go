@@ -27,32 +27,34 @@ func InitValidate() {
 	validate.RegisterValidation("phonenumber", validatePhoneNumber)
 }
 
-func ValidateBody(body io.Reader, request interface{}) error {
+func ValidateBody[T any](body io.Reader) (T, error) {
+	var requestStruct T
+
 	if body == nil {
-		return handlers.ErrNoBody
+		return requestStruct, handlers.ErrNoBody
 	}
 
 	var maxRequestSize int64 = 10000
 	content, err := io.ReadAll(io.LimitReader(body, maxRequestSize))
 	if string(content) == "" {
-		return handlers.ErrEmptyBody
+		return requestStruct, handlers.ErrEmptyBody
 	}
 
 	if string(content) == "{}" {
-		return handlers.ErrEmptyJSON
+		return requestStruct, handlers.ErrEmptyJSON
 	}
 
-	err = strictUnmarshal(content, request)
+	err = strictUnmarshal(content, &requestStruct)
 	if err != nil {
-		return handlers.ErrIncorrectRequestType
+		return requestStruct, handlers.ErrIncorrectRequestType
 	}
 
-	err = validate.Struct(request)
+	err = validate.Struct(requestStruct)
 	if err != nil {
-		return handlers.ErrInvalidRequestField
+		return requestStruct, handlers.ErrInvalidRequestField
 	}
 
-	return nil
+	return requestStruct, nil
 }
 
 func strictUnmarshal(data []byte, v interface{}) error {

@@ -13,8 +13,7 @@ import (
 )
 
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	var loginCustomerRequest LoginCustomerRequest
-	err := validation.ValidateBody(r.Body, &loginCustomerRequest)
+	loginCustomerRequest, err := validation.ValidateBody[LoginCustomerRequest](r.Body)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, err)
 		return
@@ -50,8 +49,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 		handleStoreError(w, err)
 	}
 
-	var updateCustomerRequest UpdateCustomerRequest
-	err = validation.ValidateBody(r.Body, &updateCustomerRequest)
+	updateCustomerRequest, err := validation.ValidateBody[UpdateCustomerRequest](r.Body)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, err)
 		return
@@ -77,8 +75,7 @@ func (c *CustomerServer) deleteCustomer(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) {
-	var createCustomerRequest CreateCustomerRequest
-	err := validation.ValidateBody(r.Body, &createCustomerRequest)
+	createCustomerRequest, err := validation.ValidateBody[CreateCustomerRequest](r.Body)
 	if err != nil {
 		// Add error wrapping for validation errors
 		writeJSONError(w, http.StatusBadRequest, err)
