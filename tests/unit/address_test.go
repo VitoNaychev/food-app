@@ -15,23 +15,44 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
 )
 
+func TestEndpointAuthentication(t *testing.T) {
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
+	stubAddressStore := testutil.NewStubAddressStore(nil)
+	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
+	server := address.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
+
+	invalidJWT := "thisIsAnInvalidJWT"
+	cases := map[string]*http.Request{
+		"get address authentication":    newAddressRequest(http.MethodGet),
+		"create address authentication": newAddressRequest(http.MethodPost),
+		"update address authentication": newAddressRequest(http.MethodPut),
+		"delete address authentication": newAddressRequest(http.MethodDelete),
+	}
+
+	for name, request := range cases {
+		t.Run(name, func(t *testing.T) {
+			request.Header.Add("Token", invalidJWT)
+
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, request)
+
+			testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		})
+	}
+}
+
+func newAddressRequest(method string) *http.Request {
+	request, _ := http.NewRequest(http.MethodGet, "/customer/address/", nil)
+	return request
+}
+
 func TestUpdateCustomerAddress(t *testing.T) {
 	addressData := []models.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	stubAddressStore := testutil.NewStubAddressStore(addressData)
 	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
 	server := address.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
-
-	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
-		invalidJWT := "thisIsAnInvalidJWT"
-		request, _ := http.NewRequest(http.MethodPut, "/customer/address/", nil)
-		request.Header.Add("Token", invalidJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-	})
 
 	t.Run("updates address on valid body and credentials", func(t *testing.T) {
 		updatedAddress := td.PeterAddress2
@@ -115,17 +136,6 @@ func TestDeleteCustomerAddress(t *testing.T) {
 	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
 	server := address.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
 
-	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
-		invalidJWT := "thisIsAnInvalidJWT"
-		request := address.NewDeleteAddressRequest(invalidJWT, td.PeterAddress1.Id)
-		request.Header.Add("Token", invalidJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-	})
-
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		body := bytes.NewBuffer([]byte{})
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
@@ -195,17 +205,6 @@ func TestSaveCustomerAddress(t *testing.T) {
 	stubAddressStore := testutil.NewStubAddressStore(addressData)
 	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
 	server := address.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
-
-	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
-		invalidJWT := "thisIsAnInvalidJWT"
-		request := address.NewCreateAddressRequest(invalidJWT, td.AliceAddress)
-		request.Header.Add("Token", invalidJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-	})
 
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
@@ -298,16 +297,6 @@ func TestGetCustomerAddress(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertGetAddressResponse(t, got, want)
-	})
-
-	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
-		invalidJWT := "thisIsAnInvalidJWT"
-		request := address.NewGetAddressRequest(invalidJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
 	})
 
 	t.Run("returns Not Found on missing user", func(t *testing.T) {
