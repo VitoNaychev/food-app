@@ -75,7 +75,7 @@ func TestAddressServerOperations(t *testing.T) {
 		updateAddress := testdata.PeterAddress2
 		updateAddress.City = "Varna"
 
-		request := address.NewUpdateAddressRequest(updateAddress, peterJWT)
+		request := address.NewUpdateAddressRequest(peterJWT, updateAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -87,9 +87,9 @@ func TestAddressServerOperations(t *testing.T) {
 	})
 
 	t.Run("delete address", func(t *testing.T) {
-		deleteAddressId := testdata.PeterAddress2.Id
+		deleteAddressRequest := address.DeleteAddressRequest{Id: testdata.PeterAddress2.Id}
 
-		request := address.NewDeleteAddressRequest(peterJWT, deleteAddressId)
+		request := address.NewDeleteAddressRequest(peterJWT, deleteAddressRequest)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)

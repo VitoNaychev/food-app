@@ -8,7 +8,7 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
-func NewUpdateAddressRequest(address models.Address, customerJWT string) *http.Request {
+func NewUpdateAddressRequest(customerJWT string, address models.Address) *http.Request {
 	updateAddressRequest := AddressToUpdateAddressRequest(address)
 
 	body := bytes.NewBuffer([]byte{})
@@ -20,8 +20,7 @@ func NewUpdateAddressRequest(address models.Address, customerJWT string) *http.R
 	return request
 }
 
-func NewDeleteAddressRequest(customerJWT string, id int) *http.Request {
-	deleteAddressRequest := DeleteAddressRequest{Id: id}
+func NewDeleteAddressRequest(customerJWT string, deleteAddressRequest DeleteAddressRequest) *http.Request {
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(deleteAddressRequest)
 

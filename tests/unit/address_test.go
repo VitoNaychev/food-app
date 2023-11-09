@@ -15,7 +15,7 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
 )
 
-func TestEndpointAuthentication(t *testing.T) {
+func TestAddressEndpointAuthentication(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	stubAddressStore := testutil.NewStubAddressStore(nil)
 	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
@@ -23,10 +23,10 @@ func TestEndpointAuthentication(t *testing.T) {
 
 	invalidJWT := "thisIsAnInvalidJWT"
 	cases := map[string]*http.Request{
-		"get address authentication":    newAddressRequest(http.MethodGet),
-		"create address authentication": newAddressRequest(http.MethodPost),
-		"update address authentication": newAddressRequest(http.MethodPut),
-		"delete address authentication": newAddressRequest(http.MethodDelete),
+		"get address authentication":    address.NewGetAddressRequest(invalidJWT),
+		"create address authentication": address.NewCreateAddressRequest(invalidJWT, models.Address{}),
+		"update address authentication": address.NewUpdateAddressRequest(invalidJWT, models.Address{}),
+		"delete address authentication": address.NewDeleteAddressRequest(invalidJWT, address.DeleteAddressRequest{}),
 	}
 
 	for name, request := range cases {
@@ -42,11 +42,6 @@ func TestEndpointAuthentication(t *testing.T) {
 	}
 }
 
-func newAddressRequest(method string) *http.Request {
-	request, _ := http.NewRequest(http.MethodGet, "/customer/address/", nil)
-	return request
-}
-
 func TestUpdateCustomerAddress(t *testing.T) {
 	addressData := []models.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
@@ -60,7 +55,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := address.NewUpdateAddressRequest(updatedAddress, peterJWT)
+		request := address.NewUpdateAddressRequest(peterJWT, updatedAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -74,7 +69,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := address.NewUpdateAddressRequest(invalidAddress, peterJWT)
+		request := address.NewUpdateAddressRequest(peterJWT, invalidAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -89,7 +84,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 
 		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
 
-		request := address.NewUpdateAddressRequest(updatedAddress, missingJWT)
+		request := address.NewUpdateAddressRequest(missingJWT, updatedAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -104,7 +99,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 
 		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := address.NewUpdateAddressRequest(updatedAddress, missingJWT)
+		request := address.NewUpdateAddressRequest(missingJWT, updatedAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -119,7 +114,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.AliceCustomer.Id)
 
-		request := address.NewUpdateAddressRequest(updatedAddress, peterJWT)
+		request := address.NewUpdateAddressRequest(peterJWT, updatedAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -152,8 +147,9 @@ func TestDeleteCustomerAddress(t *testing.T) {
 
 	t.Run("returns Not Found on missing user", func(t *testing.T) {
 		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
+		deleteAddressRequest := address.DeleteAddressRequest{Id: td.PeterAddress1.Id}
 
-		request := address.NewDeleteAddressRequest(missingJWT, td.PeterAddress1.Id)
+		request := address.NewDeleteAddressRequest(missingJWT, deleteAddressRequest)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -164,8 +160,9 @@ func TestDeleteCustomerAddress(t *testing.T) {
 
 	t.Run("returns Not Found on missing address", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
+		deleteAddressRequest := address.DeleteAddressRequest{Id: 10}
 
-		request := address.NewDeleteAddressRequest(peterJWT, 10)
+		request := address.NewDeleteAddressRequest(peterJWT, deleteAddressRequest)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -176,8 +173,9 @@ func TestDeleteCustomerAddress(t *testing.T) {
 
 	t.Run("returns Unathorized on delete on another customer's address", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
+		deleteAddressRequest := address.DeleteAddressRequest{Id: td.AliceAddress.Id}
 
-		request := address.NewDeleteAddressRequest(peterJWT, td.AliceAddress.Id)
+		request := address.NewDeleteAddressRequest(peterJWT, deleteAddressRequest)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -188,8 +186,9 @@ func TestDeleteCustomerAddress(t *testing.T) {
 
 	t.Run("deletes address on valid body and credentials", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
+		deleteAddressRequest := address.DeleteAddressRequest{Id: td.PeterAddress1.Id}
 
-		request := address.NewDeleteAddressRequest(peterJWT, td.PeterAddress1.Id)
+		request := address.NewDeleteAddressRequest(peterJWT, deleteAddressRequest)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
