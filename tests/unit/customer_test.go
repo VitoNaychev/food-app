@@ -15,6 +15,31 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
 )
 
+func TestCustomerEndpointAuthentication(t *testing.T) {
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
+	store := testutil.NewStubCustomerStore(customerData)
+	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+
+	invalidJWT := "thisIsAnInvalidJWT"
+	cases := map[string]*http.Request{
+		"get customer authentication":    customer.NewGetCustomerRequest(invalidJWT),
+		"update customer authentication": customer.NewDeleteCustomerRequest(invalidJWT),
+		"delete customer authentication": customer.NewDeleteCustomerRequest(invalidJWT),
+	}
+
+	for name, request := range cases {
+		t.Run(name, func(t *testing.T) {
+			request.Header.Add("Token", invalidJWT)
+
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, request)
+
+			testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		})
+	}
+}
+
 func TestUpdateUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
