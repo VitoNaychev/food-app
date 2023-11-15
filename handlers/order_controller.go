@@ -12,15 +12,17 @@ var authResponseMap = make(map[string]AuthResponse)
 type VerifyJWT func(token string) AuthResponse
 
 type OrderServer struct {
-	store     models.OrderStore
-	verifyJWT VerifyJWT
+	orderStore   models.OrderStore
+	addressStore models.AddressStore
+	verifyJWT    VerifyJWT
 	http.Handler
 }
 
-func NewOrderServer(store models.OrderStore, verifyJWT VerifyJWT) OrderServer {
+func NewOrderServer(orderStore models.OrderStore, addressStore models.AddressStore, verifyJWT VerifyJWT) OrderServer {
 	server := OrderServer{
-		store:     store,
-		verifyJWT: verifyJWT,
+		orderStore:   orderStore,
+		addressStore: addressStore,
+		verifyJWT:    verifyJWT,
 	}
 
 	router := http.NewServeMux()
@@ -61,14 +63,34 @@ func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
 	customerJWT := r.Header["Token"][0]
 	authResponse := authResponseMap[customerJWT]
 
-	orders, _ := o.store.GetOrdersByCustomerID(authResponse.ID)
-	json.NewEncoder(w).Encode(orders)
+	orders, _ := o.orderStore.GetOrdersByCustomerID(authResponse.ID)
+
+	orderResponseArr := []GetOrderResponse{}
+	for _, order := range orders {
+		orderResponseArr = append(orderResponseArr, o.orderToGetOrderResponse(order))
+	}
+
+	json.NewEncoder(w).Encode(orderResponseArr)
 }
 
 func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
 	customerJWT := r.Header["Token"][0]
 	authResponse := authResponseMap[customerJWT]
 
-	orders, _ := o.store.GetCurrentOrdersByCustomerID(authResponse.ID)
-	json.NewEncoder(w).Encode(orders)
+	orders, _ := o.orderStore.GetCurrentOrdersByCustomerID(authResponse.ID)
+
+	orderResponseArr := []GetOrderResponse{}
+	for _, order := range orders {
+		orderResponseArr = append(orderResponseArr, o.orderToGetOrderResponse(order))
+	}
+
+	json.NewEncoder(w).Encode(orderResponseArr)
+}
+
+func (o *OrderServer) orderToGetOrderResponse(order models.Order) GetOrderResponse {
+	pickupAddress, _ := o.addressStore.GetAddressByID(order.PickupAddress)
+	deliveryAddress, _ := o.addressStore.GetAddressByID(order.DeliveryAddress)
+
+	getOrderResponse := NewGetOrderResponse(order, pickupAddress, deliveryAddress)
+	return getOrderResponse
 }

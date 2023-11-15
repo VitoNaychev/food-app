@@ -2,7 +2,6 @@ package models
 
 type Address struct {
 	ID           int
-	OrderID      int `db:"customer_id"`
 	Lat          float64
 	Lon          float64
 	AddressLine1 string `db:"address_line1"`

@@ -12,6 +12,19 @@ import (
 	"github.com/VitoNaychev/bt-order-svc/testdata"
 )
 
+type StubAddressStore struct {
+	addresses []models.Address
+}
+
+func (s *StubAddressStore) GetAddressByID(id int) (models.Address, error) {
+	for _, address := range s.addresses {
+		if address.ID == id {
+			return address, nil
+		}
+	}
+	return models.Address{}, models.ErrNotFound
+}
+
 type StubOrderStore struct {
 	orders []models.Order
 }
@@ -38,6 +51,17 @@ func (s *StubOrderStore) GetCurrentOrdersByCustomerID(customerID int) ([]models.
 
 func dummyHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func stubVerifyJWT(jwt string) AuthResponse {
+	if jwt == "invalidJWT" {
+		return AuthResponse{INVALID, 0}
+	} else if jwt == "10" {
+		return AuthResponse{NOT_FOUND, 0}
+	} else {
+		id, _ := strconv.Atoi(jwt)
+		return AuthResponse{OK, id}
+	}
 }
 
 func TestAuthMiddleware(t *testing.T) {
@@ -85,20 +109,10 @@ func TestAuthMiddleware(t *testing.T) {
 	})
 }
 
-func stubVerifyJWT(jwt string) AuthResponse {
-	if jwt == "invalidJWT" {
-		return AuthResponse{INVALID, 0}
-	} else if jwt == "10" {
-		return AuthResponse{NOT_FOUND, 0}
-	} else {
-		id, _ := strconv.Atoi(jwt)
-		return AuthResponse{OK, id}
-	}
-}
-
 func TestGetCurrentOrders(t *testing.T) {
-	store := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
-	server := NewOrderServer(store, stubVerifyJWT)
+	orderStore := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
+	addressStore := &StubAddressStore{[]models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress}}
+	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
 
 	t.Run("returns current orders for customer with ID 1", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/order/current/", nil)
@@ -109,9 +123,11 @@ func TestGetCurrentOrders(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusOK)
 
-		want := []models.Order{testdata.PeterOrder1}
+		want := []GetOrderResponse{
+			NewGetOrderResponse(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
+		}
 
-		var got []models.Order
+		var got []GetOrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		if !reflect.DeepEqual(got, want) {
@@ -121,8 +137,9 @@ func TestGetCurrentOrders(t *testing.T) {
 }
 
 func TestGetOrders(t *testing.T) {
-	store := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
-	server := NewOrderServer(store, stubVerifyJWT)
+	orderStore := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
+	addressStore := &StubAddressStore{[]models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress}}
+	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
 
 	t.Run("returns orders of customer with ID 1", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/order/all/", nil)
@@ -133,9 +150,11 @@ func TestGetOrders(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusOK)
 
-		want := []models.Order{testdata.PeterOrder1, testdata.PeterOrder2}
-
-		var got []models.Order
+		want := []GetOrderResponse{
+			NewGetOrderResponse(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
+			NewGetOrderResponse(testdata.PeterOrder2, testdata.ChickenShackAddress, testdata.PeterAddress2),
+		}
+		var got []GetOrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		if !reflect.DeepEqual(got, want) {
@@ -152,9 +171,11 @@ func TestGetOrders(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusOK)
 
-		want := []models.Order{testdata.AliceOrder}
+		want := []GetOrderResponse{
+			NewGetOrderResponse(testdata.AliceOrder, testdata.ChickenShackAddress, testdata.AliceAddress),
+		}
 
-		var got []models.Order
+		var got []GetOrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		if !reflect.DeepEqual(got, want) {
