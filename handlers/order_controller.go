@@ -25,15 +25,15 @@ func NewOrderServer(store models.OrderStore, verifyJWT VerifyJWT) OrderServer {
 
 	router := http.NewServeMux()
 
-	router.Handle("/order/all/", AuthenticationMiddleware(server.getAllOrders, verifyJWT))
-	router.Handle("/order/current/", AuthenticationMiddleware(server.getCurrentOrders, verifyJWT))
+	router.Handle("/order/all/", AuthMiddleware(server.getAllOrders, verifyJWT))
+	router.Handle("/order/current/", AuthMiddleware(server.getCurrentOrders, verifyJWT))
 
 	server.Handler = router
 
 	return server
 }
 
-func AuthenticationMiddleware(handler func(w http.ResponseWriter, r *http.Request), verifyJWT VerifyJWT) http.HandlerFunc {
+func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verifyJWT VerifyJWT) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil {
 			w.WriteHeader(http.StatusUnauthorized)
