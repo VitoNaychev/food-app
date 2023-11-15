@@ -94,3 +94,13 @@ func (o *OrderServer) orderToGetOrderResponse(order models.Order) GetOrderRespon
 	getOrderResponse := NewGetOrderResponse(order, pickupAddress, deliveryAddress)
 	return getOrderResponse
 }
+
+func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request, authResponse AuthResponse) {
+	orders, _ := o.store.GetOrdersByCustomerID(authResponse.ID)
+	json.NewEncoder(w).Encode(orders)
+}
+
+func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request, authResponse AuthResponse) {
+	orders, _ := o.store.GetCurrentOrdersByCustomerID(authResponse.ID)
+	json.NewEncoder(w).Encode(orders)
+}
