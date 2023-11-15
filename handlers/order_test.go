@@ -49,7 +49,7 @@ func StubVerifyJWT(jwt string) AuthResponse {
 
 func TestGetCurrentOrders(t *testing.T) {
 	store := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
-	server := OrderServer{store, StubVerifyJWT}
+	server := NewOrderServer(store, StubVerifyJWT)
 
 	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/order/current/", nil)
@@ -90,11 +90,21 @@ func TestGetCurrentOrders(t *testing.T) {
 			t.Errorf("got %v want %v", got, want)
 		}
 	})
+
+	t.Run("returns Not Found on nonexistent customer", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/order/current/", nil)
+		request.Header.Add("Token", strconv.Itoa(10))
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusNotFound)
+	})
 }
 
 func TestGetOrders(t *testing.T) {
 	store := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
-	server := OrderServer{store, StubVerifyJWT}
+	server := NewOrderServer(store, StubVerifyJWT)
 
 	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/order/all/", nil)

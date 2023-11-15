@@ -7,35 +7,68 @@ import (
 	"github.com/VitoNaychev/bt-order-svc/models"
 )
 
+var authResponseMap = make(map[string]AuthResponse)
+
 type VerifyJWT func(token string) AuthResponse
 
 type OrderServer struct {
 	store     models.OrderStore
 	verifyJWT VerifyJWT
+	http.Handler
 }
 
-func (o *OrderServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Header["Token"] == nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+func NewOrderServer(store models.OrderStore, verifyJWT VerifyJWT) OrderServer {
+	server := OrderServer{
+		store:     store,
+		verifyJWT: verifyJWT,
 	}
 
-	authResponse := o.verifyJWT(r.Header["Token"][0])
-	if authResponse.Status == INVALID {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+	router := http.NewServeMux()
 
-	if authResponse.Status == NOT_FOUND {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+	router.Handle("/order/all/", AuthenticationMiddleware(server.getAllOrders, verifyJWT))
+	router.Handle("/order/current/", AuthenticationMiddleware(server.getCurrentOrders, verifyJWT))
 
-	if r.URL.Path == "/order/all/" {
-		orders, _ := o.store.GetOrdersByCustomerID(authResponse.ID)
-		json.NewEncoder(w).Encode(orders)
-	} else if r.URL.Path == "/order/current/" {
-		orders, _ := o.store.GetCurrentOrdersByCustomerID(authResponse.ID)
-		json.NewEncoder(w).Encode(orders)
-	}
+	server.Handler = router
+
+	return server
+}
+
+func AuthenticationMiddleware(handler func(w http.ResponseWriter, r *http.Request), verifyJWT VerifyJWT) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header["Token"] == nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		authResponse := verifyJWT(r.Header["Token"][0])
+		if authResponse.Status == INVALID {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		if authResponse.Status == NOT_FOUND {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		authResponseMap[r.Header["Token"][0]] = authResponse
+
+		handler(w, r)
+	})
+}
+
+func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
+	customerJWT := r.Header["Token"][0]
+	authResponse := authResponseMap[customerJWT]
+
+	orders, _ := o.store.GetOrdersByCustomerID(authResponse.ID)
+	json.NewEncoder(w).Encode(orders)
+}
+
+func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
+	customerJWT := r.Header["Token"][0]
+	authResponse := authResponseMap[customerJWT]
+
+	orders, _ := o.store.GetCurrentOrdersByCustomerID(authResponse.ID)
+	json.NewEncoder(w).Encode(orders)
 }
