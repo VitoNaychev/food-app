@@ -1,0 +1,15 @@
+package models
+
+type Status int
+
+const (
+	APPROVAL_PENDING Status = iota
+	REJECTED
+	DECLINED
+	APPROVED
+	CANCELED
+	PREPARING
+	PREPARED
+	PICKED_UP
+	COMPLETED
+)
