@@ -109,14 +109,37 @@ func TestAuthMiddleware(t *testing.T) {
 	})
 }
 
+func TestOrderEndpointAuthentication(t *testing.T) {
+	orderStore := &StubOrderStore{}
+	addressStore := &StubAddressStore{}
+	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
+
+	invalidJWT := "invalidJWT"
+	cases := map[string]*http.Request{
+		"get all orders authentication":    NewGetAllOrdersRequest(invalidJWT),
+		"get current order authentication": NewGetCurrentOrdersRequest(invalidJWT),
+	}
+
+	for name, request := range cases {
+		t.Run(name, func(t *testing.T) {
+			request.Header.Add("Token", invalidJWT)
+
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, request)
+
+			assertStatus(t, response.Code, http.StatusUnauthorized)
+		})
+	}
+}
+
 func TestGetCurrentOrders(t *testing.T) {
 	orderStore := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
 	addressStore := &StubAddressStore{[]models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress}}
 	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
 
 	t.Run("returns current orders for customer with ID 1", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/order/current/", nil)
-		request.Header.Add("Token", strconv.Itoa(testdata.PeterCustomerID))
+		request := NewGetCurrentOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -136,14 +159,20 @@ func TestGetCurrentOrders(t *testing.T) {
 	})
 }
 
+func NewGetCurrentOrdersRequest(jwt string) *http.Request {
+	request, _ := http.NewRequest(http.MethodGet, "/order/current/", nil)
+	request.Header.Add("Token", jwt)
+
+	return request
+}
+
 func TestGetOrders(t *testing.T) {
 	orderStore := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
 	addressStore := &StubAddressStore{[]models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress}}
 	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
 
 	t.Run("returns orders of customer with ID 1", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/order/all/", nil)
-		request.Header.Add("Token", strconv.Itoa(testdata.PeterCustomerID))
+		request := NewGetAllOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -163,8 +192,7 @@ func TestGetOrders(t *testing.T) {
 	})
 
 	t.Run("returns orders of customer with ID 2", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/order/all/", nil)
-		request.Header.Add("Token", strconv.Itoa(testdata.AliceCustomerID))
+		request := NewGetAllOrdersRequest(strconv.Itoa(testdata.AliceCustomerID))
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -190,4 +218,11 @@ func assertStatus(t testing.TB, got, want int) {
 	if got != want {
 		t.Fatalf("got status %v want %v", got, want)
 	}
+}
+
+func NewGetAllOrdersRequest(jwt string) *http.Request {
+	request, _ := http.NewRequest(http.MethodGet, "/order/all/", nil)
+	request.Header.Add("Token", jwt)
+
+	return request
 }
