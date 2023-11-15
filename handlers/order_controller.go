@@ -31,6 +31,11 @@ func (o *OrderServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order, _ := o.store.GetOrdersByCustomerID(authResponse.ID)
-	json.NewEncoder(w).Encode(order)
+	if r.URL.Path == "/order/all/" {
+		orders, _ := o.store.GetOrdersByCustomerID(authResponse.ID)
+		json.NewEncoder(w).Encode(orders)
+	} else if r.URL.Path == "/order/current/" {
+		orders, _ := o.store.GetCurrentOrdersByCustomerID(authResponse.ID)
+		json.NewEncoder(w).Encode(orders)
+	}
 }
