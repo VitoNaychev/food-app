@@ -19,7 +19,7 @@ type AuthResponse struct {
 	ID     int
 }
 
-type GetOrderResponse struct {
+type OrderResponse struct {
 	ID              int
 	CustomerID      int
 	RestaurantID    int
@@ -31,8 +31,8 @@ type GetOrderResponse struct {
 	DeliveryAddress models.Address
 }
 
-func NewGetOrderResponse(order models.Order, pickupAddress, deliveryAddress models.Address) GetOrderResponse {
-	return GetOrderResponse{
+func NewOrderResponseBody(order models.Order, pickupAddress, deliveryAddress models.Address) OrderResponse {
+	return OrderResponse{
 		ID:              order.ID,
 		CustomerID:      order.CustomerID,
 		RestaurantID:    order.RestaurantID,
@@ -55,6 +55,30 @@ type CreateOrderRequest struct {
 	DeliveryAddress CreateOrderAddress
 }
 
+func CreateOrderRequestToOrder(createOrderRequest CreateOrderRequest, customerID int) models.Order {
+	order := models.Order{
+		ID:              0,
+		CustomerID:      customerID,
+		RestaurantID:    createOrderRequest.RestaurantID,
+		Items:           createOrderRequest.Items,
+		Total:           createOrderRequest.Total,
+		DeliveryTime:    createOrderRequest.DeliveryTime,
+		Status:          createOrderRequest.Status,
+		PickupAddress:   -1,
+		DeliveryAddress: -1,
+	}
+
+	return order
+}
+
+func GetPickupAddressFromCreateOrderRequest(createOrderRequest CreateOrderRequest) models.Address {
+	return CreateOrderAddressToAddress(createOrderRequest.PickupAddress)
+}
+
+func GetDeliveryAddressFromCreateOrderRequest(createOrderRequest CreateOrderRequest) models.Address {
+	return CreateOrderAddressToAddress(createOrderRequest.DeliveryAddress)
+}
+
 type CreateOrderAddress struct {
 	Lat          float64
 	Lon          float64
@@ -62,4 +86,18 @@ type CreateOrderAddress struct {
 	AddressLine2 string
 	City         string
 	Country      string
+}
+
+func CreateOrderAddressToAddress(createOrderAddress CreateOrderAddress) models.Address {
+	address := models.Address{
+		ID:           0,
+		Lat:          createOrderAddress.Lat,
+		Lon:          createOrderAddress.Lon,
+		AddressLine1: createOrderAddress.AddressLine1,
+		AddressLine2: createOrderAddress.AddressLine2,
+		City:         createOrderAddress.City,
+		Country:      createOrderAddress.Country,
+	}
+
+	return address
 }

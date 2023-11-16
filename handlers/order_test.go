@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,15 @@ import (
 )
 
 type StubAddressStore struct {
-	addresses []models.Address
+	createdAddresses []models.Address
+	addresses        []models.Address
+}
+
+func (s *StubAddressStore) CreateAddress(address *models.Address) error {
+	s.createdAddresses = append(s.createdAddresses, *address)
+	address.ID = len(s.createdAddresses)
+
+	return nil
 }
 
 func (s *StubAddressStore) GetAddressByID(id int) (models.Address, error) {
@@ -26,7 +35,15 @@ func (s *StubAddressStore) GetAddressByID(id int) (models.Address, error) {
 }
 
 type StubOrderStore struct {
-	orders []models.Order
+	createdOrders []models.Order
+	orders        []models.Order
+}
+
+func (s *StubOrderStore) CreateOrder(order *models.Order) error {
+	s.createdOrders = append(s.createdOrders, *order)
+	order.ID = len(s.createdOrders)
+
+	return nil
 }
 
 func (s *StubOrderStore) GetOrdersByCustomerID(customerID int) ([]models.Order, error) {
@@ -118,12 +135,11 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 	cases := map[string]*http.Request{
 		"get all orders authentication":    NewGetAllOrdersRequest(invalidJWT),
 		"get current order authentication": NewGetCurrentOrdersRequest(invalidJWT),
+		"create new order authentication":  NewCreateOrderRequest(invalidJWT, CreateOrderRequest{}),
 	}
 
 	for name, request := range cases {
 		t.Run(name, func(t *testing.T) {
-			request.Header.Add("Token", invalidJWT)
-
 			response := httptest.NewRecorder()
 
 			server.ServeHTTP(response, request)
@@ -133,9 +149,83 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 	}
 }
 
+func TestCreateOrder(t *testing.T) {
+	orderStore := &StubOrderStore{[]models.Order{}, nil}
+	addressStore := &StubAddressStore{[]models.Address{}, nil}
+	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
+
+	t.Run("returns Accepted on POST request", func(t *testing.T) {
+		createOrderRequestBody := NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
+		request := NewCreateOrderRequest(strconv.Itoa(testdata.PeterCustomerID), createOrderRequestBody)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		assertStatus(t, response.Code, http.StatusOK)
+
+		if len(orderStore.createdOrders) != 1 {
+			t.Errorf("got %d calls to CreateOrder, want %d", len(orderStore.createdOrders), 1)
+		}
+
+		if len(addressStore.createdAddresses) != 2 {
+			t.Errorf("got %d calls to CreateAddress, want %d", len(addressStore.createdAddresses), 2)
+		}
+
+		want := NewOrderResponseBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
+		var got OrderResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		if !reflect.DeepEqual(want, got) {
+			t.Errorf("got %v want %v", got, want)
+		}
+	})
+}
+
+func NewCeateOrderRequestBody(order models.Order, pickupAddress models.Address, deliveryAddress models.Address) CreateOrderRequest {
+	createPickupAddress := CreateOrderAddress{
+		Lat:          pickupAddress.Lat,
+		Lon:          pickupAddress.Lon,
+		AddressLine1: pickupAddress.AddressLine1,
+		AddressLine2: pickupAddress.AddressLine2,
+		City:         pickupAddress.City,
+		Country:      pickupAddress.Country,
+	}
+
+	createDeliveryAddress := CreateOrderAddress{
+		Lat:          deliveryAddress.Lat,
+		Lon:          deliveryAddress.Lon,
+		AddressLine1: deliveryAddress.AddressLine1,
+		AddressLine2: deliveryAddress.AddressLine2,
+		City:         deliveryAddress.City,
+		Country:      deliveryAddress.Country,
+	}
+
+	createOrderRequest := CreateOrderRequest{
+		RestaurantID:    order.RestaurantID,
+		Items:           order.Items,
+		Total:           order.Total,
+		DeliveryTime:    order.DeliveryTime,
+		Status:          order.Status,
+		PickupAddress:   createPickupAddress,
+		DeliveryAddress: createDeliveryAddress,
+	}
+
+	return createOrderRequest
+}
+
+func NewCreateOrderRequest(jwt string, createOrderRequestBody CreateOrderRequest) *http.Request {
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(createOrderRequestBody)
+
+	request, _ := http.NewRequest(http.MethodPost, "/order/new/", body)
+	request.Header.Add("Token", jwt)
+
+	return request
+}
+
 func TestGetCurrentOrders(t *testing.T) {
-	orderStore := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
-	addressStore := &StubAddressStore{[]models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress}}
+	orderStore := &StubOrderStore{nil, []models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
+	addressStore := &StubAddressStore{nil, []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress}}
 	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
 
 	t.Run("returns current orders for customer with ID 1", func(t *testing.T) {
@@ -146,11 +236,11 @@ func TestGetCurrentOrders(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusOK)
 
-		want := []GetOrderResponse{
-			NewGetOrderResponse(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
+		want := []OrderResponse{
+			NewOrderResponseBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
 		}
 
-		var got []GetOrderResponse
+		var got []OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		if !reflect.DeepEqual(got, want) {
@@ -167,8 +257,8 @@ func NewGetCurrentOrdersRequest(jwt string) *http.Request {
 }
 
 func TestGetOrders(t *testing.T) {
-	orderStore := &StubOrderStore{[]models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
-	addressStore := &StubAddressStore{[]models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress}}
+	orderStore := &StubOrderStore{nil, []models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder}}
+	addressStore := &StubAddressStore{nil, []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress}}
 	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
 
 	t.Run("returns orders of customer with ID 1", func(t *testing.T) {
@@ -179,11 +269,11 @@ func TestGetOrders(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusOK)
 
-		want := []GetOrderResponse{
-			NewGetOrderResponse(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
-			NewGetOrderResponse(testdata.PeterOrder2, testdata.ChickenShackAddress, testdata.PeterAddress2),
+		want := []OrderResponse{
+			NewOrderResponseBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
+			NewOrderResponseBody(testdata.PeterOrder2, testdata.ChickenShackAddress, testdata.PeterAddress2),
 		}
-		var got []GetOrderResponse
+		var got []OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		if !reflect.DeepEqual(got, want) {
@@ -199,11 +289,11 @@ func TestGetOrders(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusOK)
 
-		want := []GetOrderResponse{
-			NewGetOrderResponse(testdata.AliceOrder, testdata.ChickenShackAddress, testdata.AliceAddress),
+		want := []OrderResponse{
+			NewOrderResponseBody(testdata.AliceOrder, testdata.ChickenShackAddress, testdata.AliceAddress),
 		}
 
-		var got []GetOrderResponse
+		var got []OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		if !reflect.DeepEqual(got, want) {

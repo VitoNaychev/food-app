@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/VitoNaychev/bt-order-svc/models"
+	"github.com/VitoNaychev/validation"
 )
 
 var authResponseMap = make(map[string]AuthResponse)
@@ -29,6 +30,7 @@ func NewOrderServer(orderStore models.OrderStore, addressStore models.AddressSto
 
 	router.Handle("/order/all/", AuthMiddleware(server.getAllOrders, verifyJWT))
 	router.Handle("/order/current/", AuthMiddleware(server.getCurrentOrders, verifyJWT))
+	router.Handle("/order/new/", AuthMiddleware(server.createOrder, verifyJWT))
 
 	server.Handler = router
 
@@ -59,13 +61,36 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 	})
 }
 
+func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
+	createOrderRequest, _ := validation.ValidateBody[CreateOrderRequest](r.Body)
+
+	customerJWT := r.Header["Token"][0]
+	authResponse := authResponseMap[customerJWT]
+
+	order := CreateOrderRequestToOrder(createOrderRequest, authResponse.ID)
+	pickupAddress := GetPickupAddressFromCreateOrderRequest(createOrderRequest)
+	deliveryAddress := GetDeliveryAddressFromCreateOrderRequest(createOrderRequest)
+
+	_ = o.addressStore.CreateAddress(&pickupAddress)
+	_ = o.addressStore.CreateAddress(&deliveryAddress)
+
+	order.PickupAddress = pickupAddress.ID
+	order.DeliveryAddress = deliveryAddress.ID
+
+	_ = o.orderStore.CreateOrder(&order)
+
+	orderResponse := NewOrderResponseBody(order, pickupAddress, deliveryAddress)
+
+	json.NewEncoder(w).Encode(orderResponse)
+}
+
 func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
 	customerJWT := r.Header["Token"][0]
 	authResponse := authResponseMap[customerJWT]
 
 	orders, _ := o.orderStore.GetOrdersByCustomerID(authResponse.ID)
 
-	orderResponseArr := []GetOrderResponse{}
+	orderResponseArr := []OrderResponse{}
 	for _, order := range orders {
 		orderResponseArr = append(orderResponseArr, o.orderToGetOrderResponse(order))
 	}
@@ -79,7 +104,7 @@ func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
 
 	orders, _ := o.orderStore.GetCurrentOrdersByCustomerID(authResponse.ID)
 
-	orderResponseArr := []GetOrderResponse{}
+	orderResponseArr := []OrderResponse{}
 	for _, order := range orders {
 		orderResponseArr = append(orderResponseArr, o.orderToGetOrderResponse(order))
 	}
@@ -87,11 +112,11 @@ func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(orderResponseArr)
 }
 
-func (o *OrderServer) orderToGetOrderResponse(order models.Order) GetOrderResponse {
+func (o *OrderServer) orderToGetOrderResponse(order models.Order) OrderResponse {
 	pickupAddress, _ := o.addressStore.GetAddressByID(order.PickupAddress)
 	deliveryAddress, _ := o.addressStore.GetAddressByID(order.DeliveryAddress)
 
-	getOrderResponse := NewGetOrderResponse(order, pickupAddress, deliveryAddress)
+	getOrderResponse := NewOrderResponseBody(order, pickupAddress, deliveryAddress)
 	return getOrderResponse
 }
 
