@@ -24,3 +24,4 @@ CREATE TABLE orders (
   total                     numeric(7, 2) NOT NULL,
   requested_delivery_time   timestamp             ,
   status                    status        NOT NULL
+);
