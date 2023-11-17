@@ -50,7 +50,7 @@ func ValidateBody[T any](body io.Reader) (T, error) {
 
 	err = validate.Struct(requestStruct)
 	if err != nil {
-		return requestStruct, ErrInvalidRequestField
+		return requestStruct, NewErrInvalidRequestField(err.Error())
 	}
 
 	return requestStruct, nil

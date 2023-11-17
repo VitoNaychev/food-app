@@ -3,6 +3,7 @@ package validation_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"reflect"
 	"testing"
@@ -92,7 +93,10 @@ func TestValidateBody(t *testing.T) {
 
 		_, err := validation.ValidateBody[DummyRequest](body)
 
-		assertError(t, err, validation.ErrInvalidRequestField)
+		errInvalidRequestField := validation.NewErrInvalidRequestField("")
+		if !errors.As(err, &errInvalidRequestField) {
+			t.Errorf("didn't get error with type ErrInvalidRequestField")
+		}
 	})
 
 	t.Run("parses request body on valid request", func(t *testing.T) {
@@ -123,7 +127,10 @@ func TestValidateBody(t *testing.T) {
 
 		_, err := validation.ValidateBody[PhoneNumberRequest](body)
 
-		assertError(t, err, validation.ErrInvalidRequestField)
+		errInvalidRequestField := validation.NewErrInvalidRequestField("")
+		if !errors.As(err, &errInvalidRequestField) {
+			t.Errorf("didn't get error with type ErrInvalidRequestField")
+		}
 	})
 
 	t.Run("parses phone number on valid request", func(t *testing.T) {
