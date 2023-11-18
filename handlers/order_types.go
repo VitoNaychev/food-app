@@ -20,15 +20,15 @@ type AuthResponse struct {
 }
 
 type OrderResponse struct {
-	ID              int
-	CustomerID      int
-	RestaurantID    int
-	Items           []int
-	Total           float64
-	DeliveryTime    time.Time
-	Status          models.Status
-	PickupAddress   models.Address
-	DeliveryAddress models.Address
+	ID              int            `validate:"min=1"`
+	CustomerID      int            `validate:"min=1"`
+	RestaurantID    int            `validate:"min=1"`
+	Items           []int          `validate:"required"`
+	Total           float64        `validate:"min=0.01"`
+	DeliveryTime    time.Time      `validate:"required"`
+	Status          models.Status  `validate:"min=0,max=8"`
+	PickupAddress   models.Address `validate:"required"`
+	DeliveryAddress models.Address `validate:"required"`
 }
 
 func NewOrderResponseBody(order models.Order, pickupAddress, deliveryAddress models.Address) OrderResponse {

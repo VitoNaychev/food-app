@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/VitoNaychev/bt-order-svc/models"
 	"github.com/VitoNaychev/bt-order-svc/testdata"
+	"github.com/VitoNaychev/validation"
 )
 
 type StubAddressStore struct {
@@ -149,12 +151,67 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 	}
 }
 
+type GenericResponse interface{}
+
+func TestOrderResponseValidity(t *testing.T) {
+	orderStore := &StubOrderStore{}
+	addressStore := &StubAddressStore{}
+	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
+
+	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
+	createOrderRequestBody := NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
+
+	cases := []struct {
+		Name               string
+		Request            *http.Request
+		ValidationFunction func(io.Reader) (GenericResponse, error)
+	}{
+		{
+			"get all orders",
+			NewGetAllOrdersRequest(peterJWT),
+			func(r io.Reader) (GenericResponse, error) {
+				response, err := validation.ValidateBody[[]OrderResponse](r)
+				return response, err
+			},
+		},
+		{
+			"get current orders",
+			NewGetCurrentOrdersRequest(peterJWT),
+			func(r io.Reader) (GenericResponse, error) {
+				response, err := validation.ValidateBody[[]OrderResponse](r)
+				return response, err
+			},
+		},
+		{
+			"create order",
+			NewCreateOrderRequest(peterJWT, createOrderRequestBody),
+			func(r io.Reader) (GenericResponse, error) {
+				response, err := validation.ValidateBody[OrderResponse](r)
+				return response, err
+			},
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.Name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, test.Request)
+
+			_, err := test.ValidationFunction(response.Body)
+			if err != nil {
+				t.Errorf("invalid response body, %v", err)
+			}
+		})
+	}
+}
+
 func TestCreateOrder(t *testing.T) {
 	orderStore := &StubOrderStore{[]models.Order{}, nil}
 	addressStore := &StubAddressStore{[]models.Address{}, nil}
 	server := NewOrderServer(orderStore, addressStore, stubVerifyJWT)
 
-	t.Run("returns Accepted on POST request", func(t *testing.T) {
+	t.Run("creates new order and returns it", func(t *testing.T) {
 		createOrderRequestBody := NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
 		request := NewCreateOrderRequest(strconv.Itoa(testdata.PeterCustomerID), createOrderRequestBody)
 		response := httptest.NewRecorder()
@@ -171,14 +228,27 @@ func TestCreateOrder(t *testing.T) {
 			t.Errorf("got %d calls to CreateAddress, want %d", len(addressStore.createdAddresses), 2)
 		}
 
-		want := NewOrderResponseBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
+		wantOrder := testdata.PeterOrder1
+		wantOrder.Status = models.APPROVAL_PENDING
+		want := NewOrderResponseBody(wantOrder, testdata.ChickenShackAddress, testdata.PeterAddress1)
+
 		var got OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		if !reflect.DeepEqual(want, got) {
-			t.Errorf("got %v want %v", got, want)
+		if got.Status != models.APPROVAL_PENDING {
+			t.Errorf("got status %v want %v", got.Status, models.APPROVAL_PENDING)
 		}
+
+		AssertOrderResponse(t, got, want)
 	})
+}
+
+func AssertOrderResponse(t testing.TB, got, want OrderResponse) {
+	t.Helper()
+
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("got %v want %v", got, want)
+	}
 }
 
 func NewCeateOrderRequestBody(order models.Order, pickupAddress models.Address, deliveryAddress models.Address) CreateOrderRequest {

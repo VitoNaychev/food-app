@@ -77,6 +77,7 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 	order.PickupAddress = pickupAddress.ID
 	order.DeliveryAddress = deliveryAddress.ID
 
+	order.Status = models.APPROVAL_PENDING
 	_ = o.orderStore.CreateOrder(&order)
 
 	orderResponse := NewOrderResponseBody(order, pickupAddress, deliveryAddress)
