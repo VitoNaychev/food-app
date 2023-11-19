@@ -55,6 +55,38 @@ type CreateOrderRequest struct {
 	DeliveryAddress CreateOrderAddress
 }
 
+func NewCeateOrderRequestBody(order models.Order, pickupAddress models.Address, deliveryAddress models.Address) CreateOrderRequest {
+	createPickupAddress := CreateOrderAddress{
+		Lat:          pickupAddress.Lat,
+		Lon:          pickupAddress.Lon,
+		AddressLine1: pickupAddress.AddressLine1,
+		AddressLine2: pickupAddress.AddressLine2,
+		City:         pickupAddress.City,
+		Country:      pickupAddress.Country,
+	}
+
+	createDeliveryAddress := CreateOrderAddress{
+		Lat:          deliveryAddress.Lat,
+		Lon:          deliveryAddress.Lon,
+		AddressLine1: deliveryAddress.AddressLine1,
+		AddressLine2: deliveryAddress.AddressLine2,
+		City:         deliveryAddress.City,
+		Country:      deliveryAddress.Country,
+	}
+
+	createOrderRequest := CreateOrderRequest{
+		RestaurantID:    order.RestaurantID,
+		Items:           order.Items,
+		Total:           order.Total,
+		DeliveryTime:    order.DeliveryTime,
+		Status:          order.Status,
+		PickupAddress:   createPickupAddress,
+		DeliveryAddress: createDeliveryAddress,
+	}
+
+	return createOrderRequest
+}
+
 func CreateOrderRequestToOrder(createOrderRequest CreateOrderRequest, customerID int) models.Order {
 	order := models.Order{
 		ID:              0,
