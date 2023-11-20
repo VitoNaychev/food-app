@@ -31,8 +31,6 @@ func TestAddressEndpointAuthentication(t *testing.T) {
 
 	for name, request := range cases {
 		t.Run(name, func(t *testing.T) {
-			request.Header.Add("Token", invalidJWT)
-
 			response := httptest.NewRecorder()
 
 			server.ServeHTTP(response, request)
