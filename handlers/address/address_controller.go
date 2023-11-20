@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
 	"github.com/VitoNaychev/bt-customer-svc/models"
+	"github.com/VitoNaychev/validation"
 )
 
 func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {

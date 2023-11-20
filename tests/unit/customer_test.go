@@ -9,10 +9,10 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 	td "github.com/VitoNaychev/bt-customer-svc/tests/testdata"
 	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
+	"github.com/VitoNaychev/validation"
 )
 
 func TestCustomerEndpointAuthentication(t *testing.T) {

@@ -8,8 +8,8 @@ import (
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/validation"
 	"github.com/VitoNaychev/bt-customer-svc/models"
+	"github.com/VitoNaychev/validation"
 )
 
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
