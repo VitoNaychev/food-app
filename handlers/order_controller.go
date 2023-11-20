@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/VitoNaychev/bt-order-svc/models"
+	"github.com/VitoNaychev/errorresponse"
 	"github.com/VitoNaychev/validation"
 )
 
@@ -71,14 +72,26 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 	pickupAddress := GetPickupAddressFromCreateOrderRequest(createOrderRequest)
 	deliveryAddress := GetDeliveryAddressFromCreateOrderRequest(createOrderRequest)
 
-	_ = o.addressStore.CreateAddress(&pickupAddress)
-	_ = o.addressStore.CreateAddress(&deliveryAddress)
+	err := o.addressStore.CreateAddress(&pickupAddress)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err)
+		return
+	}
+	err = o.addressStore.CreateAddress(&deliveryAddress)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err)
+		return
+	}
 
 	order.PickupAddress = pickupAddress.ID
 	order.DeliveryAddress = deliveryAddress.ID
 
 	order.Status = models.APPROVAL_PENDING
-	_ = o.orderStore.CreateOrder(&order)
+	err = o.orderStore.CreateOrder(&order)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err)
+		return
+	}
 
 	orderResponse := NewOrderResponseBody(order, pickupAddress, deliveryAddress)
 
@@ -89,7 +102,10 @@ func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
 	customerJWT := r.Header["Token"][0]
 	authResponse := authResponseMap[customerJWT]
 
-	orders, _ := o.orderStore.GetOrdersByCustomerID(authResponse.ID)
+	orders, err := o.orderStore.GetOrdersByCustomerID(authResponse.ID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err)
+	}
 
 	orderResponseArr := []OrderResponse{}
 	for _, order := range orders {
@@ -103,7 +119,10 @@ func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
 	customerJWT := r.Header["Token"][0]
 	authResponse := authResponseMap[customerJWT]
 
-	orders, _ := o.orderStore.GetCurrentOrdersByCustomerID(authResponse.ID)
+	orders, err := o.orderStore.GetCurrentOrdersByCustomerID(authResponse.ID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err)
+	}
 
 	orderResponseArr := []OrderResponse{}
 	for _, order := range orders {
