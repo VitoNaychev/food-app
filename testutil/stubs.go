@@ -1,8 +1,6 @@
 package testutil
 
 import (
-	"testing"
-
 	"github.com/VitoNaychev/bt-order-svc/models"
 )
 
@@ -85,12 +83,4 @@ func (s *StubOrderStore) GetCurrentOrdersByCustomerID(customerID int) ([]models.
 		}
 	}
 	return customerOrders, nil
-}
-
-func AssertStatus(t testing.TB, got, want int) {
-	t.Helper()
-
-	if got != want {
-		t.Fatalf("got status %v want %v", got, want)
-	}
 }

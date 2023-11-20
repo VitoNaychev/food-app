@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strconv"
 	"testing"
 
@@ -62,7 +61,7 @@ func TestOrderServerOperations(t *testing.T) {
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		assertGetOrderResponse(t, got, want)
+		testutil.AssertGetOrderResponse(t, got, want)
 	})
 
 	t.Run("get current orders", func(t *testing.T) {
@@ -79,14 +78,6 @@ func TestOrderServerOperations(t *testing.T) {
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		assertGetOrderResponse(t, got, want)
+		testutil.AssertGetOrderResponse(t, got, want)
 	})
-}
-
-func assertGetOrderResponse(t testing.TB, got, want []handlers.OrderResponse) {
-	t.Helper()
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v want %v", got, want)
-	}
 }

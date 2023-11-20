@@ -48,11 +48,13 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 		authResponse := verifyJWT(r.Header["Token"][0])
 		if authResponse.Status == INVALID {
 			w.WriteHeader(http.StatusUnauthorized)
+			writeJSONError(w, http.StatusUnauthorized, ErrInvalidToken)
 			return
 		}
 
 		if authResponse.Status == NOT_FOUND {
 			w.WriteHeader(http.StatusNotFound)
+			writeJSONError(w, http.StatusUnauthorized, ErrCustomerNotFound)
 			return
 		}
 
