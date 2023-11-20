@@ -48,7 +48,7 @@ func TestOrderServerOperations(t *testing.T) {
 
 	testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-	t.Run("get order", func(t *testing.T) {
+	t.Run("get all orders", func(t *testing.T) {
 		request := handlers.NewGetAllOrdersRequest(peterJWT)
 		response := httptest.NewRecorder()
 
@@ -61,9 +61,8 @@ func TestOrderServerOperations(t *testing.T) {
 		}
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v want %v", got, want)
-		}
+
+		assertGetOrderResponse(t, got, want)
 	})
 
 	t.Run("get current orders", func(t *testing.T) {
@@ -79,8 +78,15 @@ func TestOrderServerOperations(t *testing.T) {
 		}
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v want %v", got, want)
-		}
+
+		assertGetOrderResponse(t, got, want)
 	})
+}
+
+func assertGetOrderResponse(t testing.TB, got, want []handlers.OrderResponse) {
+	t.Helper()
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
+	}
 }

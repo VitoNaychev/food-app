@@ -186,11 +186,11 @@ func TestCreateOrder(t *testing.T) {
 			t.Errorf("got status %v want %v", got.Status, models.APPROVAL_PENDING)
 		}
 
-		AssertOrderResponse(t, got, want)
+		assertCreateOrderResponse(t, got, want)
 	})
 }
 
-func AssertOrderResponse(t testing.TB, got, want OrderResponse) {
+func assertCreateOrderResponse(t testing.TB, got, want OrderResponse) {
 	t.Helper()
 
 	if !reflect.DeepEqual(want, got) {
@@ -209,7 +209,7 @@ func TestGetCurrentOrders(t *testing.T) {
 	}
 	server := NewOrderServer(orderStore, addressStore, StubVerifyJWT)
 
-	t.Run("returns current orders for customer with ID 1", func(t *testing.T) {
+	t.Run("returns current orders for customer Peter", func(t *testing.T) {
 		request := NewGetCurrentOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
 		response := httptest.NewRecorder()
 
@@ -224,9 +224,7 @@ func TestGetCurrentOrders(t *testing.T) {
 		var got []OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v want %v", got, want)
-		}
+		assertGetOrderResponse(t, got, want)
 	})
 }
 
@@ -241,7 +239,7 @@ func TestGetOrders(t *testing.T) {
 	}
 	server := NewOrderServer(orderStore, addressStore, StubVerifyJWT)
 
-	t.Run("returns orders of customer with ID 1", func(t *testing.T) {
+	t.Run("returns orders of customer Peter", func(t *testing.T) {
 		request := NewGetAllOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
 		response := httptest.NewRecorder()
 
@@ -256,12 +254,10 @@ func TestGetOrders(t *testing.T) {
 		var got []OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v want %v", got, want)
-		}
+		assertGetOrderResponse(t, got, want)
 	})
 
-	t.Run("returns orders of customer with ID 2", func(t *testing.T) {
+	t.Run("returns orders of customer Alice", func(t *testing.T) {
 		request := NewGetAllOrdersRequest(strconv.Itoa(testdata.AliceCustomerID))
 		response := httptest.NewRecorder()
 
@@ -276,8 +272,14 @@ func TestGetOrders(t *testing.T) {
 		var got []OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v want %v", got, want)
-		}
+		assertGetOrderResponse(t, got, want)
 	})
+}
+
+func assertGetOrderResponse(t testing.TB, got, want []OrderResponse) {
+	t.Helper()
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
+	}
 }
