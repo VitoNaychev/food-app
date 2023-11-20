@@ -2,6 +2,7 @@ package integrationtest
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -120,7 +121,9 @@ func createNewCustomer(server http.Handler, c models.Customer) string {
 
 	server.ServeHTTP(response, request)
 
-	return response.Header()["Token"][0]
+	var createCustomerResponse customer.CreateCustomerResponse
+	json.NewDecoder(response.Body).Decode(&createCustomerResponse)
+	return createCustomerResponse.JWT.Token
 }
 
 func createNewAddress(t testing.TB, server http.Handler, a models.Address, customerJWT string) *httptest.ResponseRecorder {

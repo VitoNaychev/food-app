@@ -34,67 +34,65 @@ func TestCustomerServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
-		want := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
-		got := testutil.ParseCustomerResponse(t, response.Body)
+		wantCustomer := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
+		got := testutil.ParseCreateCustomerResponse(t, response.Body)
 
-		testutil.AssertCustomerResponse(t, got, want)
+		testutil.AssertCustomerResponse(t, got.Customer, wantCustomer)
 
-		peterJWT = response.Header()["Token"][0]
+		peterJWT = got.JWT.Token
 	})
 
-	if !createdSuccessfully {
-		return
+	if createdSuccessfully {
+		t.Run("retrieve customer", func(t *testing.T) {
+			request := customer.NewGetCustomerRequest(peterJWT)
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, request)
+
+			testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+			want := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
+			got := testutil.ParseCustomerResponse(t, response.Body)
+
+			testutil.AssertCustomerResponse(t, got, want)
+		})
+
+		t.Run("update customer", func(t *testing.T) {
+			updateCustomer := testdata.PeterCustomer
+			updateCustomer.LastName = "Roper"
+			updateCustomer.Email = "peteroper@gmail.com"
+
+			request := customer.NewUpdateCustomerRequest(updateCustomer, peterJWT)
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, request)
+
+			testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+			want := customer.CustomerToCustomerResponse(updateCustomer)
+			got := testutil.ParseCustomerResponse(t, response.Body)
+
+			testutil.AssertCustomerResponse(t, got, want)
+		})
+
+		t.Run("delete customer", func(t *testing.T) {
+			request := customer.NewDeleteCustomerRequest(peterJWT)
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, request)
+
+			testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		})
+
+		t.Run("retrieve deleted customer", func(t *testing.T) {
+			request := customer.NewGetCustomerRequest(peterJWT)
+			response := httptest.NewRecorder()
+
+			server.ServeHTTP(response, request)
+
+			testutil.AssertStatus(t, response.Code, http.StatusNotFound)
+			testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
+		})
 	}
-
-	t.Run("retrieve customer", func(t *testing.T) {
-		request := customer.NewGetCustomerRequest(peterJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusOK)
-
-		want := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
-		got := testutil.ParseCustomerResponse(t, response.Body)
-
-		testutil.AssertCustomerResponse(t, got, want)
-	})
-
-	t.Run("update customer", func(t *testing.T) {
-		updateCustomer := testdata.PeterCustomer
-		updateCustomer.LastName = "Roper"
-		updateCustomer.Email = "peteroper@gmail.com"
-
-		request := customer.NewUpdateCustomerRequest(updateCustomer, peterJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusOK)
-
-		want := customer.CustomerToCustomerResponse(updateCustomer)
-		got := testutil.ParseCustomerResponse(t, response.Body)
-
-		testutil.AssertCustomerResponse(t, got, want)
-	})
-
-	t.Run("delete customer", func(t *testing.T) {
-		request := customer.NewDeleteCustomerRequest(peterJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusOK)
-
-	})
-
-	t.Run("retrieve deleted customer", func(t *testing.T) {
-		request := customer.NewGetCustomerRequest(peterJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
-	})
 }

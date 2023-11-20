@@ -10,6 +10,13 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
+func ParseCreateCustomerResponse(t testing.TB, r io.Reader) (createCustomerResponse customer.CreateCustomerResponse) {
+	t.Helper()
+
+	json.NewDecoder(r).Decode(&createCustomerResponse)
+	return
+}
+
 func ParseCustomerResponse(t testing.TB, r io.Reader) (customerResponse customer.CustomerResponse) {
 	t.Helper()
 

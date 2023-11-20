@@ -3,7 +3,6 @@ package testutil
 import (
 	"encoding/json"
 	"io"
-	"net/http"
 	"reflect"
 	"strconv"
 	"testing"
@@ -66,14 +65,10 @@ func AssertValidResponse(t testing.TB, err error) {
 	}
 }
 
-func AssertJWT(t testing.TB, header http.Header, secretKey []byte, wantId int) {
+func AssertJWT(t testing.TB, jwtString string, secretKey []byte, wantId int) {
 	t.Helper()
 
-	if header["Token"] == nil {
-		t.Fatalf("missing JWT in header")
-	}
-
-	token, err := jwt.Parse(header["Token"][0], func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(jwtString, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}))
 

@@ -1,6 +1,7 @@
 package unittest
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -101,7 +102,12 @@ func TestLoginUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		testutil.AssertJWT(t, response.Header(), testEnv.SecretKey, td.PeterCustomer.Id)
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
+
+		var jwtResponse customer.JWTResponse
+		json.NewDecoder(response.Body).Decode(&jwtResponse)
+
+		testutil.AssertJWT(t, jwtResponse.Token, testEnv.SecretKey, td.PeterCustomer.Id)
 	})
 
 	t.Run("returns JWT on Alice's credentials", func(t *testing.T) {
@@ -110,7 +116,12 @@ func TestLoginUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		testutil.AssertJWT(t, response.Header(), testEnv.SecretKey, td.AliceCustomer.Id)
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
+
+		var jwtResponse customer.JWTResponse
+		json.NewDecoder(response.Body).Decode(&jwtResponse)
+
+		testutil.AssertJWT(t, jwtResponse.Token, testEnv.SecretKey, td.AliceCustomer.Id)
 	})
 
 	t.Run("returns Unauthorized on invalid credentials", func(t *testing.T) {
@@ -156,9 +167,10 @@ func TestCreateUser(t *testing.T) {
 
 		testutil.AssertStatus(t, got, want)
 		testutil.AssertCreatedCustomer(t, store, td.PeterCustomer)
+
 	})
 
-	t.Run("returns JWT on POST", func(t *testing.T) {
+	t.Run("returns JSON with JWT and new customer on POST", func(t *testing.T) {
 		store.Empty()
 
 		request := customer.NewCreateCustomerRequest(td.PeterCustomer)
@@ -166,11 +178,15 @@ func TestCreateUser(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		got := response.Code
-		want := http.StatusAccepted
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
-		testutil.AssertStatus(t, got, want)
-		testutil.AssertJWT(t, response.Header(), testEnv.SecretKey, td.PeterCustomer.Id)
+		wantResponseCustomer := customer.CustomerToCustomerResponse(td.PeterCustomer)
+
+		var gotResponse customer.CreateCustomerResponse
+		json.NewDecoder(response.Body).Decode(&gotResponse)
+
+		testutil.AssertJWT(t, gotResponse.JWT.Token, testEnv.SecretKey, td.PeterCustomer.Id)
+		testutil.AssertCustomerResponse(t, gotResponse.Customer, wantResponseCustomer)
 	})
 
 	t.Run("return Bad Request on user with same email", func(t *testing.T) {

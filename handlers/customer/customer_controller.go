@@ -39,7 +39,7 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	loginJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customer.Id)
 
 	w.WriteHeader(http.StatusAccepted)
-	w.Header().Add("Token", loginJWT)
+	json.NewEncoder(w).Encode(JWTResponse{Token: loginJWT})
 }
 
 func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) {
@@ -102,8 +102,12 @@ func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) 
 	customerJWT, _ := auth.GenerateJWT(c.secretKey, c.expiresAt, customer.Id)
 
 	w.WriteHeader(http.StatusAccepted)
-	w.Header().Add("Token", customerJWT)
-	json.NewEncoder(w).Encode(CustomerToCustomerResponse(customer))
+
+	createCustomerResponse := CreateCustomerResponse{
+		JWT:      JWTResponse{Token: customerJWT},
+		Customer: CustomerToCustomerResponse(customer),
+	}
+	json.NewEncoder(w).Encode(createCustomerResponse)
 }
 
 func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {

@@ -2,6 +2,10 @@ package customer
 
 import "github.com/VitoNaychev/bt-customer-svc/models"
 
+type JWTResponse struct {
+	Token string
+}
+
 type GetCustomerResponse struct {
 	Id          int
 	FirstName   string
@@ -52,6 +56,11 @@ func CreateCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest
 		Password:    createCustomerRequest.Password,
 	}
 	return customer
+}
+
+type CreateCustomerResponse struct {
+	JWT      JWTResponse
+	Customer CustomerResponse
 }
 
 type CustomerResponse struct {
