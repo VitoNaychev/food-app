@@ -7,16 +7,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers"
+	"github.com/VitoNaychev/bt-customer-svc/tests"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-var testEnv handlers.TestEnv
+var testEnv tests.TestEnv
 
 func TestMain(m *testing.M) {
-	testEnv = handlers.LoadTestEnviornment()
+	testEnv = tests.LoadTestEnviornment()
 
 	code := m.Run()
 	os.Exit(code)

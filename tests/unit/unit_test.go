@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers"
+	"github.com/VitoNaychev/bt-customer-svc/tests"
 )
 
-var testEnv handlers.TestEnv
+var testEnv tests.TestEnv
 
 func TestMain(m *testing.M) {
-	testEnv = handlers.LoadTestEnviornment()
+	testEnv = tests.LoadTestEnviornment()
 
 	code := m.Run()
 	os.Exit(code)
