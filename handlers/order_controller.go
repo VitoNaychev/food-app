@@ -11,8 +11,6 @@ import (
 
 var authResponseMap = make(map[string]AuthResponse)
 
-type VerifyJWTFunc func(token string) (AuthResponse, error)
-
 func VerifyJWT(token string) (authResponse AuthResponse, err error) {
 	request, err := http.NewRequest(http.MethodPost, "http://customer-svc:8080/customer/auth/", nil)
 	if err != nil {
@@ -27,31 +25,6 @@ func VerifyJWT(token string) (authResponse AuthResponse, err error) {
 
 	err = json.NewDecoder(response.Body).Decode(&authResponse)
 	return
-}
-
-type OrderServer struct {
-	orderStore   models.OrderStore
-	addressStore models.AddressStore
-	verifyJWT    VerifyJWTFunc
-	http.Handler
-}
-
-func NewOrderServer(orderStore models.OrderStore, addressStore models.AddressStore, verifyJWT VerifyJWTFunc) OrderServer {
-	server := OrderServer{
-		orderStore:   orderStore,
-		addressStore: addressStore,
-		verifyJWT:    verifyJWT,
-	}
-
-	router := http.NewServeMux()
-
-	router.Handle("/order/all/", AuthMiddleware(server.getAllOrders, verifyJWT))
-	router.Handle("/order/current/", AuthMiddleware(server.getCurrentOrders, verifyJWT))
-	router.Handle("/order/new/", AuthMiddleware(server.createOrder, verifyJWT))
-
-	server.Handler = router
-
-	return server
 }
 
 func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verifyJWT VerifyJWTFunc) http.HandlerFunc {
