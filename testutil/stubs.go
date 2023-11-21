@@ -1,8 +1,22 @@
 package testutil
 
 import (
+	"strconv"
+
+	"github.com/VitoNaychev/bt-order-svc/handlers"
 	"github.com/VitoNaychev/bt-order-svc/models"
 )
+
+func StubVerifyJWT(jwt string) (handlers.AuthResponse, error) {
+	if jwt == "invalidJWT" {
+		return handlers.AuthResponse{Status: handlers.INVALID, ID: 0}, nil
+	} else if jwt == "10" {
+		return handlers.AuthResponse{Status: handlers.NOT_FOUND, ID: 0}, nil
+	} else {
+		id, _ := strconv.Atoi(jwt)
+		return handlers.AuthResponse{Status: handlers.OK, ID: id}, nil
+	}
+}
 
 type ErroneousAddressStore struct {
 	err error

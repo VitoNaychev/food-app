@@ -14,14 +14,6 @@ import (
 	"github.com/VitoNaychev/bt-order-svc/testutil"
 )
 
-func VerifyJWT(token string) handlers.AuthResponse {
-	id, err := strconv.Atoi(token)
-	if err != nil {
-		return handlers.AuthResponse{Status: handlers.INVALID, ID: 0}
-	}
-	return handlers.AuthResponse{Status: handlers.OK, ID: id}
-}
-
 func TestOrderServerOperations(t *testing.T) {
 	connStr := NewDatabaseContainer(t)
 
@@ -35,7 +27,7 @@ func TestOrderServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := handlers.NewOrderServer(orderStore, addressStore, VerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)

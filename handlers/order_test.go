@@ -16,23 +16,12 @@ import (
 	"github.com/VitoNaychev/validation"
 )
 
-func StubVerifyJWT(jwt string) (handlers.AuthResponse, error) {
-	if jwt == "invalidJWT" {
-		return handlers.AuthResponse{Status: handlers.INVALID, ID: 0}, nil
-	} else if jwt == "10" {
-		return handlers.AuthResponse{Status: handlers.NOT_FOUND, ID: 0}, nil
-	} else {
-		id, _ := strconv.Atoi(jwt)
-		return handlers.AuthResponse{Status: handlers.OK, ID: id}, nil
-	}
-}
-
 func dummyHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
 func TestAuthMiddleware(t *testing.T) {
-	handler := handlers.AuthMiddleware(dummyHandler, StubVerifyJWT)
+	handler := handlers.AuthMiddleware(dummyHandler, testutil.StubVerifyJWT)
 
 	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -93,7 +82,7 @@ func TestAuthMiddleware(t *testing.T) {
 func TestOrderEndpointAuthentication(t *testing.T) {
 	orderStore := &testutil.StubOrderStore{}
 	addressStore := &testutil.StubAddressStore{}
-	server := handlers.NewOrderServer(orderStore, addressStore, StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
@@ -118,7 +107,7 @@ type GenericResponse interface{}
 func TestOrderResponseValidity(t *testing.T) {
 	orderStore := &testutil.StubOrderStore{}
 	addressStore := &testutil.StubAddressStore{}
-	server := handlers.NewOrderServer(orderStore, addressStore, StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -171,7 +160,7 @@ func TestOrderResponseValidity(t *testing.T) {
 func TestCreateOrder(t *testing.T) {
 	orderStore := &testutil.StubOrderStore{CreatedOrders: []models.Order{}, Orders: nil}
 	addressStore := &testutil.StubAddressStore{CreatedAddresses: []models.Address{}, Addresses: nil}
-	server := handlers.NewOrderServer(orderStore, addressStore, StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
 
 	t.Run("creates new order and returns it", func(t *testing.T) {
 		createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -214,7 +203,7 @@ func TestGetCurrentOrders(t *testing.T) {
 		CreatedAddresses: nil,
 		Addresses:        []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
 
 	t.Run("returns current orders for customer Peter", func(t *testing.T) {
 		request := handlers.NewGetCurrentOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
@@ -244,7 +233,7 @@ func TestGetOrders(t *testing.T) {
 		CreatedAddresses: nil,
 		Addresses:        []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
 
 	t.Run("returns orders of customer Peter", func(t *testing.T) {
 		request := handlers.NewGetAllOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))

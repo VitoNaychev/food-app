@@ -18,7 +18,7 @@ func NewDatabaseContainer(t testing.TB) string {
 
 	pgContainer, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:15.3-alpine"),
-		postgres.WithInitScripts(filepath.Join("..", "sql-scritps", "init.sql")),
+		postgres.WithInitScripts(filepath.Join("..", "sql-scripts", "init.sql")),
 		postgres.WithDatabase(env.Dbname),
 		postgres.WithUsername(env.Dbuser),
 		postgres.WithPassword(env.Dbpass),
