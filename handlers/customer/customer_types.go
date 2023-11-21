@@ -2,6 +2,20 @@ package customer
 
 import "github.com/VitoNaychev/bt-customer-svc/models"
 
+type AuthStatus int
+
+const (
+	MISSING_TOKEN AuthStatus = iota
+	INVALID
+	NOT_FOUND
+	OK
+)
+
+type AuthResponse struct {
+	Status AuthStatus
+	ID     int
+}
+
 type JWTResponse struct {
 	Token string
 }

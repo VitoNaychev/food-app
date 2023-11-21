@@ -14,6 +14,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+func AssertEqual(t testing.TB, got, want interface{}) {
+	t.Helper()
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v want %v", got, want)
+	}
+}
+
 func AssertAddressResponse(t testing.TB, got, want models.Address) {
 	t.Helper()
 

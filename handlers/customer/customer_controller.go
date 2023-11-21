@@ -10,7 +10,58 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 	"github.com/VitoNaychev/validation"
+	"github.com/golang-jwt/jwt/v5"
 )
+
+func (c *CustomerServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
+	authResponse := AuthResponse{Status: INVALID}
+
+	if tokenHeader := r.Header.Get("Token"); tokenHeader == "" {
+		handleAuthError(w, authResponse, MISSING_TOKEN)
+		return
+	}
+
+	token, err := auth.VerifyJWT(r.Header["Token"][0], c.secretKey)
+	if err != nil {
+		handleAuthError(w, authResponse, INVALID)
+		return
+	}
+
+	customerID, err := getCustomerIDFromToken(token)
+	if err != nil {
+		handleAuthError(w, authResponse, INVALID)
+		return
+	}
+
+	_, err = c.store.GetCustomerByID(customerID)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			handleAuthError(w, authResponse, NOT_FOUND)
+			return
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	authResponse.Status = OK
+	authResponse.ID = customerID
+
+	json.NewEncoder(w).Encode(authResponse)
+}
+
+func handleAuthError(w http.ResponseWriter, authResponse AuthResponse, status AuthStatus) {
+	authResponse.Status = status
+	json.NewEncoder(w).Encode(authResponse)
+}
+
+func getCustomerIDFromToken(token *jwt.Token) (int, error) {
+	subject, err := token.Claims.GetSubject()
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(subject)
+}
 
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	loginCustomerRequest, err := validation.ValidateBody[LoginCustomerRequest](r.Body)

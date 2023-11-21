@@ -26,6 +26,35 @@ func GenerateJWT(secretKey []byte, expiresAt time.Duration, subject int) (string
 	return tokenString, nil
 }
 
+func GenerateJWTWithStringSubject(secretKey []byte, expiresAt time.Duration, subject string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		Subject:   subject,
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresAt)),
+	})
+
+	tokenString, err := token.SignedString(secretKey)
+
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+func GenerateJWTWithoutSubject(secretKey []byte, expiresAt time.Duration) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresAt)),
+	})
+
+	tokenString, err := token.SignedString(secretKey)
+
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
 func VerifyJWT(jwtString string, secretKey []byte) (*jwt.Token, error) {
 	token, err := jwt.Parse(jwtString, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil

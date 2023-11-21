@@ -41,6 +41,121 @@ func TestCustomerEndpointAuthentication(t *testing.T) {
 	}
 }
 
+func TestAuthHandler(t *testing.T) {
+	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
+	store := testutil.NewStubCustomerStore(customerData)
+	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+
+	t.Run("returns OK status and customer ID on valid JWT", func(t *testing.T) {
+		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
+
+		request := customer.NewAuthRequest(peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		want := customer.AuthResponse{
+			Status: customer.OK,
+			ID:     td.PeterCustomer.Id,
+		}
+		var got customer.AuthResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("returns INVALID status on invalid JWT", func(t *testing.T) {
+		invalidJWT := "invalidJWT"
+
+		request := customer.NewAuthRequest(invalidJWT)
+		request.Header.Add("Token", invalidJWT)
+
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		want := customer.AuthResponse{
+			Status: customer.INVALID,
+			ID:     0,
+		}
+		var got customer.AuthResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("returns MISSING_TOKEN status on missing JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/customer/auth/", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		want := customer.AuthResponse{
+			Status: customer.MISSING_TOKEN,
+			ID:     0,
+		}
+		var got customer.AuthResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("returns INVALID on noninteger subject", func(t *testing.T) {
+		invalidJWT, _ := auth.GenerateJWTWithStringSubject(testEnv.SecretKey, testEnv.ExpiresAt, "peter")
+		request := customer.NewAuthRequest(invalidJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		want := customer.AuthResponse{
+			Status: customer.INVALID,
+			ID:     0,
+		}
+		var got customer.AuthResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("returns INVALID on missing subject", func(t *testing.T) {
+		invalidJWT, _ := auth.GenerateJWTWithoutSubject(testEnv.SecretKey, testEnv.ExpiresAt)
+		request := customer.NewAuthRequest(invalidJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		want := customer.AuthResponse{
+			Status: customer.INVALID,
+			ID:     0,
+		}
+		var got customer.AuthResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("returns NOT_FOUND on customer that doesn't exist", func(t *testing.T) {
+		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
+
+		request := customer.NewAuthRequest(peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		want := customer.AuthResponse{
+			Status: customer.NOT_FOUND,
+			ID:     0,
+		}
+		var got customer.AuthResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+}
+
 func TestUpdateUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)

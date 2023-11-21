@@ -25,6 +25,7 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store models.C
 	router := http.NewServeMux()
 	router.HandleFunc("/customer/", c.CustomerHandler)
 	router.HandleFunc("/customer/login/", c.LoginHandler)
+	router.HandleFunc("/customer/auth/", c.AuthHandler)
 
 	c.Handler = router
 
@@ -32,6 +33,11 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store models.C
 }
 
 func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/customer/" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodPost:
 		c.createCustomer(w, r)

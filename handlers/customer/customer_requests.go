@@ -8,6 +8,12 @@ import (
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
+func NewAuthRequest(jwt string) *http.Request {
+	request, _ := http.NewRequest(http.MethodPost, "/customer/auth/", nil)
+	request.Header.Add("Token", jwt)
+	return request
+}
+
 func NewDeleteCustomerRequest(customerJWT string) *http.Request {
 	request, _ := http.NewRequest(http.MethodDelete, "/customer/", nil)
 	request.Header.Add("Token", customerJWT)
