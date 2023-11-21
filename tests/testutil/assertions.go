@@ -8,41 +8,15 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/address"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AssertEqual(t testing.TB, got, want interface{}) {
+func AssertEqual[T any](t testing.TB, got, want T) {
 	t.Helper()
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %v want %v", got, want)
-	}
-}
-
-func AssertAddressResponse(t testing.TB, got, want models.Address) {
-	t.Helper()
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v want %v", got, want)
-	}
-}
-
-func AssertGetAddressResponse(t testing.TB, got, want []address.GetAddressResponse) {
-	t.Helper()
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %v want %v", got, want)
-	}
-}
-
-func AssertCustomerResponse(t testing.TB, got, want customer.CustomerResponse) {
-	t.Helper()
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got response %v want %v", got, want)
 	}
 }
 

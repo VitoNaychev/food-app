@@ -275,7 +275,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		var got []address.GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertGetAddressResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("returns Alice's addresses", func(t *testing.T) {
@@ -293,7 +293,7 @@ func TestGetCustomerAddress(t *testing.T) {
 		var got []address.GetAddressResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertGetAddressResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("returns Not Found on missing user", func(t *testing.T) {

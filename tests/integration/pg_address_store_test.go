@@ -42,13 +42,13 @@ func TestAddressServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		got := testutil.ParseAddressResponse(t, response.Body)
-		testutil.AssertAddressResponse(t, got, testdata.PeterAddress1)
+		testutil.AssertEqual(t, got, testdata.PeterAddress1)
 
 		response = createNewAddress(t, server, testdata.PeterAddress2, peterJWT)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		got = testutil.ParseAddressResponse(t, response.Body)
-		testutil.AssertAddressResponse(t, got, testdata.PeterAddress2)
+		testutil.AssertEqual(t, got, testdata.PeterAddress2)
 
 	})
 
@@ -69,7 +69,7 @@ func TestAddressServerOperations(t *testing.T) {
 		got := testutil.ParseGetAddressResponse(t, response.Body)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertGetAddressResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("update address", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestAddressServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		got := testutil.ParseAddressResponse(t, response.Body)
-		testutil.AssertAddressResponse(t, got, updateAddress)
+		testutil.AssertEqual(t, got, updateAddress)
 	})
 
 	t.Run("delete address", func(t *testing.T) {
@@ -110,7 +110,7 @@ func TestAddressServerOperations(t *testing.T) {
 		got := testutil.ParseGetAddressResponse(t, response.Body)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertGetAddressResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 
 }

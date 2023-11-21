@@ -37,7 +37,7 @@ func TestCustomerServerOperations(t *testing.T) {
 		wantCustomer := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
 		got := testutil.ParseCreateCustomerResponse(t, response.Body)
 
-		testutil.AssertCustomerResponse(t, got.Customer, wantCustomer)
+		testutil.AssertEqual(t, got.Customer, wantCustomer)
 
 		peterJWT = got.JWT.Token
 	})
@@ -54,7 +54,7 @@ func TestCustomerServerOperations(t *testing.T) {
 			want := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
 			got := testutil.ParseCustomerResponse(t, response.Body)
 
-			testutil.AssertCustomerResponse(t, got, want)
+			testutil.AssertEqual(t, got, want)
 		})
 
 		t.Run("update customer", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestCustomerServerOperations(t *testing.T) {
 			want := customer.CustomerToCustomerResponse(updateCustomer)
 			got := testutil.ParseCustomerResponse(t, response.Body)
 
-			testutil.AssertCustomerResponse(t, got, want)
+			testutil.AssertEqual(t, got, want)
 		})
 
 		t.Run("delete customer", func(t *testing.T) {

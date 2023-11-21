@@ -301,7 +301,7 @@ func TestCreateUser(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&gotResponse)
 
 		testutil.AssertJWT(t, gotResponse.JWT.Token, testEnv.SecretKey, td.PeterCustomer.Id)
-		testutil.AssertCustomerResponse(t, gotResponse.Customer, wantResponseCustomer)
+		testutil.AssertEqual(t, gotResponse.Customer, wantResponseCustomer)
 	})
 
 	t.Run("return Bad Request on user with same email", func(t *testing.T) {
