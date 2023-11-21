@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: customer-svc
     ports:
-      - "8080:8080"
+      - "9090:8080"
     environment:
       SECRET: ${SECRET}
       POSTGRES_HOST: customer-db
@@ -36,7 +36,10 @@ services:
         condition: service_healthy
     networks:
       - my-network
+      - svc-network
 
 networks:
   my-network:
     driver: bridge
+  svc-network:
+    external: true
