@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/VitoNaychev/bt-order-svc/models"
@@ -11,16 +12,31 @@ import (
 
 var authResponseMap = make(map[string]AuthResponse)
 
-type VerifyJWT func(token string) AuthResponse
+type VerifyJWTFunc func(token string) AuthResponse
+
+func VerifyJWT(token string) (authResponse AuthResponse) {
+	request, _ := http.NewRequest(http.MethodPost, "http://localhost:9090/customer/auth/", nil)
+	request.Header.Add("Token", token)
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		log.Printf("VerifyJWT error: %v", err)
+		authResponse.Status = INVALID
+		return
+	}
+
+	json.NewDecoder(response.Body).Decode(&authResponse)
+	return
+}
 
 type OrderServer struct {
 	orderStore   models.OrderStore
 	addressStore models.AddressStore
-	verifyJWT    VerifyJWT
+	verifyJWT    VerifyJWTFunc
 	http.Handler
 }
 
-func NewOrderServer(orderStore models.OrderStore, addressStore models.AddressStore, verifyJWT VerifyJWT) OrderServer {
+func NewOrderServer(orderStore models.OrderStore, addressStore models.AddressStore, verifyJWT VerifyJWTFunc) OrderServer {
 	server := OrderServer{
 		orderStore:   orderStore,
 		addressStore: addressStore,
@@ -38,7 +54,7 @@ func NewOrderServer(orderStore models.OrderStore, addressStore models.AddressSto
 	return server
 }
 
-func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verifyJWT VerifyJWT) http.HandlerFunc {
+func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verifyJWT VerifyJWTFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -107,6 +123,7 @@ func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
 	orders, err := o.orderStore.GetOrdersByCustomerID(authResponse.ID)
 	if err != nil {
 		writeJSONError(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	orderResponseArr := []OrderResponse{}
