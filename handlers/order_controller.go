@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/VitoNaychev/bt-order-svc/models"
@@ -12,20 +11,21 @@ import (
 
 var authResponseMap = make(map[string]AuthResponse)
 
-type VerifyJWTFunc func(token string) AuthResponse
+type VerifyJWTFunc func(token string) (AuthResponse, error)
 
-func VerifyJWT(token string) (authResponse AuthResponse) {
-	request, _ := http.NewRequest(http.MethodPost, "http://localhost:9090/customer/auth/", nil)
+func VerifyJWT(token string) (authResponse AuthResponse, err error) {
+	request, err := http.NewRequest(http.MethodPost, "http://customer-svc:8080/customer/auth/", nil)
+	if err != nil {
+		return
+	}
 	request.Header.Add("Token", token)
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		log.Printf("VerifyJWT error: %v", err)
-		authResponse.Status = INVALID
 		return
 	}
 
-	json.NewDecoder(response.Body).Decode(&authResponse)
+	err = json.NewDecoder(response.Body).Decode(&authResponse)
 	return
 }
 
@@ -61,7 +61,12 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 			return
 		}
 
-		authResponse := verifyJWT(r.Header["Token"][0])
+		authResponse, err := verifyJWT(r.Header["Token"][0])
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, err)
+			return
+		}
+
 		if authResponse.Status == INVALID {
 			w.WriteHeader(http.StatusUnauthorized)
 			writeJSONError(w, http.StatusUnauthorized, ErrInvalidToken)

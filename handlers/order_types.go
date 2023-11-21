@@ -9,7 +9,8 @@ import (
 type AuthStatus int
 
 const (
-	INVALID AuthStatus = iota
+	MISSING_TOKEN AuthStatus = iota
+	INVALID
 	NOT_FOUND
 	OK
 )

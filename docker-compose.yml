@@ -35,7 +35,10 @@ services:
         condition: service_healthy
     networks:
       - my-network
+      - svc-network
 
 networks:
   my-network:
     driver: bridge
+  svc-network:
+    external: true
