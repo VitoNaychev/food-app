@@ -23,7 +23,7 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			// wrap models.ErrNotFound in customer handlers error type?
-			writeJSONError(w, http.StatusUnauthorized, handlers.ErrMissingCustomer)
+			writeJSONError(w, http.StatusUnauthorized, handlers.ErrCustomerNotFound)
 			return
 		} else {
 			writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
@@ -84,7 +84,7 @@ func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) 
 
 	_, err = c.store.GetCustomerByEmail(createCustomerRequest.Email)
 	if err == nil {
-		writeJSONError(w, http.StatusBadRequest, handlers.ErrExistingUser)
+		writeJSONError(w, http.StatusBadRequest, handlers.ErrExistingCustomer)
 		return
 	} else if err != models.ErrNotFound {
 		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
@@ -131,7 +131,7 @@ func writeJSONError(w http.ResponseWriter, statusCode int, err error) {
 func handleStoreError(w http.ResponseWriter, err error) {
 	if errors.Is(err, models.ErrNotFound) {
 		// wrap models.ErrNotFound in customer handlers error type?
-		writeJSONError(w, http.StatusNotFound, handlers.ErrMissingCustomer)
+		writeJSONError(w, http.StatusNotFound, handlers.ErrCustomerNotFound)
 		return
 	} else {
 		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)

@@ -92,7 +92,7 @@ func TestCustomerServerOperations(t *testing.T) {
 			server.ServeHTTP(response, request)
 
 			testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-			testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
+			testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 		})
 	}
 }

@@ -88,7 +88,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 
 	t.Run("returns Not Found on missing address", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 
 	t.Run("returns Not Found on missing address", func(t *testing.T) {
@@ -304,6 +304,6 @@ func TestGetCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 }

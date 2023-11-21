@@ -22,7 +22,7 @@ func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Req
 
 	_, err = c.customerStore.GetCustomerByID(customerId)
 	if err != nil {
-		handleStoreError(w, err, handlers.ErrMissingCustomer)
+		handleStoreError(w, err, handlers.ErrCustomerNotFound)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (c *CustomerAddressServer) deleteAddress(w http.ResponseWriter, r *http.Req
 
 	_, err = c.customerStore.GetCustomerByID(customerId)
 	if err != nil {
-		handleStoreError(w, err, handlers.ErrMissingCustomer)
+		handleStoreError(w, err, handlers.ErrCustomerNotFound)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Req
 
 	_, err = c.customerStore.GetCustomerByID(customerId)
 	if err != nil {
-		handleStoreError(w, err, handlers.ErrMissingCustomer)
+		handleStoreError(w, err, handlers.ErrCustomerNotFound)
 		return
 	}
 
@@ -109,7 +109,7 @@ func (c *CustomerAddressServer) getAddress(w http.ResponseWriter, r *http.Reques
 
 	_, err := c.customerStore.GetCustomerByID(customerId)
 	if err != nil {
-		handleStoreError(w, err, handlers.ErrMissingCustomer)
+		handleStoreError(w, err, handlers.ErrCustomerNotFound)
 		return
 	}
 

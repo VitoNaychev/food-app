@@ -87,7 +87,7 @@ func TestDeleteUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 }
 
@@ -145,7 +145,7 @@ func TestLoginUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 }
 
@@ -204,7 +204,7 @@ func TestCreateUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrExistingUser)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrExistingCustomer)
 	})
 }
 
@@ -253,7 +253,7 @@ func TestGetUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingCustomer)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 }
 

@@ -3,8 +3,8 @@ package handlers
 import "errors"
 
 var (
-	ErrExistingUser         = errors.New("user with this email already exists")
-	ErrMissingCustomer      = errors.New("customer doesn't exists")
+	ErrExistingCustomer     = errors.New("customer with this email already exists")
+	ErrCustomerNotFound     = errors.New("customer doesn't exists")
 	ErrMissingToken         = errors.New("missing token")
 	ErrInvalidCredentials   = errors.New("invalid user credentials")
 	ErrMissingSubject       = errors.New("token does not contain subject field")
