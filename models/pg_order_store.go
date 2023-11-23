@@ -68,14 +68,33 @@ func (p *PgOrderStore) CreateOrder(order *Order) error {
 	}
 
 	err := p.conn.QueryRow(context.Background(), query, args).Scan(&order.ID)
-	return err
+	return pgxErrorToStoreError(err)
 
 }
 
 func (p *PgOrderStore) CancelOrder(id int) error {
-	panic("unimplemented")
+	query := `update orders set status=@status where id=@id`
+	args := pgx.NamedArgs{
+		"status": CANCELED,
+		"id":     id,
+	}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	return pgxErrorToStoreError(err)
 }
 
 func (p *PgOrderStore) GetOrderByID(id int) (Order, error) {
-	panic("unimplemented")
+	query := `select * from orders where id=@id`
+	args := pgx.NamedArgs{
+		"id": id,
+	}
+
+	row, _ := p.conn.Query(context.Background(), query, args)
+	order, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Order])
+
+	if err != nil {
+		return Order{}, pgxErrorToStoreError(err)
+	}
+
+	return order, nil
 }

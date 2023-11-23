@@ -82,7 +82,7 @@ func (s *StubOrderStore) GetOrderByID(id int) (models.Order, error) {
 }
 
 func (s *StubOrderStore) CancelOrder(id int) error {
-	for i, _ := range s.Orders {
+	for i := range s.Orders {
 		if s.Orders[i].ID == id {
 			s.Orders[i].Status = models.CANCELED
 			return nil

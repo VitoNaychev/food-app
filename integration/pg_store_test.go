@@ -72,4 +72,18 @@ func TestOrderServerOperations(t *testing.T) {
 
 		testutil.AssertGetOrderResponse(t, got, want)
 	})
+
+	t.Run("cancel order", func(t *testing.T) {
+		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 1}
+		request := handlers.NewCancelOrderRequest(peterJWT, cancelOrderRequestBody)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		want := handlers.CancelOrderResponse{Status: true}
+		var got handlers.CancelOrderResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
 }
