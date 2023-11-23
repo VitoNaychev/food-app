@@ -1,4 +1,4 @@
-package tests
+package config
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type TestEnv struct {
+type Enviornment struct {
 	SecretKey []byte
 	ExpiresAt time.Duration
 
@@ -16,10 +16,10 @@ type TestEnv struct {
 	Dbname string
 }
 
-func LoadTestEnviornment() TestEnv {
-	godotenv.Load("../test.env")
+func LoadEnviornment(file string) Enviornment {
+	godotenv.Load(file)
 
-	testEnv := TestEnv{}
+	testEnv := Enviornment{}
 	testEnv.SecretKey = []byte(os.Getenv("SECRET"))
 	testEnv.ExpiresAt = time.Second
 

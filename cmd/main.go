@@ -8,9 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers/address"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/router"
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
@@ -50,10 +48,10 @@ func main() {
 		fmt.Printf("Address Store error: %v", err)
 	}
 
-	customerServer := customer.NewCustomerServer(secretKey, expiresAt, &customerStore)
-	addressServer := address.NewCustomerAddressServer(&addressStore, &customerStore, secretKey)
+	customerServer := handlers.NewCustomerServer(secretKey, expiresAt, &customerStore)
+	addressServer := handlers.NewCustomerAddressServer(&addressStore, &customerStore, secretKey)
 
-	router := router.NewRouterServer(customerServer, addressServer)
+	router := handlers.NewRouterServer(customerServer, addressServer)
 
 	fmt.Println("Customer service listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", router))

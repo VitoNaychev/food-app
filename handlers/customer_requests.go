@@ -1,4 +1,4 @@
-package customer
+package handlers
 
 import (
 	"bytes"

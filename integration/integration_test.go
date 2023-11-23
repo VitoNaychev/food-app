@@ -2,21 +2,23 @@ package integrationtest
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/bt-customer-svc/tests"
+	"github.com/VitoNaychev/bt-customer-svc/config"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-var testEnv tests.TestEnv
+var testEnv config.Enviornment
 
 func TestMain(m *testing.M) {
-	testEnv = tests.LoadTestEnviornment()
+	testEnv = config.LoadEnviornment("../config/test.env")
+	fmt.Println("+++ENV: ", testEnv)
 
 	code := m.Run()
 	os.Exit(code)
@@ -27,7 +29,7 @@ func SetupDatabaseContainer(t testing.TB) string {
 
 	pgContainer, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:15.3-alpine"),
-		postgres.WithInitScripts(filepath.Join("..", "..", "sql-scripts", "init.sql")),
+		postgres.WithInitScripts(filepath.Join("..", "sql-scripts", "init.sql")),
 		postgres.WithDatabase(testEnv.Dbname),
 		postgres.WithUsername(testEnv.Dbuser),
 		postgres.WithPassword(testEnv.Dbpass),

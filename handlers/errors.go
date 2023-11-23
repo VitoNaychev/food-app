@@ -1,6 +1,10 @@
 package handlers
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+)
 
 var (
 	ErrExistingCustomer     = errors.New("customer with this email already exists")
@@ -21,4 +25,9 @@ var (
 
 type ErrorResponse struct {
 	Message string
+}
+
+func writeJSONError(w http.ResponseWriter, statusCode int, err error) {
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
 }

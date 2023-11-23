@@ -7,12 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers/address"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/router"
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/models"
-	"github.com/VitoNaychev/bt-customer-svc/tests/testdata"
-	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
+	"github.com/VitoNaychev/bt-customer-svc/testdata"
+	"github.com/VitoNaychev/bt-customer-svc/testutil"
 )
 
 func TestAddressServerOperations(t *testing.T) {
@@ -28,10 +26,10 @@ func TestAddressServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	customerServer := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, &customerStore)
-	addressServer := address.NewCustomerAddressServer(&addressStore, &customerStore, testEnv.SecretKey)
+	customerServer := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, &customerStore)
+	addressServer := handlers.NewCustomerAddressServer(&addressStore, &customerStore, testEnv.SecretKey)
 
-	server := router.NewRouterServer(customerServer, addressServer)
+	server := handlers.NewRouterServer(customerServer, addressServer)
 
 	peterJWT := createNewCustomer(server, testdata.PeterCustomer)
 
@@ -57,14 +55,14 @@ func TestAddressServerOperations(t *testing.T) {
 	}
 
 	t.Run("get addresses", func(t *testing.T) {
-		request := address.NewGetAddressRequest(peterJWT)
+		request := handlers.NewGetAddressRequest(peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		want := []address.GetAddressResponse{
-			address.AddressToGetAddressResponse(testdata.PeterAddress1),
-			address.AddressToGetAddressResponse(testdata.PeterAddress2),
+		want := []handlers.GetAddressResponse{
+			handlers.AddressToGetAddressResponse(testdata.PeterAddress1),
+			handlers.AddressToGetAddressResponse(testdata.PeterAddress2),
 		}
 		got := testutil.ParseGetAddressResponse(t, response.Body)
 
@@ -76,7 +74,7 @@ func TestAddressServerOperations(t *testing.T) {
 		updateAddress := testdata.PeterAddress2
 		updateAddress.City = "Varna"
 
-		request := address.NewUpdateAddressRequest(peterJWT, updateAddress)
+		request := handlers.NewUpdateAddressRequest(peterJWT, updateAddress)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -88,9 +86,9 @@ func TestAddressServerOperations(t *testing.T) {
 	})
 
 	t.Run("delete address", func(t *testing.T) {
-		deleteAddressRequest := address.DeleteAddressRequest{Id: testdata.PeterAddress2.Id}
+		deleteAddressRequest := handlers.DeleteAddressRequest{Id: testdata.PeterAddress2.Id}
 
-		request := address.NewDeleteAddressRequest(peterJWT, deleteAddressRequest)
+		request := handlers.NewDeleteAddressRequest(peterJWT, deleteAddressRequest)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -99,13 +97,13 @@ func TestAddressServerOperations(t *testing.T) {
 	})
 
 	t.Run("get reamaining address", func(t *testing.T) {
-		request := address.NewGetAddressRequest(peterJWT)
+		request := handlers.NewGetAddressRequest(peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		want := []address.GetAddressResponse{
-			address.AddressToGetAddressResponse(testdata.PeterAddress1),
+		want := []handlers.GetAddressResponse{
+			handlers.AddressToGetAddressResponse(testdata.PeterAddress1),
 		}
 		got := testutil.ParseGetAddressResponse(t, response.Body)
 
@@ -116,18 +114,18 @@ func TestAddressServerOperations(t *testing.T) {
 }
 
 func createNewCustomer(server http.Handler, c models.Customer) string {
-	request := customer.NewCreateCustomerRequest(c)
+	request := handlers.NewCreateCustomerRequest(c)
 	response := httptest.NewRecorder()
 
 	server.ServeHTTP(response, request)
 
-	var createCustomerResponse customer.CreateCustomerResponse
+	var createCustomerResponse handlers.CreateCustomerResponse
 	json.NewDecoder(response.Body).Decode(&createCustomerResponse)
 	return createCustomerResponse.JWT.Token
 }
 
 func createNewAddress(t testing.TB, server http.Handler, a models.Address, customerJWT string) *httptest.ResponseRecorder {
-	request := address.NewCreateAddressRequest(customerJWT, a)
+	request := handlers.NewCreateAddressRequest(customerJWT, a)
 	response := httptest.NewRecorder()
 
 	server.ServeHTTP(response, request)

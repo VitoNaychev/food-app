@@ -5,19 +5,18 @@ import (
 	"io"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers/address"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
+	"github.com/VitoNaychev/bt-customer-svc/handlers"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
-func ParseCreateCustomerResponse(t testing.TB, r io.Reader) (createCustomerResponse customer.CreateCustomerResponse) {
+func ParseCreateCustomerResponse(t testing.TB, r io.Reader) (createCustomerResponse handlers.CreateCustomerResponse) {
 	t.Helper()
 
 	json.NewDecoder(r).Decode(&createCustomerResponse)
 	return
 }
 
-func ParseCustomerResponse(t testing.TB, r io.Reader) (customerResponse customer.CustomerResponse) {
+func ParseCustomerResponse(t testing.TB, r io.Reader) (customerResponse handlers.CustomerResponse) {
 	t.Helper()
 
 	json.NewDecoder(r).Decode(&customerResponse)
@@ -31,7 +30,7 @@ func ParseAddressResponse(t testing.TB, r io.Reader) (addressResponse models.Add
 	return
 }
 
-func ParseGetAddressResponse(t testing.TB, r io.Reader) (getAddressResponse []address.GetAddressResponse) {
+func ParseGetAddressResponse(t testing.TB, r io.Reader) (getAddressResponse []handlers.GetAddressResponse) {
 	t.Helper()
 
 	json.NewDecoder(r).Decode(&getAddressResponse)

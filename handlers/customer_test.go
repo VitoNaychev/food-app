@@ -1,31 +1,31 @@
-package unittest
+package handlers_test
 
 import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
+	"time"
 
+	"github.com/VitoNaychev/auth"
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
 	"github.com/VitoNaychev/bt-customer-svc/models"
-	td "github.com/VitoNaychev/bt-customer-svc/tests/testdata"
-	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
+	td "github.com/VitoNaychev/bt-customer-svc/testdata"
+	"github.com/VitoNaychev/bt-customer-svc/testutil"
 	"github.com/VitoNaychev/validation"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestCustomerEndpointAuthentication(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
-	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	invalidJWT := "thisIsAnInvalidJWT"
 	cases := map[string]*http.Request{
-		"get customer authentication":    customer.NewGetCustomerRequest(invalidJWT),
-		"update customer authentication": customer.NewDeleteCustomerRequest(invalidJWT),
-		"delete customer authentication": customer.NewDeleteCustomerRequest(invalidJWT),
+		"get customer authentication":    handlers.NewGetCustomerRequest(invalidJWT),
+		"update customer authentication": handlers.NewDeleteCustomerRequest(invalidJWT),
+		"delete customer authentication": handlers.NewDeleteCustomerRequest(invalidJWT),
 	}
 
 	for name, request := range cases {
@@ -44,23 +44,23 @@ func TestCustomerEndpointAuthentication(t *testing.T) {
 func TestAuthHandler(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
-	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("returns OK status and customer ID on valid JWT", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := customer.NewAuthRequest(peterJWT)
+		request := handlers.NewAuthRequest(peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		want := customer.AuthResponse{
-			Status: customer.OK,
+		want := handlers.AuthResponse{
+			Status: handlers.OK,
 			ID:     td.PeterCustomer.Id,
 		}
-		var got customer.AuthResponse
+		var got handlers.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -69,18 +69,18 @@ func TestAuthHandler(t *testing.T) {
 	t.Run("returns INVALID status on invalid JWT", func(t *testing.T) {
 		invalidJWT := "invalidJWT"
 
-		request := customer.NewAuthRequest(invalidJWT)
+		request := handlers.NewAuthRequest(invalidJWT)
 		request.Header.Add("Token", invalidJWT)
 
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		want := customer.AuthResponse{
-			Status: customer.INVALID,
+		want := handlers.AuthResponse{
+			Status: handlers.INVALID,
 			ID:     0,
 		}
-		var got customer.AuthResponse
+		var got handlers.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -92,45 +92,45 @@ func TestAuthHandler(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		want := customer.AuthResponse{
-			Status: customer.MISSING_TOKEN,
+		want := handlers.AuthResponse{
+			Status: handlers.MISSING_TOKEN,
 			ID:     0,
 		}
-		var got customer.AuthResponse
+		var got handlers.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("returns INVALID on noninteger subject", func(t *testing.T) {
-		invalidJWT, _ := auth.GenerateJWTWithStringSubject(testEnv.SecretKey, testEnv.ExpiresAt, "peter")
-		request := customer.NewAuthRequest(invalidJWT)
+		invalidJWT, _ := GenerateJWTWithStringSubject(testEnv.SecretKey, testEnv.ExpiresAt, "peter")
+		request := handlers.NewAuthRequest(invalidJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		want := customer.AuthResponse{
-			Status: customer.INVALID,
+		want := handlers.AuthResponse{
+			Status: handlers.INVALID,
 			ID:     0,
 		}
-		var got customer.AuthResponse
+		var got handlers.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("returns INVALID on missing subject", func(t *testing.T) {
-		invalidJWT, _ := auth.GenerateJWTWithoutSubject(testEnv.SecretKey, testEnv.ExpiresAt)
-		request := customer.NewAuthRequest(invalidJWT)
+		invalidJWT, _ := GenerateJWTWithoutSubject(testEnv.SecretKey, testEnv.ExpiresAt)
+		request := handlers.NewAuthRequest(invalidJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		want := customer.AuthResponse{
-			Status: customer.INVALID,
+		want := handlers.AuthResponse{
+			Status: handlers.INVALID,
 			ID:     0,
 		}
-		var got customer.AuthResponse
+		var got handlers.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -139,16 +139,16 @@ func TestAuthHandler(t *testing.T) {
 	t.Run("returns NOT_FOUND on customer that doesn't exist", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
 
-		request := customer.NewAuthRequest(peterJWT)
+		request := handlers.NewAuthRequest(peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		want := customer.AuthResponse{
-			Status: customer.NOT_FOUND,
+		want := handlers.AuthResponse{
+			Status: handlers.NOT_FOUND,
 			ID:     0,
 		}
-		var got customer.AuthResponse
+		var got handlers.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -159,7 +159,7 @@ func TestAuthHandler(t *testing.T) {
 func TestUpdateUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
-	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("updates customer information on valid JWT", func(t *testing.T) {
 		updateCustomer := td.PeterCustomer
@@ -168,7 +168,7 @@ func TestUpdateUser(t *testing.T) {
 
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := customer.NewUpdateCustomerRequest(updateCustomer, peterJWT)
+		request := handlers.NewUpdateCustomerRequest(updateCustomer, peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -181,12 +181,12 @@ func TestUpdateUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
-	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("deletes customer on valid JWT", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
 
-		request := customer.NewDeleteCustomerRequest(peterJWT)
+		request := handlers.NewDeleteCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -196,7 +196,7 @@ func TestDeleteUser(t *testing.T) {
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
 		missingCustomerJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
 
-		request := customer.NewDeleteCustomerRequest(missingCustomerJWT)
+		request := handlers.NewDeleteCustomerRequest(missingCustomerJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -209,31 +209,31 @@ func TestDeleteUser(t *testing.T) {
 func TestLoginUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
-	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("returns JWT on Peter's credentials", func(t *testing.T) {
-		request := customer.NewLoginRequest(td.PeterCustomer)
+		request := handlers.NewLoginRequest(td.PeterCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
-		var jwtResponse customer.JWTResponse
+		var jwtResponse handlers.JWTResponse
 		json.NewDecoder(response.Body).Decode(&jwtResponse)
 
 		testutil.AssertJWT(t, jwtResponse.Token, testEnv.SecretKey, td.PeterCustomer.Id)
 	})
 
 	t.Run("returns JWT on Alice's credentials", func(t *testing.T) {
-		request := customer.NewLoginRequest(td.AliceCustomer)
+		request := handlers.NewLoginRequest(td.AliceCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
-		var jwtResponse customer.JWTResponse
+		var jwtResponse handlers.JWTResponse
 		json.NewDecoder(response.Body).Decode(&jwtResponse)
 
 		testutil.AssertJWT(t, jwtResponse.Token, testEnv.SecretKey, td.AliceCustomer.Id)
@@ -242,7 +242,7 @@ func TestLoginUser(t *testing.T) {
 	t.Run("returns Unauthorized on invalid credentials", func(t *testing.T) {
 		incorrectCustomer := td.PeterCustomer
 		incorrectCustomer.Password = "passsword123"
-		request := customer.NewLoginRequest(incorrectCustomer)
+		request := handlers.NewLoginRequest(incorrectCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -254,7 +254,7 @@ func TestLoginUser(t *testing.T) {
 	t.Run("returns Unauthorized on missing user", func(t *testing.T) {
 		missingCustomer := td.PeterCustomer
 		missingCustomer.Email = "notanemail@gmail.com"
-		request := customer.NewLoginRequest(missingCustomer)
+		request := handlers.NewLoginRequest(missingCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -267,12 +267,12 @@ func TestLoginUser(t *testing.T) {
 func TestCreateUser(t *testing.T) {
 	customerData := []models.Customer{}
 	store := testutil.NewStubCustomerStore(customerData)
-	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("stores customer on POST", func(t *testing.T) {
 		store.Empty()
 
-		request := customer.NewCreateCustomerRequest(td.PeterCustomer)
+		request := handlers.NewCreateCustomerRequest(td.PeterCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -288,16 +288,16 @@ func TestCreateUser(t *testing.T) {
 	t.Run("returns JSON with JWT and new customer on POST", func(t *testing.T) {
 		store.Empty()
 
-		request := customer.NewCreateCustomerRequest(td.PeterCustomer)
+		request := handlers.NewCreateCustomerRequest(td.PeterCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
-		wantResponseCustomer := customer.CustomerToCustomerResponse(td.PeterCustomer)
+		wantResponseCustomer := handlers.CustomerToCustomerResponse(td.PeterCustomer)
 
-		var gotResponse customer.CreateCustomerResponse
+		var gotResponse handlers.CreateCustomerResponse
 		json.NewDecoder(response.Body).Decode(&gotResponse)
 
 		testutil.AssertJWT(t, gotResponse.JWT.Token, testEnv.SecretKey, td.PeterCustomer.Id)
@@ -307,12 +307,12 @@ func TestCreateUser(t *testing.T) {
 	t.Run("return Bad Request on user with same email", func(t *testing.T) {
 		store.Empty()
 
-		request := customer.NewCreateCustomerRequest(td.PeterCustomer)
+		request := handlers.NewCreateCustomerRequest(td.PeterCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
-		request = customer.NewCreateCustomerRequest(td.PeterCustomer)
+		request = handlers.NewCreateCustomerRequest(td.PeterCustomer)
 		// reinit ResponseRecorder as it allows a
 		// one-time only write of the Status Code
 		response = httptest.NewRecorder()
@@ -326,43 +326,43 @@ func TestCreateUser(t *testing.T) {
 func TestGetUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
 	store := testutil.NewStubCustomerStore(customerData)
-	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {
 		peterJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.PeterCustomer.Id)
-		request := customer.NewGetCustomerRequest(peterJWT)
+		request := handlers.NewGetCustomerRequest(peterJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		got, err := validation.ValidateBody[customer.GetCustomerResponse](response.Body)
+		got, err := validation.ValidateBody[handlers.GetCustomerResponse](response.Body)
 		testutil.AssertValidResponse(t, err)
 
-		want := customer.CustomerToGetCustomerResponse(td.PeterCustomer)
-		assertGetCustomerResponse(t, got, want)
+		want := handlers.CustomerToGetCustomerResponse(td.PeterCustomer)
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("returns Alice's customer information", func(t *testing.T) {
 		aliceJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.AliceCustomer.Id)
-		request := customer.NewGetCustomerRequest(aliceJWT)
+		request := handlers.NewGetCustomerRequest(aliceJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		got, err := validation.ValidateBody[customer.GetCustomerResponse](response.Body)
+		got, err := validation.ValidateBody[handlers.GetCustomerResponse](response.Body)
 		testutil.AssertValidResponse(t, err)
 
-		want := customer.CustomerToGetCustomerResponse(td.AliceCustomer)
-		assertGetCustomerResponse(t, got, want)
+		want := handlers.CustomerToGetCustomerResponse(td.AliceCustomer)
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("returns Not Found on missing customer", func(t *testing.T) {
 		noCustomerJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 3)
-		request := customer.NewGetCustomerRequest(noCustomerJWT)
+		request := handlers.NewGetCustomerRequest(noCustomerJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -372,10 +372,31 @@ func TestGetUser(t *testing.T) {
 	})
 }
 
-func assertGetCustomerResponse(t testing.TB, got, want customer.GetCustomerResponse) {
-	t.Helper()
+func GenerateJWTWithStringSubject(secretKey []byte, expiresAt time.Duration, subject string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		Subject:   subject,
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresAt)),
+	})
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %q, want %q", got, want)
+	tokenString, err := token.SignedString(secretKey)
+
+	if err != nil {
+		return "", err
 	}
+
+	return tokenString, nil
+}
+
+func GenerateJWTWithoutSubject(secretKey []byte, expiresAt time.Duration) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresAt)),
+	})
+
+	tokenString, err := token.SignedString(secretKey)
+
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }

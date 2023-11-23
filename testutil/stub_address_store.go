@@ -2,7 +2,7 @@ package testutil
 
 import (
 	"github.com/VitoNaychev/bt-customer-svc/models"
-	td "github.com/VitoNaychev/bt-customer-svc/tests/testdata"
+	td "github.com/VitoNaychev/bt-customer-svc/testdata"
 )
 
 type StubAddressStore struct {

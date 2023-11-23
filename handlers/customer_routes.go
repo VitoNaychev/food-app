@@ -1,10 +1,10 @@
-package customer
+package handlers
 
 import (
 	"net/http"
 	"time"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
+	"github.com/VitoNaychev/auth"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 

@@ -1,4 +1,4 @@
-package address
+package handlers
 
 import "github.com/VitoNaychev/bt-customer-svc/models"
 

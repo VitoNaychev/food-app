@@ -1,4 +1,4 @@
-package customer
+package handlers
 
 import (
 	"encoding/json"
@@ -6,8 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
+	"github.com/VitoNaychev/auth"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 	"github.com/VitoNaychev/validation"
 	"github.com/golang-jwt/jwt/v5"
@@ -74,16 +73,16 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			// wrap models.ErrNotFound in customer handlers error type?
-			writeJSONError(w, http.StatusUnauthorized, handlers.ErrCustomerNotFound)
+			writeJSONError(w, http.StatusUnauthorized, ErrCustomerNotFound)
 			return
 		} else {
-			writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
+			writeJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 			return
 		}
 	}
 
 	if customer.Password != loginCustomerRequest.Password {
-		writeJSONError(w, http.StatusUnauthorized, handlers.ErrInvalidCredentials)
+		writeJSONError(w, http.StatusUnauthorized, ErrInvalidCredentials)
 		return
 	}
 
@@ -135,10 +134,10 @@ func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) 
 
 	_, err = c.store.GetCustomerByEmail(createCustomerRequest.Email)
 	if err == nil {
-		writeJSONError(w, http.StatusBadRequest, handlers.ErrExistingCustomer)
+		writeJSONError(w, http.StatusBadRequest, ErrExistingCustomer)
 		return
 	} else if err != models.ErrNotFound {
-		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
+		writeJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 		return
 	}
 
@@ -146,7 +145,7 @@ func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) 
 
 	err = c.store.CreateCustomer(&customer)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
+		writeJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 		return
 	}
 
@@ -174,18 +173,13 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(getCustomerResponse)
 }
 
-func writeJSONError(w http.ResponseWriter, statusCode int, err error) {
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(handlers.ErrorResponse{Message: err.Error()})
-}
-
 func handleStoreError(w http.ResponseWriter, err error) {
 	if errors.Is(err, models.ErrNotFound) {
 		// wrap models.ErrNotFound in customer handlers error type?
-		writeJSONError(w, http.StatusNotFound, handlers.ErrCustomerNotFound)
+		writeJSONError(w, http.StatusNotFound, ErrCustomerNotFound)
 		return
 	} else {
-		writeJSONError(w, http.StatusInternalServerError, handlers.ErrDatabaseError)
+		writeJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 		return
 	}
 }

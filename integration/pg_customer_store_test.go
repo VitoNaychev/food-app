@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/handlers/customer"
 	"github.com/VitoNaychev/bt-customer-svc/models"
-	"github.com/VitoNaychev/bt-customer-svc/tests/testdata"
-	"github.com/VitoNaychev/bt-customer-svc/tests/testutil"
+	"github.com/VitoNaychev/bt-customer-svc/testdata"
+	"github.com/VitoNaychev/bt-customer-svc/testutil"
 )
 
 func TestCustomerServerOperations(t *testing.T) {
@@ -21,20 +20,20 @@ func TestCustomerServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := customer.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, &store)
+	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, &store)
 
 	var peterJWT string
 	var createdSuccessfully bool
 
 	createdSuccessfully = t.Run("create new customer", func(t *testing.T) {
-		request := customer.NewCreateCustomerRequest(testdata.PeterCustomer)
+		request := handlers.NewCreateCustomerRequest(testdata.PeterCustomer)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
-		wantCustomer := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
+		wantCustomer := handlers.CustomerToCustomerResponse(testdata.PeterCustomer)
 		got := testutil.ParseCreateCustomerResponse(t, response.Body)
 
 		testutil.AssertEqual(t, got.Customer, wantCustomer)
@@ -44,14 +43,14 @@ func TestCustomerServerOperations(t *testing.T) {
 
 	if createdSuccessfully {
 		t.Run("retrieve customer", func(t *testing.T) {
-			request := customer.NewGetCustomerRequest(peterJWT)
+			request := handlers.NewGetCustomerRequest(peterJWT)
 			response := httptest.NewRecorder()
 
 			server.ServeHTTP(response, request)
 
 			testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-			want := customer.CustomerToCustomerResponse(testdata.PeterCustomer)
+			want := handlers.CustomerToCustomerResponse(testdata.PeterCustomer)
 			got := testutil.ParseCustomerResponse(t, response.Body)
 
 			testutil.AssertEqual(t, got, want)
@@ -62,21 +61,21 @@ func TestCustomerServerOperations(t *testing.T) {
 			updateCustomer.LastName = "Roper"
 			updateCustomer.Email = "peteroper@gmail.com"
 
-			request := customer.NewUpdateCustomerRequest(updateCustomer, peterJWT)
+			request := handlers.NewUpdateCustomerRequest(updateCustomer, peterJWT)
 			response := httptest.NewRecorder()
 
 			server.ServeHTTP(response, request)
 
 			testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-			want := customer.CustomerToCustomerResponse(updateCustomer)
+			want := handlers.CustomerToCustomerResponse(updateCustomer)
 			got := testutil.ParseCustomerResponse(t, response.Body)
 
 			testutil.AssertEqual(t, got, want)
 		})
 
 		t.Run("delete customer", func(t *testing.T) {
-			request := customer.NewDeleteCustomerRequest(peterJWT)
+			request := handlers.NewDeleteCustomerRequest(peterJWT)
 			response := httptest.NewRecorder()
 
 			server.ServeHTTP(response, request)
@@ -86,7 +85,7 @@ func TestCustomerServerOperations(t *testing.T) {
 		})
 
 		t.Run("retrieve deleted customer", func(t *testing.T) {
-			request := customer.NewGetCustomerRequest(peterJWT)
+			request := handlers.NewGetCustomerRequest(peterJWT)
 			response := httptest.NewRecorder()
 
 			server.ServeHTTP(response, request)

@@ -1,9 +1,9 @@
-package address
+package handlers
 
 import (
 	"net/http"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers/auth"
+	"github.com/VitoNaychev/auth"
 	"github.com/VitoNaychev/bt-customer-svc/models"
 )
 
