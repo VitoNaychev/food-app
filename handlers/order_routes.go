@@ -25,6 +25,7 @@ func NewOrderServer(orderStore models.OrderStore, addressStore models.AddressSto
 	router.Handle("/order/all/", AuthMiddleware(server.getAllOrders, verifyJWT))
 	router.Handle("/order/current/", AuthMiddleware(server.getCurrentOrders, verifyJWT))
 	router.Handle("/order/new/", AuthMiddleware(server.createOrder, verifyJWT))
+	router.Handle("/order/cancel/", AuthMiddleware(server.cancelOrder, verifyJWT))
 
 	server.Handler = router
 

@@ -71,3 +71,11 @@ func (p *PgOrderStore) CreateOrder(order *Order) error {
 	return err
 
 }
+
+func (p *PgOrderStore) CancelOrder(id int) error {
+	panic("unimplemented")
+}
+
+func (p *PgOrderStore) GetOrderByID(id int) (Order, error) {
+	panic("unimplemented")
+}

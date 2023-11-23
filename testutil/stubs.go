@@ -72,6 +72,25 @@ type StubOrderStore struct {
 	Orders        []models.Order
 }
 
+func (s *StubOrderStore) GetOrderByID(id int) (models.Order, error) {
+	for _, order := range s.Orders {
+		if order.ID == id {
+			return order, nil
+		}
+	}
+	return models.Order{}, models.ErrNotFound
+}
+
+func (s *StubOrderStore) CancelOrder(id int) error {
+	for i, _ := range s.Orders {
+		if s.Orders[i].ID == id {
+			s.Orders[i].Status = models.CANCELED
+			return nil
+		}
+	}
+	return nil
+}
+
 func (s *StubOrderStore) CreateOrder(order *models.Order) error {
 	s.CreatedOrders = append(s.CreatedOrders, *order)
 	order.ID = len(s.CreatedOrders)

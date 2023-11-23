@@ -19,7 +19,7 @@ var (
 		Status:          models.APPROVAL_PENDING,
 	}
 	PeterOrder2 = models.Order{
-		ID:              1,
+		ID:              2,
 		CustomerID:      1,
 		RestaurantID:    1,
 		Items:           []int{3, 3, 3, 3, 5},
@@ -30,7 +30,7 @@ var (
 		Status:          models.COMPLETED,
 	}
 	AliceOrder = models.Order{
-		ID:              2,
+		ID:              3,
 		CustomerID:      2,
 		RestaurantID:    1,
 		Items:           []int{2, 2, 5},

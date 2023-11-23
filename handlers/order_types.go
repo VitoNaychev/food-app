@@ -22,6 +22,14 @@ type AuthResponse struct {
 
 type VerifyJWTFunc func(token string) (AuthResponse, error)
 
+type CancelOrderRequest struct {
+	ID int
+}
+
+type CancelOrderResponse struct {
+	Status bool
+}
+
 type OrderResponse struct {
 	ID              int            `validate:"min=1"`
 	CustomerID      int            `validate:"min=1"`

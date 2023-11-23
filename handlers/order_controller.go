@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/VitoNaychev/bt-order-svc/models"
@@ -56,6 +57,36 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 
 		handler(w, r)
 	})
+}
+
+func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
+	var cancelOrderRequest CancelOrderRequest
+	json.NewDecoder(r.Body).Decode(&cancelOrderRequest)
+
+	order, err := o.orderStore.GetOrderByID(cancelOrderRequest.ID)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			writeJSONError(w, http.StatusNotFound, ErrOrderNotFound)
+			return
+		} else {
+			writeJSONError(w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	if order.Status != models.APPROVAL_PENDING && order.Status != models.APPROVED {
+		cancelOrderResponse := CancelOrderResponse{Status: false}
+		json.NewEncoder(w).Encode(cancelOrderResponse)
+		return
+	}
+
+	err = o.orderStore.CancelOrder(cancelOrderRequest.ID)
+	if err != nil {
+		writeJSONError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	cancelOrderResponse := CancelOrderResponse{Status: true}
+	json.NewEncoder(w).Encode(cancelOrderResponse)
 }
 
 func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {

@@ -12,7 +12,6 @@ import (
 	"github.com/VitoNaychev/bt-order-svc/models"
 	"github.com/VitoNaychev/bt-order-svc/testdata"
 	"github.com/VitoNaychev/bt-order-svc/testutil"
-	"github.com/VitoNaychev/errorresponse"
 	"github.com/VitoNaychev/validation"
 )
 
@@ -42,13 +41,7 @@ func TestAuthMiddleware(t *testing.T) {
 		handler(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-
-		want := errorresponse.ErrorResponse{Message: handlers.ErrInvalidToken.Error()}
-
-		var got errorresponse.ErrorResponse
-		json.NewDecoder(response.Body).Decode(&got)
-
-		testutil.AssertErrorResponse(t, got, want)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidToken)
 	})
 
 	t.Run("returns Not Found on nonexistent customer", func(t *testing.T) {
@@ -59,13 +52,7 @@ func TestAuthMiddleware(t *testing.T) {
 		handler(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-
-		want := errorresponse.ErrorResponse{Message: handlers.ErrCustomerNotFound.Error()}
-
-		var got errorresponse.ErrorResponse
-		json.NewDecoder(response.Body).Decode(&got)
-
-		testutil.AssertErrorResponse(t, got, want)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 
 	t.Run("returns Accepted on authentic customer", func(t *testing.T) {
@@ -88,7 +75,8 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 	cases := map[string]*http.Request{
 		"get all orders authentication":    handlers.NewGetAllOrdersRequest(invalidJWT),
 		"get current order authentication": handlers.NewGetCurrentOrdersRequest(invalidJWT),
-		"create new order authentication":  handlers.NewCreateOrderRequest(invalidJWT, handlers.CreateOrderRequest{}),
+		"create order authentication":      handlers.NewCreateOrderRequest(invalidJWT, handlers.CreateOrderRequest{}),
+		"cancel order authentication":      handlers.NewCancelOrderRequest(invalidJWT, handlers.CancelOrderRequest{}),
 	}
 
 	for name, request := range cases {
@@ -157,6 +145,65 @@ func TestOrderResponseValidity(t *testing.T) {
 	}
 }
 
+func TestCancelOrder(t *testing.T) {
+	orderStore := &testutil.StubOrderStore{
+		Orders: []models.Order{testdata.PeterOrder1, testdata.PeterOrder2},
+	}
+	addressStore := &testutil.StubAddressStore{
+		Addresses: []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2},
+	}
+	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
+
+	t.Run("returns Status true when order is cancelable", func(t *testing.T) {
+		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 1}
+		request := handlers.NewCancelOrderRequest(strconv.Itoa(testdata.PeterCustomerID), cancelOrderRequestBody)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		if orderStore.Orders[0].Status != models.CANCELED {
+			t.Errorf("got status %v, want %v", orderStore.Orders[0].Status, models.CANCELED)
+		}
+
+		want := handlers.CancelOrderResponse{Status: true}
+
+		var got handlers.CancelOrderResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("returns Status false when order is noncancelable", func(t *testing.T) {
+		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 2}
+		request := handlers.NewCancelOrderRequest(strconv.Itoa(testdata.PeterCustomerID), cancelOrderRequestBody)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		if orderStore.Orders[1].Status == models.CANCELED {
+			t.Errorf("status changed to %v when it shouldn't have", orderStore.Orders[0].Status)
+		}
+
+		want := handlers.CancelOrderResponse{Status: false}
+
+		var got handlers.CancelOrderResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("returns Not Found on order that doesn't exist", func(t *testing.T) {
+		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 10}
+		request := handlers.NewCancelOrderRequest(strconv.Itoa(testdata.PeterCustomerID), cancelOrderRequestBody)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrOrderNotFound)
+	})
+}
+
 func TestCreateOrder(t *testing.T) {
 	orderStore := &testutil.StubOrderStore{CreatedOrders: []models.Order{}, Orders: nil}
 	addressStore := &testutil.StubAddressStore{CreatedAddresses: []models.Address{}, Addresses: nil}
@@ -179,6 +226,10 @@ func TestCreateOrder(t *testing.T) {
 			t.Errorf("got %d calls to CreateAddress, want %d", len(addressStore.CreatedAddresses), 2)
 		}
 
+		if orderStore.CreatedOrders[0].Status != models.APPROVAL_PENDING {
+			t.Errorf("got status %v want %v", orderStore.CreatedOrders[0].Status, models.APPROVAL_PENDING)
+		}
+
 		wantOrder := testdata.PeterOrder1
 		wantOrder.Status = models.APPROVAL_PENDING
 		want := handlers.NewOrderResponseBody(wantOrder, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -186,11 +237,7 @@ func TestCreateOrder(t *testing.T) {
 		var got handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		if got.Status != models.APPROVAL_PENDING {
-			t.Errorf("got status %v want %v", got.Status, models.APPROVAL_PENDING)
-		}
-
-		testutil.AssertCreateOrderResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 }
 

@@ -6,6 +6,16 @@ import (
 	"net/http"
 )
 
+func NewCancelOrderRequest(jwt string, cancelOrderRequest CancelOrderRequest) *http.Request {
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(cancelOrderRequest)
+
+	request, _ := http.NewRequest(http.MethodPost, "/order/cancel/", body)
+	request.Header.Add("Token", jwt)
+
+	return request
+}
+
 func NewCreateOrderRequest(jwt string, createOrderRequestBody CreateOrderRequest) *http.Request {
 	body := bytes.NewBuffer([]byte{})
 	json.NewEncoder(body).Encode(createOrderRequestBody)
