@@ -19,8 +19,8 @@ services:
 
   order-svc:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ./order-svc/Dockerfile
     container_name: order-svc
     ports:
       - "8080:8080"

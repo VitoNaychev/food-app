@@ -19,8 +19,8 @@ services:
 
   customer-svc:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ./customer-svc/Dockerfile
     container_name: customer-svc
     ports:
       - "9090:8080"
