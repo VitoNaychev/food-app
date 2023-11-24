@@ -93,12 +93,17 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 type GenericResponse interface{}
 
 func TestOrderResponseValidity(t *testing.T) {
-	orderStore := &testutil.StubOrderStore{}
-	addressStore := &testutil.StubAddressStore{}
+	orderStore := &testutil.StubOrderStore{
+		Orders: []models.Order{testdata.PeterOrder1, testdata.PeterOrder2},
+	}
+	addressStore := &testutil.StubAddressStore{
+		Addresses: []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2},
+	}
 	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
+	cancelOrderRequestBody := handlers.CancelOrderRequest{ID: testdata.PeterOrder1.ID}
 
 	cases := []struct {
 		Name               string
@@ -126,6 +131,14 @@ func TestOrderResponseValidity(t *testing.T) {
 			handlers.NewCreateOrderRequest(peterJWT, createOrderRequestBody),
 			func(r io.Reader) (GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.OrderResponse](r)
+				return response, err
+			},
+		},
+		{
+			"cancel order",
+			handlers.NewCancelOrderRequest(peterJWT, cancelOrderRequestBody),
+			func(r io.Reader) (GenericResponse, error) {
+				response, err := validation.ValidateBody[handlers.CancelOrderResponse](r)
 				return response, err
 			},
 		},
