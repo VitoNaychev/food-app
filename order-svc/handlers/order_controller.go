@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/VitoNaychev/food-app/errorresponse"
@@ -31,28 +32,33 @@ func VerifyJWT(token string) (authResponse msgtypes.AuthResponse, err error) {
 
 func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verifyJWT VerifyJWTFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header["Token"] == nil {
-			w.WriteHeader(http.StatusUnauthorized)
+		if tokenHeader := r.Header.Get("Token"); tokenHeader == "" {
+			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
 			return
 		}
 
 		authResponse, err := verifyJWT(r.Header["Token"][0])
 		if err != nil {
-			writeJSONError(w, http.StatusInternalServerError, err)
+			errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if authResponse.Status == msgtypes.MISSING_TOKEN {
+			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
 			return
 		}
 
 		if authResponse.Status == msgtypes.INVALID {
-			w.WriteHeader(http.StatusUnauthorized)
-			writeJSONError(w, http.StatusUnauthorized, ErrInvalidToken)
+			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrInvalidToken)
 			return
 		}
 
 		if authResponse.Status == msgtypes.NOT_FOUND {
-			w.WriteHeader(http.StatusNotFound)
-			writeJSONError(w, http.StatusUnauthorized, ErrCustomerNotFound)
+			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrCustomerNotFound)
 			return
 		}
+
+		fmt.Println("Hello, World", authResponse)
 
 		authResponseMap[r.Header["Token"][0]] = authResponse
 
@@ -67,10 +73,10 @@ func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
 	order, err := o.orderStore.GetOrderByID(cancelOrderRequest.ID)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
-			writeJSONError(w, http.StatusNotFound, ErrOrderNotFound)
+			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrOrderNotFound)
 			return
 		} else {
-			writeJSONError(w, http.StatusInternalServerError, err)
+			errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -82,7 +88,7 @@ func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
 
 	err = o.orderStore.CancelOrder(cancelOrderRequest.ID)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -102,12 +108,12 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 
 	err := o.addressStore.CreateAddress(&pickupAddress)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 	err = o.addressStore.CreateAddress(&deliveryAddress)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -117,7 +123,7 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 	order.Status = models.APPROVAL_PENDING
 	err = o.orderStore.CreateOrder(&order)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -132,7 +138,7 @@ func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
 
 	orders, err := o.orderStore.GetOrdersByCustomerID(authResponse.ID)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -150,7 +156,7 @@ func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
 
 	orders, err := o.orderStore.GetCurrentOrdersByCustomerID(authResponse.ID)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, err)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 	}
 
 	orderResponseArr := []OrderResponse{}
@@ -167,9 +173,4 @@ func (o *OrderServer) orderToGetOrderResponse(order models.Order) OrderResponse 
 
 	getOrderResponse := NewOrderResponseBody(order, pickupAddress, deliveryAddress)
 	return getOrderResponse
-}
-
-func writeJSONError(w http.ResponseWriter, status int, err error) {
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(errorresponse.ErrorResponse{Message: err.Error()})
 }

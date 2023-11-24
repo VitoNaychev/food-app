@@ -1,9 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
-	"net/http"
 )
 
 var (
@@ -22,12 +20,3 @@ var (
 	ErrUnathorizedAction    = errors.New("customer does not have permission to perform this action")
 	ErrDatabaseError        = errors.New("operation encountered a database error")
 )
-
-type ErrorResponse struct {
-	Message string
-}
-
-func writeJSONError(w http.ResponseWriter, statusCode int, err error) {
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(ErrorResponse{Message: err.Error()})
-}

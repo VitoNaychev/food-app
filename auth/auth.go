@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"time"
@@ -40,22 +39,19 @@ func VerifyJWT(jwtString string, secretKey []byte) (*jwt.Token, error) {
 func AuthenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), secretKey []byte) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(errorresponse.ErrorResponse{Message: ErrMissingToken.Error()})
+			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
 			return
 		}
 
 		token, err := VerifyJWT(r.Header["Token"][0], secretKey)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(errorresponse.ErrorResponse{Message: err.Error()})
+			errorresponse.WriteJSONError(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		id, err := getIDFromToken(token)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(errorresponse.ErrorResponse{Message: err.Error()})
+			errorresponse.WriteJSONError(w, http.StatusUnauthorized, err)
 			return
 		}
 

@@ -7,13 +7,14 @@ import (
 	"strconv"
 
 	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/errorresponse"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
 func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 	updateAddressRequest, err := validation.ValidateBody[UpdateAddressRequest](r.Body)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, ErrInvalidRequestField)
+		errorresponse.WriteJSONError(w, http.StatusBadRequest, ErrInvalidRequestField)
 		return
 	}
 
@@ -32,7 +33,7 @@ func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Req
 	}
 
 	if address.CustomerId != customerId {
-		writeJSONError(w, http.StatusUnauthorized, ErrUnathorizedAction)
+		errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrUnathorizedAction)
 		return
 	}
 
@@ -40,7 +41,7 @@ func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Req
 
 	err = c.addressStore.UpdateAddress(&address)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 	}
 
 	json.NewEncoder(w).Encode(address)
@@ -49,7 +50,7 @@ func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Req
 func (c *CustomerAddressServer) deleteAddress(w http.ResponseWriter, r *http.Request) {
 	deleteAddressRequest, err := validation.ValidateBody[DeleteAddressRequest](r.Body)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, err)
+		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -68,20 +69,20 @@ func (c *CustomerAddressServer) deleteAddress(w http.ResponseWriter, r *http.Req
 	}
 
 	if address.CustomerId != customerId {
-		writeJSONError(w, http.StatusUnauthorized, ErrUnathorizedAction)
+		errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrUnathorizedAction)
 		return
 	}
 
 	err = c.addressStore.DeleteAddress(deleteAddressRequest.Id)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 	}
 }
 
 func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Request) {
 	createAddressRequest, err := validation.ValidateBody[CreateAddressRequest](r.Body)
 	if err != nil {
-		writeJSONError(w, http.StatusBadRequest, err)
+		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -97,7 +98,7 @@ func (c *CustomerAddressServer) createAddress(w http.ResponseWriter, r *http.Req
 
 	err = c.addressStore.CreateAddress(&address)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 	}
 
 	json.NewEncoder(w).Encode(address)
@@ -114,7 +115,7 @@ func (c *CustomerAddressServer) getAddress(w http.ResponseWriter, r *http.Reques
 
 	addresses, err := c.addressStore.GetAddressesByCustomerID(customerId)
 	if err != nil {
-		writeJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 	}
 
 	getAddressResponse := []GetAddressResponse{}
@@ -128,10 +129,10 @@ func (c *CustomerAddressServer) getAddress(w http.ResponseWriter, r *http.Reques
 func handleAddressStoreError(w http.ResponseWriter, err error, missingEntityError error) {
 	if errors.Is(err, models.ErrNotFound) {
 		// wrap models.ErrNotFound in customer handlers error type?
-		writeJSONError(w, http.StatusNotFound, missingEntityError)
+		errorresponse.WriteJSONError(w, http.StatusNotFound, missingEntityError)
 		return
 	} else {
-		writeJSONError(w, http.StatusInternalServerError, missingEntityError)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, missingEntityError)
 		return
 	}
 }

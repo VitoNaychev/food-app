@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/VitoNaychev/food-app/customer-svc/handlers"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/errorresponse"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -23,7 +23,7 @@ func AssertEqual[T any](t testing.TB, got, want T) {
 func AssertErrorResponse(t testing.TB, body io.Reader, expetedError error) {
 	t.Helper()
 
-	var errorResponse handlers.ErrorResponse
+	var errorResponse errorresponse.ErrorResponse
 	json.NewDecoder(body).Decode(&errorResponse)
 
 	if errorResponse.Message != expetedError.Error() {
