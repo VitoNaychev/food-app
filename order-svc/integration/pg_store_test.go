@@ -86,4 +86,19 @@ func TestOrderServerOperations(t *testing.T) {
 
 		testutil.AssertEqual(t, got, want)
 	})
+
+	t.Run("canceled order doesn't show up in current orders", func(t *testing.T) {
+		request := handlers.NewGetCurrentOrdersRequest(peterJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		want := []handlers.OrderResponse{}
+		var got []handlers.OrderResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertGetOrderResponse(t, got, want)
+	})
 }

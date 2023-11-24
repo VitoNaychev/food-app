@@ -37,10 +37,14 @@ func (p *PgOrderStore) GetOrdersByCustomerID(customerId int) ([]Order, error) {
 }
 
 func (p *PgOrderStore) GetCurrentOrdersByCustomerID(customerId int) ([]Order, error) {
-	query := `select * from orders where customer_id=@customer_id and status != @status`
+	query := `select * from orders where customer_id=@customer_id and status != @completed and 
+	status != @canceled and status != @rejected and status != @declined`
 	args := pgx.NamedArgs{
 		"customer_id": customerId,
-		"status":      COMPLETED,
+		"completed":   COMPLETED,
+		"canceled":    CANCELED,
+		"rejected":    REJECTED,
+		"declined":    DECLINED,
 	}
 
 	row, _ := p.conn.Query(context.Background(), query, args)
