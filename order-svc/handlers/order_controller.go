@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/VitoNaychev/food-app/errorresponse"
@@ -57,8 +56,6 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrCustomerNotFound)
 			return
 		}
-
-		fmt.Println("Hello, World", authResponse)
 
 		authResponseMap[r.Header["Token"][0]] = authResponse
 
