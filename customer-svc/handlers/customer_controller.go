@@ -8,34 +8,35 @@ import (
 
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 func (c *CustomerServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
-	authResponse := AuthResponse{Status: INVALID}
+	authResponse := msgtypes.AuthResponse{Status: msgtypes.INVALID}
 
 	if tokenHeader := r.Header.Get("Token"); tokenHeader == "" {
-		handleAuthError(w, authResponse, MISSING_TOKEN)
+		handleAuthError(w, authResponse, msgtypes.MISSING_TOKEN)
 		return
 	}
 
 	token, err := auth.VerifyJWT(r.Header["Token"][0], c.secretKey)
 	if err != nil {
-		handleAuthError(w, authResponse, INVALID)
+		handleAuthError(w, authResponse, msgtypes.INVALID)
 		return
 	}
 
 	customerID, err := getCustomerIDFromToken(token)
 	if err != nil {
-		handleAuthError(w, authResponse, INVALID)
+		handleAuthError(w, authResponse, msgtypes.INVALID)
 		return
 	}
 
 	_, err = c.store.GetCustomerByID(customerID)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
-			handleAuthError(w, authResponse, NOT_FOUND)
+			handleAuthError(w, authResponse, msgtypes.NOT_FOUND)
 			return
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -43,13 +44,13 @@ func (c *CustomerServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	authResponse.Status = OK
+	authResponse.Status = msgtypes.OK
 	authResponse.ID = customerID
 
 	json.NewEncoder(w).Encode(authResponse)
 }
 
-func handleAuthError(w http.ResponseWriter, authResponse AuthResponse, status AuthStatus) {
+func handleAuthError(w http.ResponseWriter, authResponse msgtypes.AuthResponse, status msgtypes.AuthStatus) {
 	authResponse.Status = status
 	json.NewEncoder(w).Encode(authResponse)
 }

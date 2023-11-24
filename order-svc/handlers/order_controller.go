@@ -6,13 +6,14 @@ import (
 	"net/http"
 
 	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
-var authResponseMap = make(map[string]AuthResponse)
+var authResponseMap = make(map[string]msgtypes.AuthResponse)
 
-func VerifyJWT(token string) (authResponse AuthResponse, err error) {
+func VerifyJWT(token string) (authResponse msgtypes.AuthResponse, err error) {
 	request, err := http.NewRequest(http.MethodPost, "http://customer-svc:8080/customer/auth/", nil)
 	if err != nil {
 		return
@@ -41,13 +42,13 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 			return
 		}
 
-		if authResponse.Status == INVALID {
+		if authResponse.Status == msgtypes.INVALID {
 			w.WriteHeader(http.StatusUnauthorized)
 			writeJSONError(w, http.StatusUnauthorized, ErrInvalidToken)
 			return
 		}
 
-		if authResponse.Status == NOT_FOUND {
+		if authResponse.Status == msgtypes.NOT_FOUND {
 			w.WriteHeader(http.StatusNotFound)
 			writeJSONError(w, http.StatusUnauthorized, ErrCustomerNotFound)
 			return

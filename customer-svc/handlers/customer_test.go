@@ -12,6 +12,7 @@ import (
 	"github.com/VitoNaychev/food-app/customer-svc/models"
 	td "github.com/VitoNaychev/food-app/customer-svc/testdata"
 	"github.com/VitoNaychev/food-app/customer-svc/testutil"
+	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -56,11 +57,11 @@ func TestAuthHandler(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		want := handlers.AuthResponse{
-			Status: handlers.OK,
+		want := msgtypes.AuthResponse{
+			Status: msgtypes.OK,
 			ID:     td.PeterCustomer.Id,
 		}
-		var got handlers.AuthResponse
+		var got msgtypes.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -76,11 +77,11 @@ func TestAuthHandler(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		want := handlers.AuthResponse{
-			Status: handlers.INVALID,
+		want := msgtypes.AuthResponse{
+			Status: msgtypes.INVALID,
 			ID:     0,
 		}
-		var got handlers.AuthResponse
+		var got msgtypes.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -92,11 +93,11 @@ func TestAuthHandler(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		want := handlers.AuthResponse{
-			Status: handlers.MISSING_TOKEN,
+		want := msgtypes.AuthResponse{
+			Status: msgtypes.MISSING_TOKEN,
 			ID:     0,
 		}
-		var got handlers.AuthResponse
+		var got msgtypes.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -109,11 +110,11 @@ func TestAuthHandler(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		want := handlers.AuthResponse{
-			Status: handlers.INVALID,
+		want := msgtypes.AuthResponse{
+			Status: msgtypes.INVALID,
 			ID:     0,
 		}
-		var got handlers.AuthResponse
+		var got msgtypes.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -126,11 +127,11 @@ func TestAuthHandler(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		want := handlers.AuthResponse{
-			Status: handlers.INVALID,
+		want := msgtypes.AuthResponse{
+			Status: msgtypes.INVALID,
 			ID:     0,
 		}
-		var got handlers.AuthResponse
+		var got msgtypes.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -144,11 +145,11 @@ func TestAuthHandler(t *testing.T) {
 
 		server.ServeHTTP(response, request)
 
-		want := handlers.AuthResponse{
-			Status: handlers.NOT_FOUND,
+		want := msgtypes.AuthResponse{
+			Status: msgtypes.NOT_FOUND,
 			ID:     0,
 		}
-		var got handlers.AuthResponse
+		var got msgtypes.AuthResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)

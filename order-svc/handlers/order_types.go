@@ -3,24 +3,11 @@ package handlers
 import (
 	"time"
 
+	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 )
 
-type AuthStatus int
-
-const (
-	MISSING_TOKEN AuthStatus = iota
-	INVALID
-	NOT_FOUND
-	OK
-)
-
-type AuthResponse struct {
-	Status AuthStatus
-	ID     int
-}
-
-type VerifyJWTFunc func(token string) (AuthResponse, error)
+type VerifyJWTFunc func(token string) (msgtypes.AuthResponse, error)
 
 type CancelOrderRequest struct {
 	ID int
