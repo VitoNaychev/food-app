@@ -3,7 +3,7 @@ package testdata
 import (
 	"time"
 
-	"github.com/VitoNaychev/bt-order-svc/models"
+	"github.com/VitoNaychev/food-app/order-svc/models"
 )
 
 var (

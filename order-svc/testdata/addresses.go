@@ -1,6 +1,6 @@
 package testdata
 
-import "github.com/VitoNaychev/bt-order-svc/models"
+import "github.com/VitoNaychev/food-app/order-svc/models"
 
 var (
 	ChickenShackAddress = models.Address{

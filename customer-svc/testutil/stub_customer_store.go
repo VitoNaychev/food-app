@@ -1,7 +1,7 @@
 package testutil
 
 import (
-	"github.com/VitoNaychev/bt-customer-svc/models"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
 )
 
 type StubCustomerStore struct {

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/VitoNaychev/bt-order-svc/models"
-	"github.com/VitoNaychev/errorresponse"
-	"github.com/VitoNaychev/validation"
+	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/order-svc/models"
+	"github.com/VitoNaychev/food-app/validation"
 )
 
 var authResponseMap = make(map[string]AuthResponse)
@@ -168,12 +168,7 @@ func (o *OrderServer) orderToGetOrderResponse(order models.Order) OrderResponse 
 	return getOrderResponse
 }
 
-func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request, authResponse AuthResponse) {
-	orders, _ := o.store.GetOrdersByCustomerID(authResponse.ID)
-	json.NewEncoder(w).Encode(orders)
-}
-
-func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request, authResponse AuthResponse) {
-	orders, _ := o.store.GetCurrentOrdersByCustomerID(authResponse.ID)
-	json.NewEncoder(w).Encode(orders)
+func writeJSONError(w http.ResponseWriter, status int, err error) {
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(errorresponse.ErrorResponse{Message: err.Error()})
 }

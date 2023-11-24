@@ -7,11 +7,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/VitoNaychev/auth"
-	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/models"
-	td "github.com/VitoNaychev/bt-customer-svc/testdata"
-	"github.com/VitoNaychev/bt-customer-svc/testutil"
+	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/customer-svc/handlers"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
+	td "github.com/VitoNaychev/food-app/customer-svc/testdata"
+	"github.com/VitoNaychev/food-app/customer-svc/testutil"
 )
 
 func TestAddressEndpointAuthentication(t *testing.T) {

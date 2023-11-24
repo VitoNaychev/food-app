@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/VitoNaychev/errorresponse"
+	"github.com/VitoNaychev/food-app/errorresponse"
 	"github.com/golang-jwt/jwt/v5"
 )
 

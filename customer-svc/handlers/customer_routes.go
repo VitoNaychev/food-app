@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/VitoNaychev/auth"
-	"github.com/VitoNaychev/bt-customer-svc/models"
+	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
 )
 
 type CustomerServer struct {

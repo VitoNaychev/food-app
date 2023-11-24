@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/auth"
-	"github.com/VitoNaychev/errorresponse"
+	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/errorresponse"
 	"github.com/golang-jwt/jwt/v5"
 )
 

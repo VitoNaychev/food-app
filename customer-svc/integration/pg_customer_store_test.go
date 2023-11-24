@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/models"
-	"github.com/VitoNaychev/bt-customer-svc/testdata"
-	"github.com/VitoNaychev/bt-customer-svc/testutil"
+	"github.com/VitoNaychev/food-app/customer-svc/handlers"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/customer-svc/testdata"
+	"github.com/VitoNaychev/food-app/customer-svc/testutil"
 )
 
 func TestCustomerServerOperations(t *testing.T) {

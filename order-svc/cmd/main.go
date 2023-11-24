@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/VitoNaychev/bt-order-svc/handlers"
-	"github.com/VitoNaychev/bt-order-svc/models"
+	"github.com/VitoNaychev/food-app/order-svc/handlers"
+	"github.com/VitoNaychev/food-app/order-svc/models"
 )
 
 type DBConfig struct {

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/bt-customer-svc/config"
+	"github.com/VitoNaychev/food-app/customer-svc/config"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"

@@ -1,8 +1,8 @@
 package testutil
 
 import (
-	"github.com/VitoNaychev/bt-customer-svc/models"
-	td "github.com/VitoNaychev/bt-customer-svc/testdata"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
+	td "github.com/VitoNaychev/food-app/customer-svc/testdata"
 )
 
 type StubAddressStore struct {

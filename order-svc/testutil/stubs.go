@@ -3,8 +3,8 @@ package testutil
 import (
 	"strconv"
 
-	"github.com/VitoNaychev/bt-order-svc/handlers"
-	"github.com/VitoNaychev/bt-order-svc/models"
+	"github.com/VitoNaychev/food-app/order-svc/handlers"
+	"github.com/VitoNaychev/food-app/order-svc/models"
 )
 
 func StubVerifyJWT(jwt string) (handlers.AuthResponse, error) {

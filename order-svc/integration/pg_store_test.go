@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/VitoNaychev/bt-order-svc/handlers"
-	"github.com/VitoNaychev/bt-order-svc/models"
-	"github.com/VitoNaychev/bt-order-svc/testdata"
-	"github.com/VitoNaychev/bt-order-svc/testutil"
+	"github.com/VitoNaychev/food-app/order-svc/handlers"
+	"github.com/VitoNaychev/food-app/order-svc/models"
+	"github.com/VitoNaychev/food-app/order-svc/testdata"
+	"github.com/VitoNaychev/food-app/order-svc/testutil"
 )
 
 func TestOrderServerOperations(t *testing.T) {

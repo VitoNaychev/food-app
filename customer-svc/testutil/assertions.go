@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/models"
+	"github.com/VitoNaychev/food-app/customer-svc/handlers"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 

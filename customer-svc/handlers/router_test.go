@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/testutil"
+	"github.com/VitoNaychev/food-app/customer-svc/handlers"
+	"github.com/VitoNaychev/food-app/customer-svc/testutil"
 )
 
 var customerHandlerMessage = "Hello from customer handler"

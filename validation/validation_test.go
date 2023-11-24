@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/VitoNaychev/validation"
+	"github.com/VitoNaychev/food-app/validation"
 )
 
 type DummyRequest struct {

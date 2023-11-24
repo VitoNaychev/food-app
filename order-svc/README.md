@@ -1,2 +1,2 @@
 # bt-order-svc
-Repository for the order service
+Package for the order service

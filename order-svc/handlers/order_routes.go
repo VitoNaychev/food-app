@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/VitoNaychev/bt-order-svc/models"
+	"github.com/VitoNaychev/food-app/order-svc/models"
 )
 
 type OrderServer struct {

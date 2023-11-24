@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/VitoNaychev/bt-customer-svc/models"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
 )
 
 func NewUpdateAddressRequest(customerJWT string, address models.Address) *http.Request {

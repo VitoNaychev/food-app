@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/VitoNaychev/bt-order-svc/handlers"
-	"github.com/VitoNaychev/errorresponse"
+	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/order-svc/handlers"
 )
 
 func AssertEqual[T any](t testing.TB, got, want T) {

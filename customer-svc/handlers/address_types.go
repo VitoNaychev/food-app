@@ -1,6 +1,6 @@
 package handlers
 
-import "github.com/VitoNaychev/bt-customer-svc/models"
+import "github.com/VitoNaychev/food-app/customer-svc/models"
 
 type UpdateAddressRequest struct {
 	Id           int     `validate:"min=0"`

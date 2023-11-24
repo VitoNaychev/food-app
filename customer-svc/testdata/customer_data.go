@@ -1,7 +1,7 @@
 package testdata
 
 import (
-	"github.com/VitoNaychev/bt-customer-svc/models"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
 )
 
 var PeterCustomer = models.Customer{

@@ -1,16 +1,12 @@
-module github.com/VitoNaychev/bt-customer-svc
+module github.com/VitoNaychev/food-app
 
 go 1.21.3
 
 require (
-	github.com/golang-jwt/jwt/v5 v5.0.0
+	github.com/go-playground/validator/v10 v10.16.0
+	github.com/golang-jwt/jwt/v5 v5.1.0
+	github.com/jackc/pgx/v5 v5.5.0
 	github.com/joho/godotenv v1.5.1
-)
-
-require (
-	github.com/VitoNaychev/auth v0.0.0-20231107100631-bee495a6df1a
-	github.com/VitoNaychev/validation v0.1.1
-	github.com/jackc/pgx/v5 v5.4.3
 	github.com/testcontainers/testcontainers-go v0.26.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.26.0
 )
@@ -20,7 +16,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Microsoft/hcsshim v0.11.1 // indirect
-	github.com/VitoNaychev/errorresponse v0.0.0-20231107092853-0e1fb3fd4835 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/containerd/containerd v1.7.7 // indirect
 	github.com/containerd/log v0.1.0 // indirect
@@ -33,7 +28,6 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.16.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.1 // indirect

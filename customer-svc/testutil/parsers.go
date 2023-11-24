@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/handlers"
-	"github.com/VitoNaychev/bt-customer-svc/models"
+	"github.com/VitoNaychev/food-app/customer-svc/handlers"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
 )
 
 func ParseCreateCustomerResponse(t testing.TB, r io.Reader) (createCustomerResponse handlers.CreateCustomerResponse) {

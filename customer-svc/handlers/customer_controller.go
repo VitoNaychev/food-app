@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/VitoNaychev/auth"
-	"github.com/VitoNaychev/bt-customer-svc/models"
-	"github.com/VitoNaychev/validation"
+	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
 )
 

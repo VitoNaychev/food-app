@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/VitoNaychev/bt-customer-svc/models"
-	"github.com/VitoNaychev/validation"
+	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/validation"
 )
 
 func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {

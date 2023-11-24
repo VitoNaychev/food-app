@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/VitoNaychev/bt-customer-svc/config"
+	"github.com/VitoNaychev/food-app/customer-svc/config"
 )
 
 var testEnv config.Enviornment
