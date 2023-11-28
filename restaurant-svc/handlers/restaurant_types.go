@@ -2,6 +2,40 @@ package handlers
 
 import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 
+type UpdateRestaurantRequest struct {
+	Name        string
+	PhoneNumber string
+	Email       string
+	Password    string
+	IBAN        string
+}
+
+func UpdateRestaurantRequestToRestaurant(request UpdateRestaurantRequest, id int, status models.Status) models.Restaurant {
+	restaurant := models.Restaurant{
+		ID:          id,
+		Name:        request.Name,
+		PhoneNumber: request.PhoneNumber,
+		Email:       request.Email,
+		Password:    request.Password,
+		IBAN:        request.IBAN,
+		Status:      status,
+	}
+
+	return restaurant
+}
+
+func RestaurantToUpdateRestaurantRequest(restaurant models.Restaurant) UpdateRestaurantRequest {
+	updateRestaurantRequest := UpdateRestaurantRequest{
+		Name:        restaurant.Name,
+		PhoneNumber: restaurant.PhoneNumber,
+		Email:       restaurant.Email,
+		Password:    restaurant.Password,
+		IBAN:        restaurant.IBAN,
+	}
+
+	return updateRestaurantRequest
+}
+
 type JWTResponse struct {
 	Token string
 }

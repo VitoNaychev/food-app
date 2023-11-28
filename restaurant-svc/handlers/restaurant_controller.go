@@ -25,7 +25,38 @@ func (s *RestaurantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.createRestaurant(w, r)
 	case http.MethodGet:
 		auth.AuthenticationMiddleware(s.getRestaurant, s.SecretKey)(w, r)
+	case http.MethodPut:
+		auth.AuthenticationMiddleware(s.updateRestaurant, s.SecretKey)(w, r)
 	}
+}
+
+func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Request) {
+	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
+
+	updateRestaurantRequest, err := validation.ValidateBody[UpdateRestaurantRequest](r.Body)
+	if err != nil {
+		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	oldRestaurant, err := s.Store.GetRestaurantByID(restaurantID)
+	if err != nil {
+		errorresponse.WriteJSONError(w, http.StatusNotFound, ErrRestaurantNotFound)
+		return
+	}
+
+	newRestaurant := UpdateRestaurantRequestToRestaurant(updateRestaurantRequest, restaurantID, oldRestaurant.Status)
+	newRestaurant.ID = restaurantID
+	newRestaurant.Status = oldRestaurant.Status
+
+	err = s.Store.UpdateRestaurant(&newRestaurant)
+	if err != nil {
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	updateRestaurantResponse := RestaurantToRestaurantResponse(newRestaurant)
+	json.NewEncoder(w).Encode(updateRestaurantResponse)
 }
 
 func (s *RestaurantServer) getRestaurant(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +93,7 @@ func (s *RestaurantServer) createRestaurant(w http.ResponseWriter, r *http.Reque
 	err = s.Store.CreateRestaurant(&restaurant)
 	if err != nil {
 		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	jwtToken, _ := auth.GenerateJWT(s.SecretKey, s.ExpiresAt, restaurant.ID)
