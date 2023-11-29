@@ -151,7 +151,7 @@ func TestCreateRestaurantAddress(t *testing.T) {
 
 		restaurant := restaurantStore.updatedRestaurant
 		if restaurant.Status&models.ADDRESS_SET == 0 {
-			t.Errorf("didn't set ADDRESS bit in restaurant state")
+			t.Errorf("didn't set ADDRESS_SET bit in restaurant state")
 		}
 	})
 

@@ -156,7 +156,10 @@ func TestRestaurantResponseValidity(t *testing.T) {
 }
 
 func TestRestaurantEnpointAuthentication(t *testing.T) {
-	server := handlers.RestaurantServer{}
+	server := handlers.RestaurantServer{
+		SecretKey: testEnv.SecretKey,
+		ExpiresAt: testEnv.ExpiresAt,
+	}
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
