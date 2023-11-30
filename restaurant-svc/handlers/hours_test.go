@@ -12,6 +12,7 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
+	"github.com/VitoNaychev/food-app/restaurant-svc/testutil/tabletests"
 )
 
 type StubHoursStore struct {
@@ -45,7 +46,7 @@ func TestHoursEndpointAuthentication(t *testing.T) {
 		"create hours": NewCreateHoursRequest("", nil),
 	}
 
-	testutil.RunAuthenticationTests(t, &server, cases)
+	tabletests.RunAuthenticationTests(t, &server, cases)
 }
 
 func TestCreateHours(t *testing.T) {

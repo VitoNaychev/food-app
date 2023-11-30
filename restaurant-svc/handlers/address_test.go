@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,8 +10,11 @@ import (
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
+	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
+	"github.com/VitoNaychev/food-app/restaurant-svc/testutil/tabletests"
+	"github.com/VitoNaychev/food-app/validation"
 )
 
 type StubAddressStore struct {
@@ -64,15 +68,66 @@ func TestAddressEndpointAuthentication(t *testing.T) {
 		"update address authentication": handlers.NewUpdateAddressRequest(invalidJWT, models.Address{}),
 	}
 
-	for name, request := range cases {
-		t.Run(name, func(t *testing.T) {
-			response := httptest.NewRecorder()
+	tabletests.RunAuthenticationTests(t, server, cases)
+}
 
-			server.ServeHTTP(response, request)
-
-			testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-		})
+func TestAddressRequestValidation(t *testing.T) {
+	addressStore := &StubAddressStore{}
+	restaurantStore := &StubRestaurantStore{
+		restaurants: []models.Restaurant{testdata.DominosRestaurant},
 	}
+
+	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
+
+	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
+	cases := map[string]*http.Request{
+		"create address": tabletests.NewDummyRequest(http.MethodPost, "/restaurant/address/", dominosJWT),
+		"update address": tabletests.NewDummyRequest(http.MethodPut, "/restaurant/address/", dominosJWT),
+	}
+
+	tabletests.RunRequestValidationTests(t, server, cases)
+}
+
+func TestAddressResponseValidity(t *testing.T) {
+	addressStore := &StubAddressStore{
+		addresses: []models.Address{testdata.DominosAddress},
+	}
+	restaurantStore := &StubRestaurantStore{
+		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
+	}
+
+	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
+
+	shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
+	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosAddress.ID)
+	cases := []tabletests.ResponseValidationTestcase{
+		{
+			Name:    "get address",
+			Request: handlers.NewGetAddressRequest(dominosJWT),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
+				response, err := validation.ValidateBody[models.Address](r)
+				return response, err
+			},
+		},
+		{
+			Name:    "create address",
+			Request: handlers.NewCreateAddressRequest(shackJWT, testdata.ShackAddress),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
+				response, err := validation.ValidateBody[models.Address](r)
+				return response, err
+			},
+		},
+		{
+			Name:    "update address",
+			Request: handlers.NewUpdateAddressRequest(dominosJWT, testdata.DominosAddress),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
+				response, err := validation.ValidateBody[models.Address](r)
+				return response, err
+			},
+		},
+	}
+
+	tabletests.RunResponseValidationTests(t, server, cases)
 }
 
 func TestUpdateRestaurantAddress(t *testing.T) {
@@ -187,9 +242,9 @@ func TestGetRestaurantAddress(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		want := handlers.AddressToGetAddressResponse(td.ShackAddress)
+		want := td.ShackAddress
 
-		var got handlers.GetAddressResponse
+		var got models.Address
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
@@ -204,9 +259,9 @@ func TestGetRestaurantAddress(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		want := handlers.AddressToGetAddressResponse(td.DominosAddress)
+		want := td.DominosAddress
 
-		var got handlers.GetAddressResponse
+		var got models.Address
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)

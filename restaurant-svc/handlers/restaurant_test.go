@@ -13,6 +13,7 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
+	"github.com/VitoNaychev/food-app/restaurant-svc/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -69,34 +70,12 @@ func TestRestaurantRequestValidation(t *testing.T) {
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := map[string]*http.Request{
-		"create restaurant": NewDummyRequest(http.MethodPost, dominosJWT),
-		"update restaurant": NewDummyRequest(http.MethodPut, dominosJWT),
+		"create restaurant": tabletests.NewDummyRequest(http.MethodPost, "/restaurant/", dominosJWT),
+		"update restaurant": tabletests.NewDummyRequest(http.MethodPut, "/restaurant/", dominosJWT),
 	}
 
-	for name, request := range cases {
-		t.Run(name, func(t *testing.T) {
-			response := httptest.NewRecorder()
-
-			server.ServeHTTP(response, request)
-
-			testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
-		})
-	}
+	tabletests.RunRequestValidationTests(t, &server, cases)
 }
-
-func NewDummyRequest(method string, jwt string) *http.Request {
-	dummyRequest := DummyRequest{"validation test"}
-
-	body := bytes.NewBuffer([]byte{})
-	json.NewEncoder(body).Encode(dummyRequest)
-
-	request, _ := http.NewRequest(method, "/restaurant/", body)
-	request.Header.Add("Token", jwt)
-
-	return request
-}
-
-type GenericResponse interface{}
 
 func TestRestaurantResponseValidity(t *testing.T) {
 	store := &StubRestaurantStore{
@@ -109,50 +88,34 @@ func TestRestaurantResponseValidity(t *testing.T) {
 	}
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
-
-	cases := []struct {
-		Name               string
-		Request            *http.Request
-		ValidationFunction func(io.Reader) (GenericResponse, error)
-	}{
+	cases := []tabletests.ResponseValidationTestcase{
 		{
-			"get restaurant",
-			NewGetRestaurantRequest(dominosJWT),
-			func(r io.Reader) (GenericResponse, error) {
+			Name:    "get restaurant",
+			Request: NewGetRestaurantRequest(dominosJWT),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.RestaurantResponse](r)
 				return response, err
 			},
 		},
 		{
-			"create restaurant",
-			NewCreateRestaurantRequest(testdata.ShackRestaurant),
-			func(r io.Reader) (GenericResponse, error) {
+			Name:    "create restaurant",
+			Request: NewCreateRestaurantRequest(testdata.ShackRestaurant),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.CreateRestaurantResponse](r)
 				return response, err
 			},
 		},
 		{
-			"update restaurant",
-			NewUpdateRestaurantRequest(dominosJWT, testdata.DominosRestaurant),
-			func(r io.Reader) (GenericResponse, error) {
+			Name:    "update restaurant",
+			Request: NewUpdateRestaurantRequest(dominosJWT, testdata.DominosRestaurant),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.RestaurantResponse](r)
 				return response, err
 			},
 		},
 	}
 
-	for _, test := range cases {
-		t.Run(test.Name, func(t *testing.T) {
-			response := httptest.NewRecorder()
-
-			server.ServeHTTP(response, test.Request)
-
-			_, err := test.ValidationFunction(response.Body)
-			if err != nil {
-				t.Errorf("invalid response body, %v", err)
-			}
-		})
-	}
+	tabletests.RunResponseValidationTests(t, &server, cases)
 }
 
 func TestRestaurantEnpointAuthentication(t *testing.T) {
@@ -167,15 +130,7 @@ func TestRestaurantEnpointAuthentication(t *testing.T) {
 		"update restaurant": NewUpdateRestaurantRequest(invalidJWT, models.Restaurant{}),
 	}
 
-	for name, request := range cases {
-		t.Run(name, func(t *testing.T) {
-			response := httptest.NewRecorder()
-
-			server.ServeHTTP(response, request)
-
-			testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-		})
-	}
+	tabletests.RunAuthenticationTests(t, &server, cases)
 }
 
 func TestMissingRestaurantHandling(t *testing.T) {

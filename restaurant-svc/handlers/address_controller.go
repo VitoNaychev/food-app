@@ -93,8 +93,7 @@ func (c *AddressServer) getAddress(w http.ResponseWriter, r *http.Request) {
 		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 	}
 
-	getAddressResponse := AddressToGetAddressResponse(address)
-	json.NewEncoder(w).Encode(getAddressResponse)
+	json.NewEncoder(w).Encode(address)
 }
 
 func handleAddressStoreError(w http.ResponseWriter, err error, missingEntityError error) {

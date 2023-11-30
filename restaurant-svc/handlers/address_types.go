@@ -77,27 +77,3 @@ func CreateAddressRequestToAddress(createAddressRequest CreateAddressRequest, re
 
 	return address
 }
-
-type GetAddressResponse struct {
-	ID           int     `validate:"min=0"`
-	Lat          float64 `validate:"latitude,required"`
-	Lon          float64 `validate:"longitude,required"`
-	AddressLine1 string  `validate:"required,max=40"`
-	AddressLine2 string  `validate:"max=40"`
-	City         string  `validate:"required,max=40"`
-	Country      string  `validate:"required,max=20"`
-}
-
-func AddressToGetAddressResponse(address models.Address) GetAddressResponse {
-	getAddressResponse := GetAddressResponse{
-		ID:           address.ID,
-		Lat:          address.Lat,
-		Lon:          address.Lon,
-		AddressLine1: address.AddressLine1,
-		AddressLine2: address.AddressLine2,
-		City:         address.City,
-		Country:      address.Country,
-	}
-
-	return getAddressResponse
-}
