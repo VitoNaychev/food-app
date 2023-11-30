@@ -13,6 +13,7 @@ type HoursServer struct {
 	expiresAt       time.Duration
 	hoursStore      models.HoursStore
 	restaurantStore models.RestaurantStore
+	verifier        auth.Verifier
 }
 
 func NewHoursServer(secretKey []byte, expiresAt time.Duration,
@@ -23,6 +24,7 @@ func NewHoursServer(secretKey []byte, expiresAt time.Duration,
 		expiresAt:       expiresAt,
 		hoursStore:      hoursStore,
 		restaurantStore: restaurantStore,
+		verifier:        NewRestaurantVerifier(restaurantStore),
 	}
 
 	return hoursServer
@@ -31,8 +33,8 @@ func NewHoursServer(secretKey []byte, expiresAt time.Duration,
 func (h *HoursServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(h.getHours, h.secretKey)(w, r)
+		auth.AuthenticationMiddleware(h.getHours, h.verifier, h.secretKey)(w, r)
 	case http.MethodPost:
-		auth.AuthenticationMiddleware(h.createHours, h.secretKey)(w, r)
+		auth.AuthenticationMiddleware(h.createHours, h.verifier, h.secretKey)(w, r)
 	}
 }

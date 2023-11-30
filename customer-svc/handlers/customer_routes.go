@@ -12,6 +12,7 @@ type CustomerServer struct {
 	secretKey []byte
 	expiresAt time.Duration
 	store     models.CustomerStore
+	verifier  auth.Verifier
 	http.Handler
 }
 
@@ -21,6 +22,7 @@ func NewCustomerServer(secretKey []byte, expiresAt time.Duration, store models.C
 	c.secretKey = secretKey
 	c.expiresAt = expiresAt
 	c.store = store
+	c.verifier = NewCustomerVerifier(store)
 
 	router := http.NewServeMux()
 	router.HandleFunc("/customer/", c.CustomerHandler)
@@ -42,10 +44,10 @@ func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request)
 	case http.MethodPost:
 		c.createCustomer(w, r)
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(c.getCustomer, c.secretKey)(w, r)
+		auth.AuthenticationMiddleware(c.getCustomer, c.verifier, c.secretKey)(w, r)
 	case http.MethodDelete:
-		auth.AuthenticationMiddleware(c.deleteCustomer, c.secretKey)(w, r)
+		auth.AuthenticationMiddleware(c.deleteCustomer, c.verifier, c.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(c.updateCustomer, c.secretKey)(w, r)
+		auth.AuthenticationMiddleware(c.updateCustomer, c.verifier, c.secretKey)(w, r)
 	}
 }

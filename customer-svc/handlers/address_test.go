@@ -75,21 +75,6 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRequestField)
 	})
 
-	t.Run("returns Not Found on missing customer", func(t *testing.T) {
-		updatedAddress := td.PeterAddress2
-		updatedAddress.City = "Varna"
-
-		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-
-		request := handlers.NewUpdateAddressRequest(missingJWT, updatedAddress)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
-	})
-
 	t.Run("returns Not Found on missing address", func(t *testing.T) {
 		updatedAddress := td.PeterAddress2
 		updatedAddress.Id = 10
@@ -140,19 +125,6 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
-	})
-
-	t.Run("returns Not Found on missing user", func(t *testing.T) {
-		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-		deleteAddressRequest := handlers.DeleteAddressRequest{Id: td.PeterAddress1.Id}
-
-		request := handlers.NewDeleteAddressRequest(missingJWT, deleteAddressRequest)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 
 	t.Run("returns Not Found on missing address", func(t *testing.T) {
@@ -211,17 +183,6 @@ func TestSaveCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
-	})
-
-	t.Run("returns Not Found on missing user", func(t *testing.T) {
-		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-
-		request := handlers.NewCreateAddressRequest(missingJWT, td.AliceAddress)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
 	})
 
 	t.Run("saves Peter's new address", func(t *testing.T) {
@@ -293,16 +254,5 @@ func TestGetCustomerAddress(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
-	})
-
-	t.Run("returns Not Found on missing user", func(t *testing.T) {
-		aliceJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-		request := handlers.NewGetAddressRequest(aliceJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 }

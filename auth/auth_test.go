@@ -50,8 +50,26 @@ func TestJWTVerification(t *testing.T) {
 	})
 }
 
+type DummyVerifier struct {
+	shouldError bool
+	shouldFail  bool
+}
+
+func (d *DummyVerifier) DoesSubjectExist(id int) (bool, error) {
+	if d.shouldError {
+		return false, auth.ErrMissingSubject
+	}
+
+	if d.shouldFail {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func TestAuthenticationMiddleware(t *testing.T) {
-	dummyHandler := auth.AuthenticationMiddleware(DummyHandler, secretKey)
+	dummyVerifier := &DummyVerifier{false, false}
+	dummyHandler := auth.AuthenticationMiddleware(DummyHandler, dummyVerifier, secretKey)
 
 	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodPost, "/", nil)
@@ -115,6 +133,37 @@ func TestAuthenticationMiddleware(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
 		assertErrorResponse(t, response.Body, auth.ErrNonIntegerSubject)
+	})
+
+	t.Run("returns Internal Server Error on error from verifier", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/", nil)
+		response := httptest.NewRecorder()
+
+		want := 10
+		dummyJWT, _ := auth.GenerateJWT(secretKey, expiresAt, want)
+		request.Header.Add("Token", dummyJWT)
+
+		dummyVerifier.shouldError = true
+		dummyHandler(response, request)
+		dummyVerifier.shouldError = false
+
+		assertStatus(t, response.Code, http.StatusInternalServerError)
+	})
+
+	t.Run("returns Not Found when verifier returns false", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/", nil)
+		response := httptest.NewRecorder()
+
+		want := 10
+		dummyJWT, _ := auth.GenerateJWT(secretKey, expiresAt, want)
+		request.Header.Add("Token", dummyJWT)
+
+		dummyVerifier.shouldFail = true
+		dummyHandler(response, request)
+		dummyVerifier.shouldFail = false
+
+		assertStatus(t, response.Code, http.StatusNotFound)
+		assertErrorResponse(t, response.Body, auth.ErrSubjectNotFound)
 	})
 
 	t.Run("returns Token's Subject on valid JWT", func(t *testing.T) {

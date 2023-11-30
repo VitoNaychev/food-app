@@ -153,21 +153,6 @@ func TestUpdateRestaurantAddress(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 	})
-
-	t.Run("returns Not Found on missing restaurant", func(t *testing.T) {
-		updatedAddress := td.DominosAddress
-		updatedAddress.City = "Varna"
-
-		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-
-		request := handlers.NewUpdateAddressRequest(missingJWT, updatedAddress)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrRestaurantNotFound)
-	})
 }
 
 func TestCreateRestaurantAddress(t *testing.T) {
@@ -179,18 +164,6 @@ func TestCreateRestaurantAddress(t *testing.T) {
 	}
 
 	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
-
-	t.Run("returns Not Found on missing restaurant", func(t *testing.T) {
-		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-
-		request := handlers.NewUpdateAddressRequest(missingJWT, td.ShackAddress)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrRestaurantNotFound)
-	})
 
 	t.Run("creates Shack address and sets ADDRESS_SET bit in restaurant state", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
@@ -265,16 +238,5 @@ func TestGetRestaurantAddress(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
-	})
-
-	t.Run("returns Not Found on missing restaurant", func(t *testing.T) {
-		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-		request := handlers.NewGetAddressRequest(missingJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrRestaurantNotFound)
 	})
 }

@@ -193,18 +193,6 @@ func TestDeleteUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 		testutil.AssertDeletedCustomer(t, store, td.PeterCustomer)
 	})
-
-	t.Run("returns Not Found on missing customer", func(t *testing.T) {
-		missingCustomerJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-
-		request := handlers.NewDeleteCustomerRequest(missingCustomerJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
-	})
 }
 
 func TestLoginUser(t *testing.T) {
@@ -359,17 +347,6 @@ func TestGetUser(t *testing.T) {
 
 		want := handlers.CustomerToGetCustomerResponse(td.AliceCustomer)
 		testutil.AssertEqual(t, got, want)
-	})
-
-	t.Run("returns Not Found on missing customer", func(t *testing.T) {
-		noCustomerJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 3)
-		request := handlers.NewGetCustomerRequest(noCustomerJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
 	})
 }
 

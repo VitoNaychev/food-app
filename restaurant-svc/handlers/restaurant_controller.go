@@ -23,7 +23,7 @@ func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Reque
 
 	oldRestaurant, err := s.store.GetRestaurantByID(restaurantID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusNotFound, ErrRestaurantNotFound)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -46,11 +46,7 @@ func (s *RestaurantServer) getRestaurant(w http.ResponseWriter, r *http.Request)
 
 	restaurant, err := s.store.GetRestaurantByID(restaurantID)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
-			errorresponse.WriteJSONError(w, http.StatusNotFound, err)
-		} else {
-			errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
-		}
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 	}
 
 	getRestaurantResponse := RestaurantToRestaurantResponse(restaurant)

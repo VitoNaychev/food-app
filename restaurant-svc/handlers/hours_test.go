@@ -1,13 +1,13 @@
 package handlers_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/reqbuilder"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
@@ -94,23 +94,11 @@ func NewCreateHoursRequest(jwt string, hours []models.Hours) *http.Request {
 		createHoursRequestArr = append(createHoursRequestArr, handlers.HoursToCreateHoursRequest(hour))
 	}
 
-	request := NewRequestWithBody[[]handlers.CreateHoursRequest](
+	request := reqbuilder.NewRequestWithBody[[]handlers.CreateHoursRequest](
 		http.MethodPost, "/restaurant/hours/", createHoursRequestArr)
-	SetRequestJWT(request, jwt)
+	request.Header.Add("Token", jwt)
 
 	return request
-}
-
-func NewRequestWithBody[T any](method string, url string, object T) *http.Request {
-	body := bytes.NewBuffer([]byte{})
-	json.NewEncoder(body).Encode(object)
-
-	request, _ := http.NewRequest(method, url, body)
-	return request
-}
-
-func SetRequestJWT(request *http.Request, jwt string) {
-	request.Header.Set("Token", jwt)
 }
 
 func TestGetHours(t *testing.T) {
@@ -153,16 +141,6 @@ func TestGetHours(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, testdata.DominosHours)
-	})
-
-	t.Run("returns Not Found on missing restaurant", func(t *testing.T) {
-		missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 10)
-		request := NewGetHoursRequest(missingJWT)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
 	})
 }
 

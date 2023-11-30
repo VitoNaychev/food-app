@@ -22,12 +22,12 @@ func (c *AddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 
 	restaurant, err := c.restaurantStore.GetRestaurantByID(restaurantID)
 	if err != nil {
-		handleAddressStoreError(w, err, ErrRestaurantNotFound)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if restaurant.Status&models.ADDRESS_SET == 0 {
-		handleAddressStoreError(w, err, ErrMissingAddress)
+		errorresponse.WriteJSONError(w, http.StatusNotFound, ErrMissingAddress)
 		return
 	}
 
@@ -52,7 +52,7 @@ func (c *AddressServer) createAddress(w http.ResponseWriter, r *http.Request) {
 
 	restaurant, err := c.restaurantStore.GetRestaurantByID(restaurantID)
 	if err != nil {
-		handleAddressStoreError(w, err, ErrRestaurantNotFound)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -84,24 +84,18 @@ func (c *AddressServer) getAddress(w http.ResponseWriter, r *http.Request) {
 
 	_, err := c.restaurantStore.GetRestaurantByID(restaurantID)
 	if err != nil {
-		handleAddressStoreError(w, err, ErrRestaurantNotFound)
+		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	address, err := c.addressStore.GetAddressByID(restaurantID)
-	if err != nil {
+	if errors.Is(err, models.ErrNotFound) {
+		errorresponse.WriteJSONError(w, http.StatusNotFound, err)
+		return
+	} else if err != nil {
 		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	json.NewEncoder(w).Encode(address)
-}
-
-func handleAddressStoreError(w http.ResponseWriter, err error, missingEntityError error) {
-	if errors.Is(err, models.ErrNotFound) {
-		errorresponse.WriteJSONError(w, http.StatusNotFound, missingEntityError)
-		return
-	} else {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, missingEntityError)
-		return
-	}
 }

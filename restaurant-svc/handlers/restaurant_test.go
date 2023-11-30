@@ -122,29 +122,6 @@ func TestRestaurantEnpointAuthentication(t *testing.T) {
 	tabletests.RunAuthenticationTests(t, &server, cases)
 }
 
-func TestMissingRestaurantHandling(t *testing.T) {
-	store := &StubRestaurantStore{
-		restaurants: []models.Restaurant{},
-	}
-	server := handlers.NewRestaurantserver(testEnv.SecretKey, testEnv.ExpiresAt, store)
-
-	missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 1)
-
-	cases := map[string]*http.Request{
-		"get restaurant": NewGetRestaurantRequest(missingJWT),
-	}
-
-	for name, request := range cases {
-		t.Run(name, func(t *testing.T) {
-			response := httptest.NewRecorder()
-
-			server.ServeHTTP(response, request)
-
-			testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		})
-	}
-}
-
 func TestUpdateRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},

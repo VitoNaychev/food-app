@@ -11,6 +11,7 @@ type AddressServer struct {
 	addressStore    models.AddressStore
 	restaurantStore models.RestaurantStore
 	secretKey       []byte
+	verifier        auth.Verifier
 }
 
 func NewAddressServer(addressStore models.AddressStore, restaurantStore models.RestaurantStore, secretKey []byte) *AddressServer {
@@ -18,6 +19,7 @@ func NewAddressServer(addressStore models.AddressStore, restaurantStore models.R
 		addressStore:    addressStore,
 		restaurantStore: restaurantStore,
 		secretKey:       secretKey,
+		verifier:        NewRestaurantVerifier(restaurantStore),
 	}
 
 	return &customerAddressServer
@@ -26,10 +28,10 @@ func NewAddressServer(addressStore models.AddressStore, restaurantStore models.R
 func (c *AddressServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		auth.AuthenticationMiddleware(c.createAddress, c.secretKey)(w, r)
+		auth.AuthenticationMiddleware(c.createAddress, c.verifier, c.secretKey)(w, r)
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(c.getAddress, c.secretKey)(w, r)
+		auth.AuthenticationMiddleware(c.getAddress, c.verifier, c.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(c.updateAddress, c.secretKey)(w, r)
+		auth.AuthenticationMiddleware(c.updateAddress, c.verifier, c.secretKey)(w, r)
 	}
 }

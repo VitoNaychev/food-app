@@ -36,7 +36,13 @@ func VerifyJWT(jwtString string, secretKey []byte) (*jwt.Token, error) {
 	return token, nil
 }
 
-func AuthenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request), secretKey []byte) http.HandlerFunc {
+type Verifier interface {
+	DoesSubjectExist(id int) (bool, error)
+}
+
+func AuthenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *http.Request),
+	verifier Verifier,
+	secretKey []byte) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil {
 			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
@@ -52,6 +58,17 @@ func AuthenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *htt
 		id, err := getIDFromToken(token)
 		if err != nil {
 			errorresponse.WriteJSONError(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		exists, err := verifier.DoesSubjectExist(id)
+		if err != nil {
+			errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if !exists {
+			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrSubjectNotFound)
 			return
 		}
 
