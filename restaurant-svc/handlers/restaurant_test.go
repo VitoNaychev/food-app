@@ -62,11 +62,7 @@ func TestRestaurantRequestValidation(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
 	}
-	server := handlers.RestaurantServer{
-		Store:     store,
-		SecretKey: testEnv.SecretKey,
-		ExpiresAt: testEnv.ExpiresAt,
-	}
+	server := handlers.NewRestaurantserver(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := map[string]*http.Request{
@@ -81,11 +77,7 @@ func TestRestaurantResponseValidity(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
 	}
-	server := handlers.RestaurantServer{
-		Store:     store,
-		SecretKey: testEnv.SecretKey,
-		ExpiresAt: testEnv.ExpiresAt,
-	}
+	server := handlers.NewRestaurantserver(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := []tabletests.ResponseValidationTestcase{
@@ -119,10 +111,7 @@ func TestRestaurantResponseValidity(t *testing.T) {
 }
 
 func TestRestaurantEnpointAuthentication(t *testing.T) {
-	server := handlers.RestaurantServer{
-		SecretKey: testEnv.SecretKey,
-		ExpiresAt: testEnv.ExpiresAt,
-	}
+	server := handlers.NewRestaurantserver(testEnv.SecretKey, testEnv.ExpiresAt, nil)
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
@@ -137,11 +126,7 @@ func TestMissingRestaurantHandling(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{},
 	}
-	server := handlers.RestaurantServer{
-		SecretKey: testEnv.SecretKey,
-		ExpiresAt: testEnv.ExpiresAt,
-		Store:     store,
-	}
+	server := handlers.NewRestaurantserver(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	missingJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, 1)
 
@@ -164,11 +149,7 @@ func TestUpdateRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
 	}
-	server := handlers.RestaurantServer{
-		SecretKey: testEnv.SecretKey,
-		ExpiresAt: testEnv.ExpiresAt,
-		Store:     store,
-	}
+	server := handlers.NewRestaurantserver(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("updates restaurant on PUT", func(t *testing.T) {
 		updatedRestaurant := testdata.DominosRestaurant
@@ -202,11 +183,7 @@ func TestGetRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant},
 	}
-	server := handlers.RestaurantServer{
-		SecretKey: testEnv.SecretKey,
-		ExpiresAt: testEnv.ExpiresAt,
-		Store:     store,
-	}
+	server := handlers.NewRestaurantserver(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("resturns restaurant on GET", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
@@ -237,11 +214,7 @@ func TestCreateRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
 	}
-	server := handlers.RestaurantServer{
-		SecretKey: testEnv.SecretKey,
-		ExpiresAt: testEnv.ExpiresAt,
-		Store:     store,
-	}
+	server := handlers.NewRestaurantserver(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("creates restaurant on POST", func(t *testing.T) {
 		request := NewCreateRestaurantRequest(testdata.ShackRestaurant)

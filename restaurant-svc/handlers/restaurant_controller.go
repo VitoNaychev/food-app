@@ -5,30 +5,12 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/errorresponse"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
 )
-
-type RestaurantServer struct {
-	SecretKey []byte
-	ExpiresAt time.Duration
-	Store     models.RestaurantStore
-}
-
-func (s *RestaurantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		s.createRestaurant(w, r)
-	case http.MethodGet:
-		auth.AuthenticationMiddleware(s.getRestaurant, s.SecretKey)(w, r)
-	case http.MethodPut:
-		auth.AuthenticationMiddleware(s.updateRestaurant, s.SecretKey)(w, r)
-	}
-}
 
 func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
@@ -39,7 +21,7 @@ func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	oldRestaurant, err := s.Store.GetRestaurantByID(restaurantID)
+	oldRestaurant, err := s.store.GetRestaurantByID(restaurantID)
 	if err != nil {
 		errorresponse.WriteJSONError(w, http.StatusNotFound, ErrRestaurantNotFound)
 		return
@@ -49,7 +31,7 @@ func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Reque
 	newRestaurant.ID = restaurantID
 	newRestaurant.Status = oldRestaurant.Status
 
-	err = s.Store.UpdateRestaurant(&newRestaurant)
+	err = s.store.UpdateRestaurant(&newRestaurant)
 	if err != nil {
 		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
@@ -62,7 +44,7 @@ func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Reque
 func (s *RestaurantServer) getRestaurant(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
-	restaurant, err := s.Store.GetRestaurantByID(restaurantID)
+	restaurant, err := s.store.GetRestaurantByID(restaurantID)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			errorresponse.WriteJSONError(w, http.StatusNotFound, err)
@@ -85,18 +67,18 @@ func (s *RestaurantServer) createRestaurant(w http.ResponseWriter, r *http.Reque
 	restaurant := CreateRestaurantRequestToRestaurant(createRestaurantRequest)
 	restaurant.Status = models.CREATION_PENDING
 
-	if _, err = s.Store.GetRestaurantByEmail(restaurant.Email); !errors.Is(err, models.ErrNotFound) {
+	if _, err = s.store.GetRestaurantByEmail(restaurant.Email); !errors.Is(err, models.ErrNotFound) {
 		errorresponse.WriteJSONError(w, http.StatusBadRequest, ErrExistingRestaurant)
 		return
 	}
 
-	err = s.Store.CreateRestaurant(&restaurant)
+	err = s.store.CreateRestaurant(&restaurant)
 	if err != nil {
 		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	jwtToken, _ := auth.GenerateJWT(s.SecretKey, s.ExpiresAt, restaurant.ID)
+	jwtToken, _ := auth.GenerateJWT(s.secretKey, s.expiresAt, restaurant.ID)
 
 	response := CreateRestaurantResponse{
 		JWT:        JWTResponse{jwtToken},
