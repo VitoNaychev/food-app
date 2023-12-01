@@ -4,10 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"reflect"
 	"regexp"
 
 	"github.com/go-playground/validator/v10"
 )
+
+type ValidationObject interface {
+	interface{} | []interface{}
+}
 
 var validate *validator.Validate
 
@@ -32,34 +37,57 @@ func InitValidate() {
 	validate.RegisterValidation("workinghours", validateWorkingHours)
 }
 
-func ValidateBody[T any](body io.Reader) (T, error) {
-	var requestStruct T
+func ValidateBody[T ValidationObject](body io.Reader) (T, error) {
+	var requestObject T
 
 	if body == nil {
-		return requestStruct, ErrNoBody
+		return requestObject, ErrNoBody
 	}
 
 	var maxRequestSize int64 = 10000
 	content, err := io.ReadAll(io.LimitReader(body, maxRequestSize))
 	if string(content) == "" {
-		return requestStruct, ErrEmptyBody
+		return requestObject, ErrEmptyBody
 	}
 
 	if string(content) == "{}" {
-		return requestStruct, ErrEmptyJSON
+		return requestObject, ErrEmptyJSON
 	}
 
-	err = strictUnmarshal(content, &requestStruct)
+	err = strictUnmarshal(content, &requestObject)
 	if err != nil {
-		return requestStruct, ErrIncorrectRequestType
+		return requestObject, ErrIncorrectRequestType
 	}
 
-	err = validate.Struct(requestStruct)
+	switch reflect.TypeOf(requestObject).Kind() {
+	case reflect.Slice, reflect.Array:
+		requestArray := reflect.ValueOf(requestObject)
+		for i := 0; i < requestArray.Len(); i++ {
+			elem := requestArray.Index(i)
+			err := ValidateStruct(elem.Interface())
+			if err != nil {
+				return requestObject, NewErrInvalidArrayElement(err)
+			}
+		}
+	case reflect.Struct:
+		err = ValidateStruct(requestObject)
+		if err != nil {
+			return requestObject, err
+		}
+	default:
+		return requestObject, ErrUnsupportedType
+	}
+
+	return requestObject, nil
+}
+
+func ValidateStruct(requestStruct interface{}) error {
+	err := validate.Struct(requestStruct)
 	if err != nil {
-		return requestStruct, NewErrInvalidRequestField(err.Error())
+		return NewErrInvalidRequestField(err.Error())
 	}
 
-	return requestStruct, nil
+	return nil
 }
 
 func strictUnmarshal(data []byte, v interface{}) error {

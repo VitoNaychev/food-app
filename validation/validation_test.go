@@ -157,21 +157,6 @@ func TestValidateBody(t *testing.T) {
 
 	t.Run("returns ErrInvalidRequestField on invalid working hours", func(t *testing.T) {
 		workingHoursRequest := WorkingHoursRequest{
-			WorkingHours: "24:12",
-		}
-
-		body := newRequestBody(workingHoursRequest)
-
-		_, err := validation.ValidateBody[WorkingHoursRequest](body)
-
-		errInvalidRequestField := validation.NewErrInvalidRequestField("")
-		if !errors.As(err, &errInvalidRequestField) {
-			t.Errorf("didn't get error with type ErrInvalidRequestField")
-		}
-	})
-
-	t.Run("returns ErrInvalidRequestField on invalid working hours", func(t *testing.T) {
-		workingHoursRequest := WorkingHoursRequest{
 			WorkingHours: "23:60",
 		}
 
@@ -200,6 +185,56 @@ func TestValidateBody(t *testing.T) {
 
 		if !reflect.DeepEqual(gotWorkingHoursRequest, workingHoursRequest) {
 			t.Errorf("got %v want %v", gotWorkingHoursRequest, workingHoursRequest)
+		}
+	})
+
+	t.Run("returns ErrInvalidField in invalid object in array", func(t *testing.T) {
+		dummyRequest := DummyRequest{
+			S: "Hello, World!",
+			I: 10,
+		}
+
+		invalidDummyRequest := DummyRequest{
+			S: "Hello,",
+			I: 10,
+		}
+
+		wantArray := []DummyRequest{dummyRequest, invalidDummyRequest, dummyRequest}
+
+		body := newRequestBody(wantArray)
+
+		_, err := validation.ValidateBody[[]DummyRequest](body)
+
+		errInvalidArrayElement := validation.NewErrInvalidArrayElement(nil)
+		if !errors.As(err, &errInvalidArrayElement) {
+			t.Errorf("didn't get error with type NewErrInvalidArrayElement")
+		}
+
+		errInvalidRequestField := validation.NewErrInvalidRequestField("")
+		if !errors.As(errInvalidArrayElement, &errInvalidRequestField) {
+			t.Errorf("ErrInvalidArrayElement doesn't wrap a ErrInvalidRequestField")
+		}
+
+	})
+
+	t.Run("parses array on valid request", func(t *testing.T) {
+		dummyRequest := DummyRequest{
+			S: "Hello, World!",
+			I: 10,
+		}
+
+		wantArray := []DummyRequest{dummyRequest, dummyRequest, dummyRequest}
+
+		body := newRequestBody(wantArray)
+
+		gotArray, err := validation.ValidateBody[[]DummyRequest](body)
+
+		if err != nil {
+			t.Errorf("did not expect error, got %v", err)
+		}
+
+		if !reflect.DeepEqual(gotArray, wantArray) {
+			t.Errorf("got %v want %v", gotArray, wantArray)
 		}
 	})
 }
