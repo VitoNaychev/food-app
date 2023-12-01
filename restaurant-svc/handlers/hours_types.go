@@ -7,9 +7,9 @@ import (
 )
 
 type CreateHoursRequest struct {
-	Day     int
-	Opening string
-	Closing string
+	Day     int    `validate:"min=1,max=7"`
+	Opening string `validate:"required,workinghours"`
+	Closing string `validate:"required,workinghours"`
 }
 
 func HoursToCreateHoursRequest(hours models.Hours) CreateHoursRequest {

@@ -49,7 +49,11 @@ func TestHoursEndpointAuthentication(t *testing.T) {
 	tabletests.RunAuthenticationTests(t, &server, cases)
 }
 
-func TestCreateHours(t *testing.T) {
+func TestHoursResponseValidity(t *testing.T) {
+
+}
+
+func TestHoursRequestValidation(t *testing.T) {
 	hoursStore := &StubHoursStore{
 		hours:        []models.Hours{},
 		createdHours: []models.Hours{},
@@ -62,18 +66,81 @@ func TestCreateHours(t *testing.T) {
 		hoursStore,
 		restaurantStore)
 
-	t.Run("returns Bad Request if working hours already set", func(t *testing.T) {
+	shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
 
+	cases := map[string]*http.Request{
+		"create hours": tabletests.NewDummyRequest(http.MethodPost, "/restaurant/address", shackJWT),
+	}
+
+	tabletests.RunRequestValidationTests(t, &server, cases)
+}
+
+func TestCreateHours(t *testing.T) {
+	hoursStore := &StubHoursStore{
+		hours:        []models.Hours{},
+		createdHours: []models.Hours{},
+	}
+	restaurantStore := &StubRestaurantStore{
+		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
+	}
+	server := handlers.NewHoursServer(testEnv.SecretKey,
+		testEnv.ExpiresAt,
+		hoursStore,
+		restaurantStore)
+
+	t.Run("returns Bad Request if working hours already set", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
+		request := NewCreateHoursRequest(dominosJWT, testdata.DominosHours)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrHoursAlreadySet)
 	})
 
-	t.Run("returns Bad Request if the length of the working hours array is not 7", func(t *testing.T) {
+	t.Run("returns Bad Request if there is a missing day in request", func(t *testing.T) {
+		incompleteHours := testdata.ShackHours[1:6]
 
+		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
+		request := NewCreateHoursRequest(shackJWT, incompleteHours)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrIncompleteWeek)
+
+		restaurant := restaurantStore.updatedRestaurant
+		assertHoursSetBit(t, restaurant, models.CREATION_PENDING)
+	})
+
+	t.Run("returns Bad Request if there are duplicate days in the request", func(t *testing.T) {
+		duplicateHours := make([]models.Hours, len(testdata.ShackHours)+1)
+		copy(duplicateHours, testdata.ShackHours)
+		duplicateHours[7] = duplicateHours[3]
+
+		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
+		request := NewCreateHoursRequest(shackJWT, duplicateHours)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrDuplicateDays)
+
+		restaurant := restaurantStore.updatedRestaurant
+		assertHoursSetBit(t, restaurant, models.CREATION_PENDING)
 	})
 
 	t.Run("creates working hours for Shack and sets HOURS_SET bit", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
 		request := NewCreateHoursRequest(shackJWT, testdata.ShackHours)
 		response := httptest.NewRecorder()
+
+		// Previous failing tests may have tampered with
+		// createdHours, so reinit it to an empty array
+		hoursStore.createdHours = []models.Hours{}
 
 		server.ServeHTTP(response, request)
 
@@ -82,10 +149,21 @@ func TestCreateHours(t *testing.T) {
 		testutil.AssertEqual(t, hoursStore.createdHours, testdata.ShackHours)
 
 		restaurant := restaurantStore.updatedRestaurant
-		if restaurant.Status&models.HOURS_SET == 0 {
-			t.Errorf("didn't set HOUR_SET bit in restaurant state")
-		}
+		assertHoursSetBit(t, restaurant, models.HOURS_SET)
 	})
+}
+
+func assertHoursSetBit(t testing.TB, restaurant models.Restaurant, status models.Status) {
+	t.Helper()
+
+	if restaurant.Status&models.HOURS_SET != status {
+		switch status {
+		case models.HOURS_SET:
+			t.Errorf("didn't set HOUR_SET bit in restaurant state")
+		case models.CREATION_PENDING:
+			t.Errorf("set HOUR_SET bit in restaurant state, when shouldn't have")
+		}
+	}
 }
 
 func NewCreateHoursRequest(jwt string, hours []models.Hours) *http.Request {
