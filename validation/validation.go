@@ -20,10 +20,16 @@ func validatePhoneNumber(fl validator.FieldLevel) bool {
 	return matched
 }
 
+func validateWorkingHours(fl validator.FieldLevel) bool {
+	matched, _ := regexp.Match(`^(2[0-3]|[0-1]\d):[0-5]\d$`, []byte(fl.Field().String()))
+	return matched
+}
+
 func InitValidate() {
 	validate = validator.New(validator.WithRequiredStructEnabled())
 
 	validate.RegisterValidation("phonenumber", validatePhoneNumber)
+	validate.RegisterValidation("workinghours", validateWorkingHours)
 }
 
 func ValidateBody[T any](body io.Reader) (T, error) {

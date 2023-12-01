@@ -32,6 +32,10 @@ type PhoneNumberRequest struct {
 	PhoneNumber string `validate:"required,phonenumber"`
 }
 
+type WorkingHoursRequest struct {
+	WorkingHours string `validate:"required,workinghours"`
+}
+
 func TestValidateBody(t *testing.T) {
 	t.Run("returns ErrNoBody on no body", func(t *testing.T) {
 		_, err := validation.ValidateBody[DummyRequest](nil)
@@ -148,6 +152,54 @@ func TestValidateBody(t *testing.T) {
 
 		if !reflect.DeepEqual(gotPhoneNumberRequest, phoneNumberRequest) {
 			t.Errorf("got %v want %v", gotPhoneNumberRequest, phoneNumberRequest)
+		}
+	})
+
+	t.Run("returns ErrInvalidRequestField on invalid working hours", func(t *testing.T) {
+		workingHoursRequest := WorkingHoursRequest{
+			WorkingHours: "24:12",
+		}
+
+		body := newRequestBody(workingHoursRequest)
+
+		_, err := validation.ValidateBody[WorkingHoursRequest](body)
+
+		errInvalidRequestField := validation.NewErrInvalidRequestField("")
+		if !errors.As(err, &errInvalidRequestField) {
+			t.Errorf("didn't get error with type ErrInvalidRequestField")
+		}
+	})
+
+	t.Run("returns ErrInvalidRequestField on invalid working hours", func(t *testing.T) {
+		workingHoursRequest := WorkingHoursRequest{
+			WorkingHours: "23:60",
+		}
+
+		body := newRequestBody(workingHoursRequest)
+
+		_, err := validation.ValidateBody[WorkingHoursRequest](body)
+
+		errInvalidRequestField := validation.NewErrInvalidRequestField("")
+		if !errors.As(err, &errInvalidRequestField) {
+			t.Errorf("didn't get error with type ErrInvalidRequestField")
+		}
+	})
+
+	t.Run("parses working hours on valid request", func(t *testing.T) {
+		workingHoursRequest := WorkingHoursRequest{
+			WorkingHours: "23:59",
+		}
+
+		body := newRequestBody(workingHoursRequest)
+
+		gotWorkingHoursRequest, err := validation.ValidateBody[WorkingHoursRequest](body)
+
+		if err != nil {
+			t.Errorf("did not expect error, got %v", err)
+		}
+
+		if !reflect.DeepEqual(gotWorkingHoursRequest, workingHoursRequest) {
+			t.Errorf("got %v want %v", gotWorkingHoursRequest, workingHoursRequest)
 		}
 	})
 }
