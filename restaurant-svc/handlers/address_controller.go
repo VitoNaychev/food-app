@@ -27,7 +27,7 @@ func (c *AddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if restaurant.Status&models.ADDRESS_SET == 0 {
-		errorresponse.WriteJSONError(w, http.StatusNotFound, ErrMissingAddress)
+		errorresponse.WriteJSONError(w, http.StatusNotFound, ErrAddressNotSet)
 		return
 	}
 

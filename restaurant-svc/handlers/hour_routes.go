@@ -36,5 +36,7 @@ func (h *HoursServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		auth.AuthenticationMiddleware(h.getHours, h.verifier, h.secretKey)(w, r)
 	case http.MethodPost:
 		auth.AuthenticationMiddleware(h.createHours, h.verifier, h.secretKey)(w, r)
+	case http.MethodPut:
+		auth.AuthenticationMiddleware(h.updateHours, h.verifier, h.secretKey)(w, r)
 	}
 }

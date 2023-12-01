@@ -1,10 +1,12 @@
 package handlers_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/reqbuilder"
@@ -18,11 +20,18 @@ import (
 type StubHoursStore struct {
 	hours        []models.Hours
 	createdHours []models.Hours
+	updatedHours []models.Hours
 }
 
 func (s *StubHoursStore) CreateHours(hours *models.Hours) error {
 	hours.ID = len(s.createdHours) + 1
 	s.createdHours = append(s.createdHours, *hours)
+
+	return nil
+}
+
+func (s *StubHoursStore) UpdateHours(hours *models.Hours) error {
+	s.updatedHours = append(s.updatedHours, *hours)
 
 	return nil
 }
@@ -44,6 +53,7 @@ func TestHoursEndpointAuthentication(t *testing.T) {
 	cases := map[string]*http.Request{
 		"get hours":    NewGetHoursRequest(""),
 		"create hours": NewCreateHoursRequest("", nil),
+		"update hours": NewUpdateHoursRequest("", nil),
 	}
 
 	tabletests.RunAuthenticationTests(t, &server, cases)
@@ -70,9 +80,73 @@ func TestHoursRequestValidation(t *testing.T) {
 
 	cases := map[string]*http.Request{
 		"create hours": tabletests.NewDummyRequest(http.MethodPost, "/restaurant/address", shackJWT),
+		"update hours": tabletests.NewDummyRequest(http.MethodPut, "/restaurant/address", shackJWT),
 	}
 
 	tabletests.RunRequestValidationTests(t, &server, cases)
+}
+
+func TestUpdateHours(t *testing.T) {
+	hoursStore := &StubHoursStore{
+		hours:        testdata.DominosHours,
+		updatedHours: []models.Hours{},
+	}
+	restaurantStore := &StubRestaurantStore{
+		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
+	}
+	server := handlers.NewHoursServer(testEnv.SecretKey,
+		testEnv.ExpiresAt,
+		hoursStore,
+		restaurantStore)
+
+	t.Run("updates hours on PUT", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
+
+		updatedHours := make([]models.Hours, 2)
+		copy(updatedHours, testdata.DominosHours[:2])
+		updatedHours[0].Opening, _ = time.Parse("15:04", "13:00")
+		updatedHours[1].Opening, _ = time.Parse("15:04", "13:00")
+
+		request := NewUpdateHoursRequest(dominosJWT, updatedHours)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+		testutil.AssertEqual(t, hoursStore.updatedHours, updatedHours)
+	})
+
+	t.Run("returns Bad Request on update of a restaurant with HOURS_SET bit off", func(t *testing.T) {
+		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
+
+		updatedHours := make([]models.Hours, 2)
+		copy(updatedHours, testdata.ShackHours[:2])
+		updatedHours[0].Opening, _ = time.Parse("15:04", "13:00")
+		updatedHours[1].Opening, _ = time.Parse("15:04", "13:00")
+
+		request := NewUpdateHoursRequest(shackJWT, updatedHours)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrHoursNotSet)
+	})
+}
+
+func NewUpdateHoursRequest(jwt string, hours []models.Hours) *http.Request {
+	updateHoursRequestArr := []handlers.HoursRequest{}
+	for _, hour := range hours {
+		updateHoursRequestArr = append(updateHoursRequestArr, handlers.HoursToHoursRequest(hour))
+	}
+
+	body := bytes.NewBuffer([]byte{})
+	json.NewEncoder(body).Encode(updateHoursRequestArr)
+
+	request, _ := http.NewRequest(http.MethodPut, "/restaurant/hours/", body)
+	request.Header.Add("Token", jwt)
+
+	return request
 }
 
 func TestCreateHours(t *testing.T) {
@@ -167,12 +241,12 @@ func assertHoursSetBit(t testing.TB, restaurant models.Restaurant, status models
 }
 
 func NewCreateHoursRequest(jwt string, hours []models.Hours) *http.Request {
-	createHoursRequestArr := []handlers.CreateHoursRequest{}
+	createHoursRequestArr := []handlers.HoursRequest{}
 	for _, hour := range hours {
-		createHoursRequestArr = append(createHoursRequestArr, handlers.HoursToCreateHoursRequest(hour))
+		createHoursRequestArr = append(createHoursRequestArr, handlers.HoursToHoursRequest(hour))
 	}
 
-	request := reqbuilder.NewRequestWithBody[[]handlers.CreateHoursRequest](
+	request := reqbuilder.NewRequestWithBody[[]handlers.HoursRequest](
 		http.MethodPost, "/restaurant/hours/", createHoursRequestArr)
 	request.Header.Add("Token", jwt)
 
