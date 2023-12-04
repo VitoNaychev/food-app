@@ -186,7 +186,7 @@ func TestCreateHours(t *testing.T) {
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrIncompleteWeek)
 
 		restaurant := restaurantStore.updatedRestaurant
-		assertHoursSetBit(t, restaurant, models.CREATION_PENDING)
+		assertRestaurantStatus(t, restaurant, models.CREATED)
 	})
 
 	t.Run("returns Bad Request if there are duplicate days in the request", func(t *testing.T) {
@@ -204,7 +204,7 @@ func TestCreateHours(t *testing.T) {
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrDuplicateDays)
 
 		restaurant := restaurantStore.updatedRestaurant
-		assertHoursSetBit(t, restaurant, models.CREATION_PENDING)
+		assertRestaurantStatus(t, restaurant, models.CREATED)
 	})
 
 	t.Run("creates working hours for Shack and sets HOURS_SET bit", func(t *testing.T) {
@@ -223,18 +223,18 @@ func TestCreateHours(t *testing.T) {
 		testutil.AssertEqual(t, hoursStore.createdHours, testdata.ShackHours)
 
 		restaurant := restaurantStore.updatedRestaurant
-		assertHoursSetBit(t, restaurant, models.HOURS_SET)
+		assertRestaurantStatus(t, restaurant, models.HOURS_SET|models.CREATED)
 	})
 }
 
-func assertHoursSetBit(t testing.TB, restaurant models.Restaurant, status models.Status) {
+func assertRestaurantStatus(t testing.TB, restaurant models.Restaurant, status models.Status) {
 	t.Helper()
 
-	if restaurant.Status&models.HOURS_SET != status {
+	if restaurant.Status&status != status {
 		switch status {
-		case models.HOURS_SET:
+		case models.HOURS_SET | models.HOURS_SET:
 			t.Errorf("didn't set HOUR_SET bit in restaurant state")
-		case models.CREATION_PENDING:
+		case models.CREATED:
 			t.Errorf("set HOUR_SET bit in restaurant state, when shouldn't have")
 		}
 	}

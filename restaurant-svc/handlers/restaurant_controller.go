@@ -61,7 +61,7 @@ func (s *RestaurantServer) createRestaurant(w http.ResponseWriter, r *http.Reque
 	}
 
 	restaurant := CreateRestaurantRequestToRestaurant(createRestaurantRequest)
-	restaurant.Status = models.CREATION_PENDING
+	restaurant.Status = models.CREATED
 
 	if _, err = s.store.GetRestaurantByEmail(restaurant.Email); !errors.Is(err, models.ErrNotFound) {
 		errorresponse.WriteJSONError(w, http.StatusBadRequest, ErrExistingRestaurant)
