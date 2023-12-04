@@ -182,16 +182,6 @@ func (h *HoursServer) getHours(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(hoursResponse)
 }
 
-func HoursArrToHoursResponseArr(hoursArr []models.Hours) []HoursResponse {
-	hoursResponseArr := []HoursResponse{}
-	for _, hours := range hoursArr {
-		hoursResponse := HoursToHoursResponse(hours)
-		hoursResponseArr = append(hoursResponseArr, hoursResponse)
-	}
-
-	return hoursResponseArr
-}
-
 func handleBadRequest(w http.ResponseWriter, err error) {
 	errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
 }

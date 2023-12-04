@@ -320,10 +320,7 @@ func assertHoursResponseBody(t testing.TB, body io.Reader, hours []models.Hours)
 	got, err := validation.ValidateBody[[]handlers.HoursResponse](body)
 	testutil.AssertValidResponse(t, err)
 
-	want := []handlers.HoursResponse{}
-	for _, hours := range hours {
-		want = append(want, handlers.HoursToHoursResponse(hours))
-	}
+	want := handlers.HoursArrToHoursResponseArr(hours)
 
 	testutil.AssertEqual(t, got, want)
 }

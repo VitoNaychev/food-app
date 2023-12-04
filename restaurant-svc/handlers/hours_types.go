@@ -54,3 +54,13 @@ func HoursToHoursResponse(hours models.Hours) HoursResponse {
 
 	return hoursResponse
 }
+
+func HoursArrToHoursResponseArr(hoursArr []models.Hours) []HoursResponse {
+	hoursResponseArr := []HoursResponse{}
+	for _, hours := range hoursArr {
+		hoursResponse := HoursToHoursResponse(hours)
+		hoursResponseArr = append(hoursResponseArr, hoursResponse)
+	}
+
+	return hoursResponseArr
+}
