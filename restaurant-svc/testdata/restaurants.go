@@ -10,7 +10,7 @@ var (
 		Email:       "shack@gmail.com",
 		Password:    "samplepassword",
 		IBAN:        "DE89370400440532013000",
-		Status:      models.CREATION_PENDING,
+		Status:      models.CREATED,
 	}
 
 	DominosRestaurant = models.Restaurant{
