@@ -30,6 +30,11 @@ func (h *HoursServer) updateHours(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := checkForDuplicateDays(updateHoursRequestArr); err != nil {
+		handleBadRequest(w, err)
+		return
+	}
+
 	currentHoursArr, err := h.hoursStore.GetHoursByRestaurantID(restaurantID)
 	if err != nil {
 		handleInternalServerError(w, err)
@@ -132,6 +137,19 @@ func isRestaurantStatusBitSet(restaurant models.Restaurant, status models.Status
 	}
 
 	return false
+}
+
+func checkForDuplicateDays(hoursRequestArr []HoursRequest) error {
+	var weekBitMask byte
+	for _, hoursRequest := range hoursRequestArr {
+		dayBitMask := byte(1 << (hoursRequest.Day - 1))
+		if weekBitMask&dayBitMask != 0 {
+			return ErrDuplicateDays
+		}
+		weekBitMask |= dayBitMask
+	}
+
+	return nil
 }
 
 func checkForDuplicateOrMissingDays(hoursRequestArr []HoursRequest) error {

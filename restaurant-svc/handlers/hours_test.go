@@ -134,7 +134,20 @@ func TestUpdateHours(t *testing.T) {
 	})
 
 	t.Run("returns Bad Request on duplicate days", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 
+		updatedHours := make([]models.Hours, 2)
+		copy(updatedHours, testdata.DominosHours[:1])
+		updatedHours[0].Opening, _ = time.Parse("15:04", "13:00")
+		updatedHours[1] = updatedHours[0]
+
+		request := NewUpdateHoursRequest(dominosJWT, updatedHours)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrDuplicateDays)
 	})
 }
 
