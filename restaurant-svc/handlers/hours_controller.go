@@ -51,6 +51,9 @@ func (h *HoursServer) updateHours(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	updateHoursResponseArr := HoursArrToHoursResponseArr(updateHoursArr)
+	json.NewEncoder(w).Encode(updateHoursResponseArr)
 }
 
 func setUpdatedHoursKeys(updateHoursArr []models.Hours, currentHoursArr []models.Hours) {
@@ -103,12 +106,13 @@ func (h *HoursServer) createHours(w http.ResponseWriter, r *http.Request) {
 	var hoursArr []models.Hours
 	for _, createHoursRequest := range createHoursRequestArr {
 		hours := HoursRequestToHours(createHoursRequest, restaurantID)
-		hoursArr = append(hoursArr, hours)
 
 		err = h.hoursStore.CreateHours(&hours)
 		if err != nil {
 			handleInternalServerError(w, err)
 		}
+
+		hoursArr = append(hoursArr, hours)
 	}
 
 	restaurant.Status = restaurant.Status | models.HOURS_SET
@@ -117,6 +121,9 @@ func (h *HoursServer) createHours(w http.ResponseWriter, r *http.Request) {
 		handleInternalServerError(w, err)
 		return
 	}
+
+	createHoursResponseArr := HoursArrToHoursResponseArr(hoursArr)
+	json.NewEncoder(w).Encode(createHoursResponseArr)
 }
 
 func isRestaurantStatusBitSet(restaurant models.Restaurant, status models.Status) bool {
@@ -148,9 +155,23 @@ func checkForDuplicateOrMissingDays(hoursRequestArr []HoursRequest) error {
 func (h *HoursServer) getHours(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
-	hours, _ := h.hoursStore.GetHoursByRestaurantID(restaurantID)
+	hours, err := h.hoursStore.GetHoursByRestaurantID(restaurantID)
+	if err != nil {
+		handleInternalServerError(w, err)
+	}
 
-	json.NewEncoder(w).Encode(hours)
+	hoursResponse := HoursArrToHoursResponseArr(hours)
+	json.NewEncoder(w).Encode(hoursResponse)
+}
+
+func HoursArrToHoursResponseArr(hoursArr []models.Hours) []HoursResponse {
+	hoursResponseArr := []HoursResponse{}
+	for _, hours := range hoursArr {
+		hoursResponse := HoursToHoursResponse(hours)
+		hoursResponseArr = append(hoursResponseArr, hoursResponse)
+	}
+
+	return hoursResponseArr
 }
 
 func handleBadRequest(w http.ResponseWriter, err error) {

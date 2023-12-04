@@ -34,3 +34,23 @@ func HoursRequestToHours(createHoursRequest HoursRequest, restaurantID int) mode
 
 	return hours
 }
+
+type HoursResponse struct {
+	ID           int    `validate:"min=1"`
+	Day          int    `validate:"min=1,max=7"`
+	Opening      string `validate:"required,workinghours"`
+	Closing      string `validate:"required,workinghours"`
+	RestaurantID int    `validate:"min=1"`
+}
+
+func HoursToHoursResponse(hours models.Hours) HoursResponse {
+	hoursResponse := HoursResponse{
+		ID:           hours.ID,
+		Day:          hours.Day,
+		Opening:      hours.Opening.Format("15:04"),
+		Closing:      hours.Closing.Format("15:04"),
+		RestaurantID: hours.RestaurantID,
+	}
+
+	return hoursResponse
+}

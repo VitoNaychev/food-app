@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testutil/tabletests"
+	"github.com/VitoNaychev/food-app/validation"
 )
 
 type StubHoursStore struct {
@@ -57,10 +59,6 @@ func TestHoursEndpointAuthentication(t *testing.T) {
 	}
 
 	tabletests.RunAuthenticationTests(t, &server, cases)
-}
-
-func TestHoursResponseValidity(t *testing.T) {
-
 }
 
 func TestHoursRequestValidation(t *testing.T) {
@@ -114,6 +112,8 @@ func TestUpdateHours(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 		testutil.AssertEqual(t, hoursStore.updatedHours, updatedHours)
+
+		assertHoursResponseBody(t, response.Body, updatedHours)
 	})
 
 	t.Run("returns Bad Request on update of a restaurant with HOURS_SET bit off", func(t *testing.T) {
@@ -131,6 +131,10 @@ func TestUpdateHours(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrHoursNotSet)
+	})
+
+	t.Run("returns Bad Request on duplicate days", func(t *testing.T) {
+
 	})
 }
 
@@ -224,6 +228,8 @@ func TestCreateHours(t *testing.T) {
 
 		restaurant := restaurantStore.updatedRestaurant
 		assertRestaurantStatus(t, restaurant, models.HOURS_SET|models.CREATED)
+
+		assertHoursResponseBody(t, response.Body, testdata.ShackHours)
 	})
 }
 
@@ -274,10 +280,7 @@ func TestGetHours(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		var got []models.Hours
-		json.NewDecoder(response.Body).Decode(&got)
-
-		testutil.AssertEqual(t, got, testdata.ShackHours)
+		assertHoursResponseBody(t, response.Body, testdata.ShackHours)
 	})
 
 	t.Run("returns working hours for Dominos", func(t *testing.T) {
@@ -289,10 +292,7 @@ func TestGetHours(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		var got []models.Hours
-		json.NewDecoder(response.Body).Decode(&got)
-
-		testutil.AssertEqual(t, got, testdata.DominosHours)
+		assertHoursResponseBody(t, response.Body, testdata.DominosHours)
 	})
 }
 
@@ -301,4 +301,16 @@ func NewGetHoursRequest(jwt string) *http.Request {
 	request.Header.Add("Token", jwt)
 
 	return request
+}
+
+func assertHoursResponseBody(t testing.TB, body io.Reader, hours []models.Hours) {
+	got, err := validation.ValidateBody[[]handlers.HoursResponse](body)
+	testutil.AssertValidResponse(t, err)
+
+	want := []handlers.HoursResponse{}
+	for _, hours := range hours {
+		want = append(want, handlers.HoursToHoursResponse(hours))
+	}
+
+	testutil.AssertEqual(t, got, want)
 }

@@ -48,7 +48,7 @@ type ErrInvalidArrayElement struct {
 }
 
 func (e *ErrInvalidArrayElement) Error() string {
-	return e.msg
+	return e.msg + e.err.Error()
 }
 
 func (e *ErrInvalidArrayElement) Unwrap() error {
