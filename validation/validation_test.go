@@ -36,6 +36,10 @@ type WorkingHoursRequest struct {
 	WorkingHours string `validate:"required,workinghours"`
 }
 
+type PriceRequest struct {
+	Price string `validate:"required,price"`
+}
+
 func TestValidateBody(t *testing.T) {
 	t.Run("returns ErrNoBody on no body", func(t *testing.T) {
 		_, err := validation.ValidateBody[DummyRequest](nil)
@@ -185,6 +189,39 @@ func TestValidateBody(t *testing.T) {
 
 		if !reflect.DeepEqual(gotWorkingHoursRequest, workingHoursRequest) {
 			t.Errorf("got %v want %v", gotWorkingHoursRequest, workingHoursRequest)
+		}
+	})
+
+	t.Run("returns ErrInvalidRequestField on invalid price", func(t *testing.T) {
+		priceRequest := PriceRequest{
+			Price: "00.99",
+		}
+
+		body := newRequestBody(priceRequest)
+
+		_, err := validation.ValidateBody[PriceRequest](body)
+
+		errInvalidRequestField := validation.NewErrInvalidRequestField("")
+		if !errors.As(err, &errInvalidRequestField) {
+			t.Errorf("didn't get error with type ErrInvalidRequestField")
+		}
+	})
+
+	t.Run("parses working hours on valid request", func(t *testing.T) {
+		priceRequest := PriceRequest{
+			Price: "0.99",
+		}
+
+		body := newRequestBody(priceRequest)
+
+		gotPriceRequest, err := validation.ValidateBody[PriceRequest](body)
+
+		if err != nil {
+			t.Errorf("did not expect error, got %v", err)
+		}
+
+		if !reflect.DeepEqual(gotPriceRequest, priceRequest) {
+			t.Errorf("got %v want %v", gotPriceRequest, priceRequest)
 		}
 	})
 
