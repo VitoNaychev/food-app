@@ -2,22 +2,43 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
+	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
-func (m *MenuServer) getMenu(w http.ResponseWriter, r *http.Request) {
+func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
-	menu, err := m.menuStore.GetMenuByRestaurantID(restaurantID)
+	updateMenuItemRequest, err := validation.ValidateBody[UpdateMenuItemRequest](r.Body)
 	if err != nil {
-		handleInternalServerError(w, err)
+		handleBadRequest(w, err)
 		return
 	}
 
-	json.NewEncoder(w).Encode(menu)
+	currentMenuItem, err := m.menuStore.GetMenuItemByID(updateMenuItemRequest.ID)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrMissingMenuItem)
+		} else {
+			handleInternalServerError(w, err)
+		}
+		return
+	}
+
+	if currentMenuItem.RestaurantID != restaurantID {
+		errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrUnathorizedAction)
+		return
+	}
+
+	updateMenuItem := UpdateMenuItemRequestToMenuItem(updateMenuItemRequest, restaurantID)
+	err = m.menuStore.UpdateMenuItem(&updateMenuItem)
+
+	json.NewEncoder(w).Encode(updateMenuItem)
 }
 
 func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
@@ -38,4 +59,16 @@ func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(menuItem)
+}
+
+func (m *MenuServer) getMenu(w http.ResponseWriter, r *http.Request) {
+	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
+
+	menu, err := m.menuStore.GetMenuByRestaurantID(restaurantID)
+	if err != nil {
+		handleInternalServerError(w, err)
+		return
+	}
+
+	json.NewEncoder(w).Encode(menu)
 }

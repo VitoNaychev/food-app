@@ -29,5 +29,7 @@ func (m *MenuServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		auth.AuthenticationMiddleware(m.getMenu, m.verifier, m.secretKey)(w, r)
 	case http.MethodPost:
 		auth.AuthenticationMiddleware(m.createMenuItem, m.verifier, m.secretKey)(w, r)
+	case http.MethodPut:
+		auth.AuthenticationMiddleware(m.updateMenuItem, m.verifier, m.secretKey)(w, r)
 	}
 }

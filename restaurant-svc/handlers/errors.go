@@ -13,4 +13,6 @@ var (
 	ErrAddressAlreadySet  = errors.New("address for restaurant is already set")
 	ErrIncompleteWeek     = errors.New("working hours are not set for every day of the week")
 	ErrDuplicateDays      = errors.New("trying to set duplicate working hours for the same day")
+	ErrMissingMenuItem    = errors.New("menu item doesn't exist")
+	ErrUnathorizedAction  = errors.New("restaurant does not have permission to perform this action")
 )

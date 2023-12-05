@@ -26,4 +26,12 @@ var (
 			RestaurantID: 2,
 		},
 	}
+
+	ForeignMenuItem = models.MenuItem{
+		ID:           4,
+		Name:         "Rizzoto",
+		Price:        11.99,
+		Details:      "Just a basic risoto",
+		RestaurantID: 5,
+	}
 )

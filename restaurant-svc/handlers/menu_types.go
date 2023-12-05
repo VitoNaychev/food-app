@@ -13,6 +13,29 @@ type UpdateMenuItemRequest struct {
 	Details string  `validate:"max=1000"`
 }
 
+func MenuItemToUpdateMenuItemRequest(item models.MenuItem) UpdateMenuItemRequest {
+	request := UpdateMenuItemRequest{
+		ID:      item.ID,
+		Name:    item.Name,
+		Price:   item.Price,
+		Details: item.Details,
+	}
+
+	return request
+}
+
+func UpdateMenuItemRequestToMenuItem(request UpdateMenuItemRequest, restaurantID int) models.MenuItem {
+	menuItem := models.MenuItem{
+		ID:           request.ID,
+		Name:         request.Name,
+		Price:        request.Price,
+		Details:      request.Details,
+		RestaurantID: restaurantID,
+	}
+
+	return menuItem
+}
+
 type CreateMenuItemRequest struct {
 	Name    string  `validate:"min=2,max=20"`
 	Price   float32 `validate:"required,max=1000"`

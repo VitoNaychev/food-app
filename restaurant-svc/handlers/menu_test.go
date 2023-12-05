@@ -18,6 +18,28 @@ import (
 type StubMenuStore struct {
 	menus           []models.MenuItem
 	createdMenuItem models.MenuItem
+	updatedMenuItem models.MenuItem
+}
+
+func (m *StubMenuStore) UpdateMenuItem(menuItem *models.MenuItem) error {
+	m.updatedMenuItem = *menuItem
+	return nil
+}
+
+func (m *StubMenuStore) CreateMenuItem(menuItem *models.MenuItem) error {
+	menuItem.ID = 1
+	m.createdMenuItem = *menuItem
+	return nil
+}
+
+func (m *StubMenuStore) GetMenuItemByID(id int) (models.MenuItem, error) {
+	for _, item := range m.menus {
+		if item.ID == id {
+			return item, nil
+		}
+	}
+
+	return models.MenuItem{}, models.ErrNotFound
 }
 
 func (m *StubMenuStore) GetMenuByRestaurantID(restaurantID int) ([]models.MenuItem, error) {
@@ -32,12 +54,6 @@ func (m *StubMenuStore) GetMenuByRestaurantID(restaurantID int) ([]models.MenuIt
 	return menu, nil
 }
 
-func (m *StubMenuStore) CreateMenuItem(menuItem *models.MenuItem) error {
-	menuItem.ID = 1
-	m.createdMenuItem = *menuItem
-	return nil
-}
-
 func TestMenuEndpointAuthentication(t *testing.T) {
 	restaurantStore := &StubRestaurantStore{}
 
@@ -49,6 +65,7 @@ func TestMenuEndpointAuthentication(t *testing.T) {
 	cases := map[string]*http.Request{
 		"get menu":         NewGetMenuRequest(invalidJWT),
 		"create menu item": NewCreateMenuItemRequest(invalidJWT, models.MenuItem{}),
+		"udpate menu item": NewUpdateMenuItemRequest(invalidJWT, models.MenuItem{}),
 	}
 
 	tabletests.RunAuthenticationTests(t, &server, cases)
@@ -66,6 +83,7 @@ func TestMenuRequestValdiation(t *testing.T) {
 
 	cases := map[string]*http.Request{
 		"create menu item": NewCreateMenuItemRequest(dominosJWT, models.MenuItem{}),
+		"udpate menu item": NewUpdateMenuItemRequest(dominosJWT, models.MenuItem{}),
 	}
 
 	tabletests.RunRequestValidationTests(t, &server, cases)
@@ -73,6 +91,14 @@ func TestMenuRequestValdiation(t *testing.T) {
 
 func TestDeleteMenuItem(t *testing.T) {
 	t.Run("deletes menu item on DELETE", func(t *testing.T) {
+
+	})
+
+	t.Run("returns Not Found on attempt to delete menu item that doesn't exist", func(t *testing.T) {
+
+	})
+
+	t.Run("returns Unauthorized on attempt to delete menu item of another restaurant", func(t *testing.T) {
 
 	})
 }
@@ -86,14 +112,75 @@ func NewDeleteMenuItemRequest(jwt string, body handlers.DeleteMenuItemRequest) *
 }
 
 func TestUpdateMenuItem(t *testing.T) {
-	t.Run("updates menu item on PUT", func(t *testing.T) {
+	restaurantStore := &StubRestaurantStore{
+		restaurants: []models.Restaurant{td.DominosRestaurant},
+	}
 
+	menuStore := &StubMenuStore{
+		menus: append(td.DominosMenu, td.ForeignMenuItem),
+	}
+
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore)
+
+	t.Run("updates menu item on PUT", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		menuItem := td.DominosMenu[0]
+		menuItem.Name = "Master Burger Pizza"
+
+		request := NewUpdateMenuItemRequest(dominosJWT, menuItem)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		testutil.AssertEqual(t, menuStore.updatedMenuItem, menuItem)
+
+		got, err := validation.ValidateBody[models.MenuItem](response.Body)
+		testutil.AssertValidResponse(t, err)
+
+		testutil.AssertEqual(t, got, menuItem)
+	})
+
+	t.Run("returns Not Found on attempt to update menu item that doesn't exist", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		menuItem := models.MenuItem{
+			ID:           10,
+			Name:         "New Pizza",
+			Price:        19.99,
+			Details:      "The new-newcomer bruh",
+			RestaurantID: td.DominosRestaurant.ID,
+		}
+
+		request := NewUpdateMenuItemRequest(dominosJWT, menuItem)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingMenuItem)
+	})
+
+	t.Run("returns Unauthorized on attempt to update menu item of another restaurant", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		menuItem := td.ForeignMenuItem
+		menuItem.Name = "Master Burger Pizza"
+
+		request := NewUpdateMenuItemRequest(dominosJWT, menuItem)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrUnathorizedAction)
 	})
 }
 
-func NewUpdateMenuItemRequest(jwt string, body handlers.UpdateMenuItemRequest) *http.Request {
+func NewUpdateMenuItemRequest(jwt string, menuItem models.MenuItem) *http.Request {
+	updateMenuItemRequest := handlers.MenuItemToUpdateMenuItemRequest(menuItem)
+
 	request := reqbuilder.NewRequestWithBody[handlers.UpdateMenuItemRequest](
-		http.MethodPut, "/restaurant/menu/", body)
+		http.MethodPut, "/restaurant/menu/", updateMenuItemRequest)
 	request.Header.Add("Token", jwt)
 
 	return request
