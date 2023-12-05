@@ -31,5 +31,7 @@ func (m *MenuServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		auth.AuthenticationMiddleware(m.createMenuItem, m.verifier, m.secretKey)(w, r)
 	case http.MethodPut:
 		auth.AuthenticationMiddleware(m.updateMenuItem, m.verifier, m.secretKey)(w, r)
+	case http.MethodDelete:
+		auth.AuthenticationMiddleware(m.deleteMenuItem, m.verifier, m.secretKey)(w, r)
 	}
 }

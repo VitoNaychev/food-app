@@ -11,6 +11,33 @@ import (
 	"github.com/VitoNaychev/food-app/validation"
 )
 
+func (m *MenuServer) deleteMenuItem(w http.ResponseWriter, r *http.Request) {
+	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
+
+	deleteMenuItemRequest, err := validation.ValidateBody[DeleteMenuItemRequest](r.Body)
+	if err != nil {
+		handleBadRequest(w, err)
+		return
+	}
+
+	currentMenuItem, err := m.menuStore.GetMenuItemByID(deleteMenuItemRequest.ID)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			handleNotFoundError(w, ErrMissingMenuItem)
+		} else {
+			handleInternalServerError(w, err)
+		}
+		return
+	}
+
+	if currentMenuItem.RestaurantID != restaurantID {
+		handleUnauthorizedError(w, ErrUnathorizedAction)
+		return
+	}
+
+	m.menuStore.DeleteMenuItem(deleteMenuItemRequest.ID)
+}
+
 func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
@@ -23,7 +50,7 @@ func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 	currentMenuItem, err := m.menuStore.GetMenuItemByID(updateMenuItemRequest.ID)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
-			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrMissingMenuItem)
+			handleNotFoundError(w, ErrMissingMenuItem)
 		} else {
 			handleInternalServerError(w, err)
 		}
@@ -31,7 +58,7 @@ func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if currentMenuItem.RestaurantID != restaurantID {
-		errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrUnathorizedAction)
+		handleUnauthorizedError(w, ErrUnathorizedAction)
 		return
 	}
 
@@ -71,4 +98,13 @@ func (m *MenuServer) getMenu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(menu)
+}
+
+func handleUnauthorizedError(w http.ResponseWriter, err error) {
+	errorresponse.WriteJSONError(w, http.StatusUnauthorized, err)
+}
+
+func handleNotFoundError(w http.ResponseWriter, err error) {
+	errorresponse.WriteJSONError(w, http.StatusNotFound, err)
+
 }

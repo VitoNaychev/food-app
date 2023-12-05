@@ -16,9 +16,15 @@ import (
 )
 
 type StubMenuStore struct {
-	menus           []models.MenuItem
-	createdMenuItem models.MenuItem
-	updatedMenuItem models.MenuItem
+	menus            []models.MenuItem
+	createdMenuItem  models.MenuItem
+	updatedMenuItem  models.MenuItem
+	deleteMenuItemID int
+}
+
+func (m *StubMenuStore) DeleteMenuItem(id int) error {
+	m.deleteMenuItemID = id
+	return nil
 }
 
 func (m *StubMenuStore) UpdateMenuItem(menuItem *models.MenuItem) error {
@@ -66,6 +72,7 @@ func TestMenuEndpointAuthentication(t *testing.T) {
 		"get menu":         NewGetMenuRequest(invalidJWT),
 		"create menu item": NewCreateMenuItemRequest(invalidJWT, models.MenuItem{}),
 		"udpate menu item": NewUpdateMenuItemRequest(invalidJWT, models.MenuItem{}),
+		"delete menu item": NewDeleteMenuItemRequest(invalidJWT, handlers.DeleteMenuItemRequest{}),
 	}
 
 	tabletests.RunAuthenticationTests(t, &server, cases)
@@ -84,22 +91,60 @@ func TestMenuRequestValdiation(t *testing.T) {
 	cases := map[string]*http.Request{
 		"create menu item": NewCreateMenuItemRequest(dominosJWT, models.MenuItem{}),
 		"udpate menu item": NewUpdateMenuItemRequest(dominosJWT, models.MenuItem{}),
+		"delete menu item": NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{}),
 	}
 
 	tabletests.RunRequestValidationTests(t, &server, cases)
 }
 
 func TestDeleteMenuItem(t *testing.T) {
-	t.Run("deletes menu item on DELETE", func(t *testing.T) {
+	restaurantStore := &StubRestaurantStore{
+		restaurants: []models.Restaurant{td.DominosRestaurant},
+	}
 
+	menuStore := &StubMenuStore{
+		menus: append(td.DominosMenu, td.ForeignMenuItem),
+	}
+
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore)
+
+	t.Run("deletes menu item on DELETE", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		deleteMenuItemID := td.DominosMenu[1].ID
+
+		request := NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+		testutil.AssertEqual(t, menuStore.deleteMenuItemID, deleteMenuItemID)
 	})
 
 	t.Run("returns Not Found on attempt to delete menu item that doesn't exist", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		deleteMenuItemID := 10
 
+		request := NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrMissingMenuItem)
 	})
 
 	t.Run("returns Unauthorized on attempt to delete menu item of another restaurant", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		deleteMenuItemID := td.ForeignMenuItem.ID
 
+		request := NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrUnathorizedAction)
 	})
 }
 
