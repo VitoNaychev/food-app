@@ -50,7 +50,7 @@ func (s *StubHoursStore) GetHoursByRestaurantID(restaurantID int) ([]models.Hour
 }
 
 func TestHoursEndpointAuthentication(t *testing.T) {
-	server := handlers.NewHoursServer(testEnv.SecretKey, testEnv.ExpiresAt, nil, nil)
+	server := handlers.NewHoursServer(testEnv.SecretKey, nil, nil)
 
 	cases := map[string]*http.Request{
 		"get hours":    NewGetHoursRequest(""),
@@ -70,7 +70,6 @@ func TestHoursRequestValidation(t *testing.T) {
 		restaurants: []models.Restaurant{testdata.ShackRestaurant},
 	}
 	server := handlers.NewHoursServer(testEnv.SecretKey,
-		testEnv.ExpiresAt,
 		hoursStore,
 		restaurantStore)
 
@@ -93,7 +92,6 @@ func TestUpdateHours(t *testing.T) {
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
 	}
 	server := handlers.NewHoursServer(testEnv.SecretKey,
-		testEnv.ExpiresAt,
 		hoursStore,
 		restaurantStore)
 
@@ -175,7 +173,6 @@ func TestCreateHours(t *testing.T) {
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
 	}
 	server := handlers.NewHoursServer(testEnv.SecretKey,
-		testEnv.ExpiresAt,
 		hoursStore,
 		restaurantStore)
 
@@ -280,7 +277,6 @@ func TestGetHours(t *testing.T) {
 		restaurants: []models.Restaurant{testdata.DominosRestaurant, testdata.ShackRestaurant},
 	}
 	server := handlers.NewHoursServer(testEnv.SecretKey,
-		testEnv.ExpiresAt,
 		hoursStore,
 		restaurantStore)
 
