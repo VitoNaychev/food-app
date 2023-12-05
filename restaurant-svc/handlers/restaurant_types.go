@@ -3,11 +3,11 @@ package handlers
 import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 
 type UpdateRestaurantRequest struct {
-	Name        string
-	PhoneNumber string
-	Email       string
-	Password    string
-	IBAN        string
+	Name        string `validate:"required"`
+	PhoneNumber string `validate:"required,phonenumber"`
+	Email       string `validate:"required,email"`
+	Password    string `valdiate:"required"`
+	IBAN        string `validate:"required"`
 }
 
 func UpdateRestaurantRequestToRestaurant(request UpdateRestaurantRequest, id int, status models.Status) models.Restaurant {
@@ -66,11 +66,11 @@ func RestaurantToRestaurantResponse(restaurant models.Restaurant) RestaurantResp
 }
 
 type CreateRestaurantRequest struct {
-	Name        string
-	PhoneNumber string
-	Email       string
-	Password    string
-	IBAN        string
+	Name        string `validate:"required"`
+	PhoneNumber string `validate:"required,phonenumber"`
+	Email       string `validate:"required,email"`
+	Password    string `valdiate:"required"`
+	IBAN        string `validate:"required"`
 }
 
 func RestaurantToCreateRestaurantRequest(restaurant models.Restaurant) CreateRestaurantRequest {

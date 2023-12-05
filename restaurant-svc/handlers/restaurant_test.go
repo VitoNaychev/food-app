@@ -66,8 +66,8 @@ func TestRestaurantRequestValidation(t *testing.T) {
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := map[string]*http.Request{
-		"create restaurant": tabletests.NewDummyRequest(http.MethodPost, "/restaurant/", dominosJWT),
-		"update restaurant": tabletests.NewDummyRequest(http.MethodPut, "/restaurant/", dominosJWT),
+		"create restaurant": NewCreateRestaurantRequest(models.Restaurant{}),
+		"update restaurant": NewUpdateRestaurantRequest(dominosJWT, models.Restaurant{}),
 	}
 
 	tabletests.RunRequestValidationTests(t, &server, cases)
