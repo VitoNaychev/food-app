@@ -35,7 +35,10 @@ func (m *MenuServer) deleteMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m.menuStore.DeleteMenuItem(deleteMenuItemRequest.ID)
+	err = m.menuStore.DeleteMenuItem(deleteMenuItemRequest.ID)
+	if err != nil {
+		handleInternalServerError(w, err)
+	}
 }
 
 func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
