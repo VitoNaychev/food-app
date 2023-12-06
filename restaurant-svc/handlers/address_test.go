@@ -152,6 +152,8 @@ func TestUpdateRestaurantAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		testutil.AssertEqual(t, addressStore.updatedAddress, updatedAddress)
 	})
 }
 

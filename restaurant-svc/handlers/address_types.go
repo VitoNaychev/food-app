@@ -24,8 +24,9 @@ func AddressToUpdateAddressRequest(address models.Address) UpdateAddressRequest 
 	return updateAddressRequest
 }
 
-func UpdateAddressRequestToAddress(UpdateAddressRequest UpdateAddressRequest, restauarntID int) models.Address {
+func UpdateAddressRequestToAddress(UpdateAddressRequest UpdateAddressRequest, id int, restauarntID int) models.Address {
 	address := models.Address{
+		ID:           id,
 		RestaurantID: restauarntID,
 		Lat:          UpdateAddressRequest.Lat,
 		Lon:          UpdateAddressRequest.Lon,

@@ -31,7 +31,12 @@ func (c *AddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	address := UpdateAddressRequestToAddress(updateAddressRequest, restaurantID)
+	currentAddress, err := c.addressStore.GetAddressByRestaurantID(restaurantID)
+	if err != nil {
+		handleInternalServerError(w, err)
+	}
+
+	address := UpdateAddressRequestToAddress(updateAddressRequest, currentAddress.ID, restaurantID)
 
 	err = c.addressStore.UpdateAddress(&address)
 	if err != nil {

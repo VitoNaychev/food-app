@@ -13,8 +13,6 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
 )
 
-func DummyHander(w http.ResponseWriter, r *http.Request) {}
-
 func TestCustomerServerOperations(t *testing.T) {
 	connStr := SetupDatabaseContainer(t)
 
@@ -26,9 +24,9 @@ func TestCustomerServerOperations(t *testing.T) {
 	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore)
 
 	server := handlers.NewRouterServer(restaurantServer,
-		http.HandlerFunc(DummyHander),
-		http.HandlerFunc(DummyHander),
-		http.HandlerFunc(DummyHander))
+		http.HandlerFunc(DummyHandler),
+		http.HandlerFunc(DummyHandler),
+		http.HandlerFunc(DummyHandler))
 
 	var shackJWT string
 
