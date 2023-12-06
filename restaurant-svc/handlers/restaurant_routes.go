@@ -15,7 +15,7 @@ type RestaurantServer struct {
 	verifier  auth.Verifier
 }
 
-func NewRestaurantserver(secretKey []byte, expiresAt time.Duration, store models.RestaurantStore) RestaurantServer {
+func NewRestaurantServer(secretKey []byte, expiresAt time.Duration, store models.RestaurantStore) RestaurantServer {
 	restaurantServer := RestaurantServer{
 		secretKey: secretKey,
 		expiresAt: expiresAt,
