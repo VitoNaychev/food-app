@@ -4,8 +4,8 @@ DROP TYPE IF EXISTS status;
 
 CREATE TABLE addresses (
   id                  serial               PRIMARY KEY,
-  lat                 numeric(15, 12)       NOT NULL,
-  lon                 numeric(15, 12)       NOT NULL,
+  lat                 numeric(20, 17)       NOT NULL,
+  lon                 numeric(20, 17)       NOT NULL,
   address_line1       varchar(100)         NOT NULL,
   address_line2       varchar(100)                 ,
   city                varchar(40)          NOT NULL,

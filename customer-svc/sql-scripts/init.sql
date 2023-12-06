@@ -13,8 +13,8 @@ CREATE TABLE customers (
 CREATE TABLE addresses (
   id                  serial               PRIMARY KEY,
   customer_id         int                  REFERENCES customers(id),
-  lat                 numeric(10, 7)       NOT NULL,
-  lon                 numeric(10, 7)       NOT NULL,
+  lat                 numeric(20, 17)       NOT NULL,
+  lon                 numeric(20, 17)       NOT NULL,
   address_line1       varchar(100)         NOT NULL,
   address_line2       varchar(100)                 ,
   city                varchar(40)          NOT NULL,
