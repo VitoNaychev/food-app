@@ -15,7 +15,7 @@ type RestaurantServer struct {
 	verifier  auth.Verifier
 }
 
-func NewRestaurantServer(secretKey []byte, expiresAt time.Duration, store models.RestaurantStore) RestaurantServer {
+func NewRestaurantServer(secretKey []byte, expiresAt time.Duration, store models.RestaurantStore) *RestaurantServer {
 	restaurantServer := RestaurantServer{
 		secretKey: secretKey,
 		expiresAt: expiresAt,
@@ -23,7 +23,7 @@ func NewRestaurantServer(secretKey []byte, expiresAt time.Duration, store models
 		verifier:  NewRestaurantVerifier(store),
 	}
 
-	return restaurantServer
+	return &restaurantServer
 }
 
 func (s *RestaurantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -34,5 +34,7 @@ func (s *RestaurantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		auth.AuthenticationMiddleware(s.getRestaurant, s.verifier, s.secretKey)(w, r)
 	case http.MethodPut:
 		auth.AuthenticationMiddleware(s.updateRestaurant, s.verifier, s.secretKey)(w, r)
+	case http.MethodDelete:
+		auth.AuthenticationMiddleware(s.deleteRestaurant, s.verifier, s.secretKey)(w, r)
 	}
 }

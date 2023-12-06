@@ -12,6 +12,15 @@ import (
 	"github.com/VitoNaychev/food-app/validation"
 )
 
+func (s *RestaurantServer) deleteRestaurant(w http.ResponseWriter, r *http.Request) {
+	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
+
+	err := s.store.DeleteRestaurant(restaurantID)
+	if err != nil {
+		handleInternalServerError(w, err)
+	}
+}
+
 func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
@@ -61,13 +70,12 @@ func (s *RestaurantServer) createRestaurant(w http.ResponseWriter, r *http.Reque
 	}
 
 	restaurant := CreateRestaurantRequestToRestaurant(createRestaurantRequest)
-	restaurant.Status = models.CREATED
-
 	if _, err = s.store.GetRestaurantByEmail(restaurant.Email); !errors.Is(err, models.ErrNotFound) {
 		errorresponse.WriteJSONError(w, http.StatusBadRequest, ErrExistingRestaurant)
 		return
 	}
 
+	restaurant.Status = models.CREATED
 	err = s.store.CreateRestaurant(&restaurant)
 	if err != nil {
 		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)

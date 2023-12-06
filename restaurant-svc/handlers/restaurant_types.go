@@ -3,9 +3,9 @@ package handlers
 import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 
 type UpdateRestaurantRequest struct {
-	Name        string `validate:"required"`
-	PhoneNumber string `validate:"required,phonenumber"`
-	Email       string `validate:"required,email"`
+	Name        string `validate:"required,max=30"`
+	PhoneNumber string `validate:"required,phonenumber,max=16"`
+	Email       string `validate:"required,email,max=30"`
 	Password    string `valdiate:"required"`
 	IBAN        string `validate:"required"`
 }
@@ -66,9 +66,9 @@ func RestaurantToRestaurantResponse(restaurant models.Restaurant) RestaurantResp
 }
 
 type CreateRestaurantRequest struct {
-	Name        string `validate:"required"`
-	PhoneNumber string `validate:"required,phonenumber"`
-	Email       string `validate:"required,email"`
+	Name        string `validate:"required,max=30"`
+	PhoneNumber string `validate:"required,phonenumber,max=16"`
+	Email       string `validate:"required,email,max=30"`
 	Password    string `valdiate:"required"`
 	IBAN        string `validate:"required"`
 }

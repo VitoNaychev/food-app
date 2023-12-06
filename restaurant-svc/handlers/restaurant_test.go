@@ -1,8 +1,6 @@
 package handlers_test
 
 import (
-	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,9 +16,15 @@ import (
 )
 
 type StubRestaurantStore struct {
-	updatedRestaurant models.Restaurant
-	CreatedRestaurant models.Restaurant
-	restaurants       []models.Restaurant
+	updatedRestaurant   models.Restaurant
+	createdRestaurant   models.Restaurant
+	deletedRestaurantID int
+	restaurants         []models.Restaurant
+}
+
+func (s *StubRestaurantStore) DeleteRestaurant(id int) error {
+	s.deletedRestaurantID = id
+	return nil
 }
 
 func (s *StubRestaurantStore) UpdateRestaurant(restaurant *models.Restaurant) error {
@@ -30,7 +34,7 @@ func (s *StubRestaurantStore) UpdateRestaurant(restaurant *models.Restaurant) er
 
 func (s *StubRestaurantStore) CreateRestaurant(restaurant *models.Restaurant) error {
 	restaurant.ID = 1
-	s.CreatedRestaurant = *restaurant
+	s.createdRestaurant = *restaurant
 	return nil
 }
 
@@ -66,11 +70,11 @@ func TestRestaurantRequestValidation(t *testing.T) {
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := map[string]*http.Request{
-		"create restaurant": NewCreateRestaurantRequest(models.Restaurant{}),
-		"update restaurant": NewUpdateRestaurantRequest(dominosJWT, models.Restaurant{}),
+		"create restaurant": handlers.NewCreateRestaurantRequest(models.Restaurant{}),
+		"update restaurant": handlers.NewUpdateRestaurantRequest(dominosJWT, models.Restaurant{}),
 	}
 
-	tabletests.RunRequestValidationTests(t, &server, cases)
+	tabletests.RunRequestValidationTests(t, server, cases)
 }
 
 func TestRestaurantResponseValidity(t *testing.T) {
@@ -83,7 +87,7 @@ func TestRestaurantResponseValidity(t *testing.T) {
 	cases := []tabletests.ResponseValidationTestcase{
 		{
 			Name:    "get restaurant",
-			Request: NewGetRestaurantRequest(dominosJWT),
+			Request: handlers.NewGetRestaurantRequest(dominosJWT),
 			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.RestaurantResponse](r)
 				return response, err
@@ -91,7 +95,7 @@ func TestRestaurantResponseValidity(t *testing.T) {
 		},
 		{
 			Name:    "create restaurant",
-			Request: NewCreateRestaurantRequest(testdata.ShackRestaurant),
+			Request: handlers.NewCreateRestaurantRequest(testdata.ShackRestaurant),
 			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.CreateRestaurantResponse](r)
 				return response, err
@@ -99,7 +103,7 @@ func TestRestaurantResponseValidity(t *testing.T) {
 		},
 		{
 			Name:    "update restaurant",
-			Request: NewUpdateRestaurantRequest(dominosJWT, testdata.DominosRestaurant),
+			Request: handlers.NewUpdateRestaurantRequest(dominosJWT, testdata.DominosRestaurant),
 			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.RestaurantResponse](r)
 				return response, err
@@ -107,7 +111,7 @@ func TestRestaurantResponseValidity(t *testing.T) {
 		},
 	}
 
-	tabletests.RunResponseValidationTests(t, &server, cases)
+	tabletests.RunResponseValidationTests(t, server, cases)
 }
 
 func TestRestaurantEnpointAuthentication(t *testing.T) {
@@ -115,11 +119,32 @@ func TestRestaurantEnpointAuthentication(t *testing.T) {
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
-		"get restaurant":    NewGetRestaurantRequest(invalidJWT),
-		"update restaurant": NewUpdateRestaurantRequest(invalidJWT, models.Restaurant{}),
+		"get restaurant":    handlers.NewGetRestaurantRequest(invalidJWT),
+		"update restaurant": handlers.NewUpdateRestaurantRequest(invalidJWT, models.Restaurant{}),
+		"delete restaurant": handlers.NewDeleteRestaruantRequest(invalidJWT),
 	}
 
-	tabletests.RunAuthenticationTests(t, &server, cases)
+	tabletests.RunAuthenticationTests(t, server, cases)
+}
+
+func TestDeleteRestaurant(t *testing.T) {
+	store := &StubRestaurantStore{
+		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
+	}
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+
+	t.Run("deletes restaurant on DELETE", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
+
+		request := handlers.NewDeleteRestaruantRequest(dominosJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		testutil.AssertEqual(t, store.deletedRestaurantID, testdata.DominosRestaurant.ID)
+	})
 }
 
 func TestUpdateRestaurant(t *testing.T) {
@@ -134,7 +159,7 @@ func TestUpdateRestaurant(t *testing.T) {
 
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 
-		request := NewUpdateRestaurantRequest(dominosJWT, updatedRestaurant)
+		request := handlers.NewUpdateRestaurantRequest(dominosJWT, updatedRestaurant)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -145,17 +170,6 @@ func TestUpdateRestaurant(t *testing.T) {
 	})
 }
 
-func NewUpdateRestaurantRequest(jwt string, restaurant models.Restaurant) *http.Request {
-	updateRestaurantRequest := handlers.RestaurantToUpdateRestaurantRequest(restaurant)
-	body := bytes.NewBuffer([]byte{})
-	json.NewEncoder(body).Encode(updateRestaurantRequest)
-
-	request, _ := http.NewRequest(http.MethodPut, "/restaurant/", body)
-	request.Header.Add("Token", jwt)
-
-	return request
-}
-
 func TestGetRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant},
@@ -164,7 +178,7 @@ func TestGetRestaurant(t *testing.T) {
 
 	t.Run("resturns restaurant on GET", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
-		request := NewGetRestaurantRequest(shackJWT)
+		request := handlers.NewGetRestaurantRequest(shackJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -180,13 +194,6 @@ func TestGetRestaurant(t *testing.T) {
 	})
 }
 
-func NewGetRestaurantRequest(jwt string) *http.Request {
-	request, _ := http.NewRequest(http.MethodGet, "/restaurant/", nil)
-	request.Header.Add("Token", jwt)
-
-	return request
-}
-
 func TestCreateRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
@@ -194,18 +201,18 @@ func TestCreateRestaurant(t *testing.T) {
 	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("creates restaurant on POST", func(t *testing.T) {
-		request := NewCreateRestaurantRequest(testdata.ShackRestaurant)
+		request := handlers.NewCreateRestaurantRequest(testdata.ShackRestaurant)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		testutil.AssertEqual(t, store.CreatedRestaurant, testdata.ShackRestaurant)
+		testutil.AssertEqual(t, store.createdRestaurant, testdata.ShackRestaurant)
 	})
 
 	t.Run("returns JWT on POST", func(t *testing.T) {
-		request := NewCreateRestaurantRequest(testdata.ShackRestaurant)
+		request := handlers.NewCreateRestaurantRequest(testdata.ShackRestaurant)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -218,7 +225,7 @@ func TestCreateRestaurant(t *testing.T) {
 	})
 
 	t.Run("returns the created restaurant on POST", func(t *testing.T) {
-		request := NewCreateRestaurantRequest(testdata.ShackRestaurant)
+		request := handlers.NewCreateRestaurantRequest(testdata.ShackRestaurant)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -232,7 +239,7 @@ func TestCreateRestaurant(t *testing.T) {
 	})
 
 	t.Run("returns Bad Request on restaurant with same email", func(t *testing.T) {
-		request := NewCreateRestaurantRequest(testdata.DominosRestaurant)
+		request := handlers.NewCreateRestaurantRequest(testdata.DominosRestaurant)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -240,13 +247,4 @@ func TestCreateRestaurant(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrExistingRestaurant)
 	})
-}
-
-func NewCreateRestaurantRequest(restaurant models.Restaurant) *http.Request {
-	createRestaurantRequest := handlers.RestaurantToCreateRestaurantRequest(restaurant)
-	body := bytes.NewBuffer([]byte{})
-	json.NewEncoder(body).Encode(createRestaurantRequest)
-
-	request, _ := http.NewRequest(http.MethodPost, "/restaurant/", body)
-	return request
 }
