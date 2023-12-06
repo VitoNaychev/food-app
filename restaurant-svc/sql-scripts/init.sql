@@ -7,9 +7,9 @@ DROP TABLE IF EXISTS addresses;
 
 CREATE TABLE restaurants (
   id                  serial               PRIMARY KEY,
-  name                varchar(10)          NOT NULL,
-  phone_number        varchar(10)          UNIQUE NOT NULL,
-  email               varchar(20)          UNIQUE NOT NULL,
+  name                varchar(30)          NOT NULL,
+  phone_number        varchar(16)          UNIQUE NOT NULL,
+  email               varchar(30)          UNIQUE NOT NULL,
   password            varchar(72)          NOT NULL,
   IBAN                varchar(34)          UNIQUE NOT NULL,
   status              int                  NOT NULL
