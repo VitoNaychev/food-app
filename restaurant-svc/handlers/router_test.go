@@ -13,6 +13,8 @@ import (
 
 var restaurantHandlerMessage = "Hello from restaurant handler"
 var addressHandlerMessage = "Hello from address handler"
+var hoursHandlerMessage = "Hello from hours handler"
+var menuHandlerMessage = "Hello from menu handler"
 
 func fakeRestaurantHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
@@ -22,14 +24,26 @@ func fakeRestaurantHandler(w http.ResponseWriter, r *http.Request) {
 func fakeAddressHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 	w.Write([]byte(addressHandlerMessage))
+}
 
+func fakeHoursHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte(hoursHandlerMessage))
+}
+
+func fakeMenuHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusAccepted)
+	w.Write([]byte(menuHandlerMessage))
 }
 
 func TestRouterServer(t *testing.T) {
 	fakeRestaurantHandler := http.HandlerFunc(fakeRestaurantHandler)
 	fakeAddressServer := http.HandlerFunc(fakeAddressHandler)
+	fakeHoursHandler := http.HandlerFunc(fakeHoursHandler)
+	fakeMenuHandler := http.HandlerFunc(fakeMenuHandler)
 
-	routerServer := handlers.NewRouterServer(fakeRestaurantHandler, fakeAddressServer)
+	routerServer := handlers.NewRouterServer(
+		fakeRestaurantHandler, fakeAddressServer, fakeHoursHandler, fakeMenuHandler)
 
 	t.Run("routes requests to the restaurant server", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodPost, "/restaurant/", nil)
@@ -54,6 +68,34 @@ func TestRouterServer(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
 		want := addressHandlerMessage
+		got := getMessageFromBody(response.Body)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("routes requests to the hours server", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/restaurant/hours/", nil)
+		response := httptest.NewRecorder()
+
+		routerServer.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
+
+		want := hoursHandlerMessage
+		got := getMessageFromBody(response.Body)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("routes requests to the menu server", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/restaurant/menu/", nil)
+		response := httptest.NewRecorder()
+
+		routerServer.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
+
+		want := menuHandlerMessage
 		got := getMessageFromBody(response.Body)
 
 		testutil.AssertEqual(t, got, want)
