@@ -8,17 +8,17 @@ import (
 )
 
 type AddressServer struct {
+	secretKey       []byte
 	addressStore    models.AddressStore
 	restaurantStore models.RestaurantStore
-	secretKey       []byte
 	verifier        auth.Verifier
 }
 
-func NewAddressServer(addressStore models.AddressStore, restaurantStore models.RestaurantStore, secretKey []byte) *AddressServer {
+func NewAddressServer(secretKey []byte, addressStore models.AddressStore, restaurantStore models.RestaurantStore) *AddressServer {
 	customerAddressServer := AddressServer{
+		secretKey:       secretKey,
 		addressStore:    addressStore,
 		restaurantStore: restaurantStore,
-		secretKey:       secretKey,
 		verifier:        NewRestaurantVerifier(restaurantStore),
 	}
 

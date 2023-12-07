@@ -59,7 +59,7 @@ func TestAddressEndpointAuthentication(t *testing.T) {
 	addressStore := &StubAddressStore{}
 	restaurantStore := &StubRestaurantStore{}
 
-	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
+	server := handlers.NewAddressServer(testEnv.SecretKey, addressStore, restaurantStore)
 
 	invalidJWT := "thisIsAnInvalidJWT"
 	cases := map[string]*http.Request{
@@ -77,7 +77,7 @@ func TestAddressRequestValidation(t *testing.T) {
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
 	}
 
-	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
+	server := handlers.NewAddressServer(testEnv.SecretKey, addressStore, restaurantStore)
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := map[string]*http.Request{
@@ -96,7 +96,7 @@ func TestAddressResponseValidity(t *testing.T) {
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
 	}
 
-	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
+	server := handlers.NewAddressServer(testEnv.SecretKey, addressStore, restaurantStore)
 
 	shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosAddress.ID)
@@ -138,7 +138,7 @@ func TestUpdateRestaurantAddress(t *testing.T) {
 		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
 	}
 
-	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
+	server := handlers.NewAddressServer(testEnv.SecretKey, addressStore, restaurantStore)
 
 	t.Run("updates address on valid body and credentials", func(t *testing.T) {
 		updatedAddress := td.DominosAddress
@@ -165,7 +165,7 @@ func TestCreateRestaurantAddress(t *testing.T) {
 		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
 	}
 
-	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
+	server := handlers.NewAddressServer(testEnv.SecretKey, addressStore, restaurantStore)
 
 	t.Run("creates Shack address and sets ADDRESS_SET bit in restaurant state", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
@@ -206,7 +206,7 @@ func TestGetRestaurantAddress(t *testing.T) {
 		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
 	}
 
-	server := handlers.NewAddressServer(addressStore, restaurantStore, testEnv.SecretKey)
+	server := handlers.NewAddressServer(testEnv.SecretKey, addressStore, restaurantStore)
 
 	t.Run("returns Chicken Shack's address", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)

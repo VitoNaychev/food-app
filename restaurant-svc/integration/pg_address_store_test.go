@@ -28,7 +28,7 @@ func TestAddressServerOperations(t *testing.T) {
 	}
 
 	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore)
-	addressServer := handlers.NewAddressServer(&addressStore, &restaurantStore, env.SecretKey)
+	addressServer := handlers.NewAddressServer(env.SecretKey, &addressStore, &restaurantStore)
 
 	server := handlers.NewRouterServer(restaurantServer, addressServer, DummyHandler, DummyHandler)
 
