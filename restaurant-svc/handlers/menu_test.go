@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/food-app/auth"
-	"github.com/VitoNaychev/food-app/reqbuilder"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
@@ -69,10 +68,10 @@ func TestMenuEndpointAuthentication(t *testing.T) {
 	invalidJWT := "invalidJWT"
 
 	cases := map[string]*http.Request{
-		"get menu":         NewGetMenuRequest(invalidJWT),
-		"create menu item": NewCreateMenuItemRequest(invalidJWT, models.MenuItem{}),
-		"udpate menu item": NewUpdateMenuItemRequest(invalidJWT, models.MenuItem{}),
-		"delete menu item": NewDeleteMenuItemRequest(invalidJWT, handlers.DeleteMenuItemRequest{}),
+		"get menu":         handlers.NewGetMenuRequest(invalidJWT),
+		"create menu item": handlers.NewCreateMenuItemRequest(invalidJWT, models.MenuItem{}),
+		"udpate menu item": handlers.NewUpdateMenuItemRequest(invalidJWT, models.MenuItem{}),
+		"delete menu item": handlers.NewDeleteMenuItemRequest(invalidJWT, handlers.DeleteMenuItemRequest{}),
 	}
 
 	tabletests.RunAuthenticationTests(t, &server, cases)
@@ -89,9 +88,9 @@ func TestMenuRequestValdiation(t *testing.T) {
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
 
 	cases := map[string]*http.Request{
-		"create menu item": NewCreateMenuItemRequest(dominosJWT, models.MenuItem{}),
-		"udpate menu item": NewUpdateMenuItemRequest(dominosJWT, models.MenuItem{}),
-		"delete menu item": NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{}),
+		"create menu item": handlers.NewCreateMenuItemRequest(dominosJWT, models.MenuItem{}),
+		"udpate menu item": handlers.NewUpdateMenuItemRequest(dominosJWT, models.MenuItem{}),
+		"delete menu item": handlers.NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{}),
 	}
 
 	tabletests.RunRequestValidationTests(t, &server, cases)
@@ -112,7 +111,7 @@ func TestDeleteMenuItem(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
 		deleteMenuItemID := td.DominosMenu[1].ID
 
-		request := NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
+		request := handlers.NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -125,7 +124,7 @@ func TestDeleteMenuItem(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
 		deleteMenuItemID := 10
 
-		request := NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
+		request := handlers.NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -138,7 +137,7 @@ func TestDeleteMenuItem(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
 		deleteMenuItemID := td.ForeignMenuItem.ID
 
-		request := NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
+		request := handlers.NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -149,7 +148,7 @@ func TestDeleteMenuItem(t *testing.T) {
 
 	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
-		request := NewDeleteMenuItemRequest(shackJWT, handlers.DeleteMenuItemRequest{ID: 1})
+		request := handlers.NewDeleteMenuItemRequest(shackJWT, handlers.DeleteMenuItemRequest{ID: 1})
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -157,14 +156,6 @@ func TestDeleteMenuItem(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRestaurant)
 	})
-}
-
-func NewDeleteMenuItemRequest(jwt string, body handlers.DeleteMenuItemRequest) *http.Request {
-	request := reqbuilder.NewRequestWithBody[handlers.DeleteMenuItemRequest](
-		http.MethodDelete, "/restaurant/menu/", body)
-	request.Header.Add("Token", jwt)
-
-	return request
 }
 
 func TestUpdateMenuItem(t *testing.T) {
@@ -183,7 +174,7 @@ func TestUpdateMenuItem(t *testing.T) {
 		menuItem := td.DominosMenu[0]
 		menuItem.Name = "Master Burger Pizza"
 
-		request := NewUpdateMenuItemRequest(dominosJWT, menuItem)
+		request := handlers.NewUpdateMenuItemRequest(dominosJWT, menuItem)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -208,7 +199,7 @@ func TestUpdateMenuItem(t *testing.T) {
 			RestaurantID: td.DominosRestaurant.ID,
 		}
 
-		request := NewUpdateMenuItemRequest(dominosJWT, menuItem)
+		request := handlers.NewUpdateMenuItemRequest(dominosJWT, menuItem)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -222,7 +213,7 @@ func TestUpdateMenuItem(t *testing.T) {
 		menuItem := td.ForeignMenuItem
 		menuItem.Name = "Master Burger Pizza"
 
-		request := NewUpdateMenuItemRequest(dominosJWT, menuItem)
+		request := handlers.NewUpdateMenuItemRequest(dominosJWT, menuItem)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -233,7 +224,7 @@ func TestUpdateMenuItem(t *testing.T) {
 
 	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
-		request := NewUpdateMenuItemRequest(shackJWT, models.MenuItem{})
+		request := handlers.NewUpdateMenuItemRequest(shackJWT, models.MenuItem{})
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -241,16 +232,6 @@ func TestUpdateMenuItem(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRestaurant)
 	})
-}
-
-func NewUpdateMenuItemRequest(jwt string, menuItem models.MenuItem) *http.Request {
-	updateMenuItemRequest := handlers.MenuItemToUpdateMenuItemRequest(menuItem)
-
-	request := reqbuilder.NewRequestWithBody[handlers.UpdateMenuItemRequest](
-		http.MethodPut, "/restaurant/menu/", updateMenuItemRequest)
-	request.Header.Add("Token", jwt)
-
-	return request
 }
 
 func TestCreateMenuItem(t *testing.T) {
@@ -272,7 +253,7 @@ func TestCreateMenuItem(t *testing.T) {
 			Details: "The new-newcomer bruh",
 		}
 
-		request := NewCreateMenuItemRequest(dominosJWT, menuItem)
+		request := handlers.NewCreateMenuItemRequest(dominosJWT, menuItem)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -298,7 +279,7 @@ func TestCreateMenuItem(t *testing.T) {
 			Price:   8.00,
 			Details: "on another level",
 		}
-		request := NewCreateMenuItemRequest(shackJWT, menuItem)
+		request := handlers.NewCreateMenuItemRequest(shackJWT, menuItem)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -306,16 +287,6 @@ func TestCreateMenuItem(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRestaurant)
 	})
-}
-
-func NewCreateMenuItemRequest(jwt string, menuItem models.MenuItem) *http.Request {
-	createMenuItemRequest := handlers.MenuItemToCreateMenuItemRequest(menuItem)
-
-	request := reqbuilder.NewRequestWithBody[handlers.CreateMenuItemRequest](
-		http.MethodPost, "/restaurant/menu/", createMenuItemRequest)
-	request.Header.Add("Token", jwt)
-
-	return request
 }
 
 func TestGetMenu(t *testing.T) {
@@ -331,7 +302,7 @@ func TestGetMenu(t *testing.T) {
 
 	t.Run("gets menu on GET", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
-		request := NewGetMenuRequest(dominosJWT)
+		request := handlers.NewGetMenuRequest(dominosJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -346,7 +317,7 @@ func TestGetMenu(t *testing.T) {
 
 	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
-		request := NewGetMenuRequest(shackJWT)
+		request := handlers.NewGetMenuRequest(shackJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -354,11 +325,4 @@ func TestGetMenu(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRestaurant)
 	})
-}
-
-func NewGetMenuRequest(jwt string) *http.Request {
-	request, _ := http.NewRequest(http.MethodGet, "/restaurant/menu/all/", nil)
-	request.Header.Add("Token", jwt)
-
-	return request
 }
