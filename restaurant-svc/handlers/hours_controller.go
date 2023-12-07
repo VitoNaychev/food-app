@@ -101,8 +101,11 @@ func (h *HoursServer) createHours(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var createHoursRequestArr []HoursRequest
-	json.NewDecoder(r.Body).Decode(&createHoursRequestArr)
+	createHoursRequestArr, err := validation.ValidateBody[[]HoursRequest](r.Body)
+	if err != nil {
+		handleBadRequest(w, err)
+		return
+	}
 
 	if err = checkForDuplicateOrMissingDays(createHoursRequestArr); err != nil {
 		handleBadRequest(w, err)
