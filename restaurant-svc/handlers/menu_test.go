@@ -99,7 +99,7 @@ func TestMenuRequestValdiation(t *testing.T) {
 
 func TestDeleteMenuItem(t *testing.T) {
 	restaurantStore := &StubRestaurantStore{
-		restaurants: []models.Restaurant{td.DominosRestaurant},
+		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
 	}
 
 	menuStore := &StubMenuStore{
@@ -146,6 +146,17 @@ func TestDeleteMenuItem(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrUnathorizedAction)
 	})
+
+	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {
+		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
+		request := NewDeleteMenuItemRequest(shackJWT, handlers.DeleteMenuItemRequest{ID: 1})
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRestaurant)
+	})
 }
 
 func NewDeleteMenuItemRequest(jwt string, body handlers.DeleteMenuItemRequest) *http.Request {
@@ -158,7 +169,7 @@ func NewDeleteMenuItemRequest(jwt string, body handlers.DeleteMenuItemRequest) *
 
 func TestUpdateMenuItem(t *testing.T) {
 	restaurantStore := &StubRestaurantStore{
-		restaurants: []models.Restaurant{td.DominosRestaurant},
+		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
 	}
 
 	menuStore := &StubMenuStore{
@@ -219,6 +230,17 @@ func TestUpdateMenuItem(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrUnathorizedAction)
 	})
+
+	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {
+		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
+		request := NewUpdateMenuItemRequest(shackJWT, models.MenuItem{})
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRestaurant)
+	})
 }
 
 func NewUpdateMenuItemRequest(jwt string, menuItem models.MenuItem) *http.Request {
@@ -233,7 +255,7 @@ func NewUpdateMenuItemRequest(jwt string, menuItem models.MenuItem) *http.Reques
 
 func TestCreateMenuItem(t *testing.T) {
 	restaurantStore := &StubRestaurantStore{
-		restaurants: []models.Restaurant{td.DominosRestaurant},
+		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
 	}
 
 	menuStore := &StubMenuStore{
@@ -268,6 +290,22 @@ func TestCreateMenuItem(t *testing.T) {
 
 		testutil.AssertEqual(t, got, want)
 	})
+
+	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {
+		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
+		menuItem := models.MenuItem{
+			Name:    "Duner",
+			Price:   8.00,
+			Details: "on another level",
+		}
+		request := NewCreateMenuItemRequest(shackJWT, menuItem)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRestaurant)
+	})
 }
 
 func NewCreateMenuItemRequest(jwt string, menuItem models.MenuItem) *http.Request {
@@ -282,7 +320,7 @@ func NewCreateMenuItemRequest(jwt string, menuItem models.MenuItem) *http.Reques
 
 func TestGetMenu(t *testing.T) {
 	restaurantStore := &StubRestaurantStore{
-		restaurants: []models.Restaurant{td.DominosRestaurant},
+		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
 	}
 
 	menuStore := &StubMenuStore{
@@ -304,6 +342,17 @@ func TestGetMenu(t *testing.T) {
 		testutil.AssertValidResponse(t, err)
 
 		testutil.AssertEqual(t, got, td.DominosMenu)
+	})
+
+	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {
+		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.ShackRestaurant.ID)
+		request := NewGetMenuRequest(shackJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRestaurant)
 	})
 }
 

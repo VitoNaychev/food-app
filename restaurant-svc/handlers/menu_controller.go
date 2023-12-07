@@ -14,6 +14,12 @@ import (
 func (m *MenuServer) deleteMenuItem(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
+	err := isRestaurantValid(restaurantID, m.restaurantStore)
+	if err != nil {
+		handleRestaurantInvalid(w, err)
+		return
+	}
+
 	deleteMenuItemRequest, err := validation.ValidateBody[DeleteMenuItemRequest](r.Body)
 	if err != nil {
 		handleBadRequest(w, err)
@@ -43,6 +49,12 @@ func (m *MenuServer) deleteMenuItem(w http.ResponseWriter, r *http.Request) {
 
 func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
+
+	err := isRestaurantValid(restaurantID, m.restaurantStore)
+	if err != nil {
+		handleRestaurantInvalid(w, err)
+		return
+	}
 
 	updateMenuItemRequest, err := validation.ValidateBody[UpdateMenuItemRequest](r.Body)
 	if err != nil {
@@ -74,6 +86,12 @@ func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
+	err := isRestaurantValid(restaurantID, m.restaurantStore)
+	if err != nil {
+		handleRestaurantInvalid(w, err)
+		return
+	}
+
 	createMenuItemRequest, err := validation.ValidateBody[CreateMenuItemRequest](r.Body)
 	if err != nil {
 		handleBadRequest(w, err)
@@ -94,6 +112,12 @@ func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
 func (m *MenuServer) getMenu(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
+	err := isRestaurantValid(restaurantID, m.restaurantStore)
+	if err != nil {
+		handleRestaurantInvalid(w, err)
+		return
+	}
+
 	menu, err := m.menuStore.GetMenuByRestaurantID(restaurantID)
 	if err != nil {
 		handleInternalServerError(w, err)
@@ -101,6 +125,27 @@ func (m *MenuServer) getMenu(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(menu)
+}
+
+func isRestaurantValid(restaurantID int, store models.RestaurantStore) error {
+	restaurant, err := store.GetRestaurantByID(restaurantID)
+	if err != nil {
+		return err
+	}
+
+	if restaurant.Status != models.VALID {
+		return ErrInvalidRestaurant
+	}
+
+	return nil
+}
+
+func handleRestaurantInvalid(w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrInvalidRestaurant) {
+		handleBadRequest(w, err)
+	} else {
+		handleInternalServerError(w, err)
+	}
 }
 
 func handleUnauthorizedError(w http.ResponseWriter, err error) {

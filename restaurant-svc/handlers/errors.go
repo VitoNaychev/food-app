@@ -15,4 +15,5 @@ var (
 	ErrDuplicateDays      = errors.New("trying to set duplicate working hours for the same day")
 	ErrMissingMenuItem    = errors.New("menu item doesn't exist")
 	ErrUnathorizedAction  = errors.New("restaurant does not have permission to perform this action")
+	ErrInvalidRestaurant  = errors.New("restaurant has hours or location not set")
 )
