@@ -55,7 +55,7 @@ func TestHoursEndpointAuthentication(t *testing.T) {
 		"update hours": handlers.NewUpdateHoursRequest("", nil),
 	}
 
-	tabletests.RunAuthenticationTests(t, &server, cases)
+	tabletests.RunAuthenticationTests(t, server, cases)
 }
 
 func TestHoursRequestValidation(t *testing.T) {
@@ -77,7 +77,7 @@ func TestHoursRequestValidation(t *testing.T) {
 		"update hours": handlers.NewUpdateHoursRequest(shackJWT, []models.Hours{}),
 	}
 
-	tabletests.RunRequestValidationTests(t, &server, cases)
+	tabletests.RunRequestValidationTests(t, server, cases)
 }
 
 func TestUpdateHours(t *testing.T) {

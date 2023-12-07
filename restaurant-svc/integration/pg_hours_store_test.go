@@ -31,7 +31,7 @@ func TestHoursServerOperations(t *testing.T) {
 	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore)
 	hoursServer := handlers.NewHoursServer(env.SecretKey, &hoursStore, &restaurantStore)
 
-	server := handlers.NewRouterServer(restaurantServer, DummyHandler, &hoursServer, DummyHandler)
+	server := handlers.NewRouterServer(restaurantServer, DummyHandler, hoursServer, DummyHandler)
 
 	shackJWT, err := createRestaurant(server, td.ShackRestaurant)
 	if err != nil {

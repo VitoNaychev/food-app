@@ -15,9 +15,9 @@ type HoursServer struct {
 }
 
 func NewHoursServer(secretKey []byte,
-	hoursStore models.HoursStore, restaurantStore models.RestaurantStore) HoursServer {
+	hoursStore models.HoursStore, restaurantStore models.RestaurantStore) *HoursServer {
 
-	hoursServer := HoursServer{
+	hoursServer := &HoursServer{
 		secretKey:       secretKey,
 		hoursStore:      hoursStore,
 		restaurantStore: restaurantStore,
