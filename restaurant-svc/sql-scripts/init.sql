@@ -40,5 +40,5 @@ CREATE TABLE menu_items (
   restaurant_id       int                  REFERENCES restaurants(id),
   name                varchar(20)          NOT NULL,
   price               numeric(6, 2)        NOT NULL,
-  description         text                 
+  details             text                 
   );

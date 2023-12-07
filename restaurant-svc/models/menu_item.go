@@ -5,5 +5,5 @@ type MenuItem struct {
 	Name         string
 	Price        float32
 	Details      string
-	RestaurantID int
+	RestaurantID int `db:"restaurant_id"`
 }
