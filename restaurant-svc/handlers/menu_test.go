@@ -74,7 +74,7 @@ func TestMenuEndpointAuthentication(t *testing.T) {
 		"delete menu item": handlers.NewDeleteMenuItemRequest(invalidJWT, handlers.DeleteMenuItemRequest{}),
 	}
 
-	tabletests.RunAuthenticationTests(t, &server, cases)
+	tabletests.RunAuthenticationTests(t, server, cases)
 }
 
 func TestMenuRequestValdiation(t *testing.T) {
@@ -93,7 +93,7 @@ func TestMenuRequestValdiation(t *testing.T) {
 		"delete menu item": handlers.NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{}),
 	}
 
-	tabletests.RunRequestValidationTests(t, &server, cases)
+	tabletests.RunRequestValidationTests(t, server, cases)
 }
 
 func TestDeleteMenuItem(t *testing.T) {

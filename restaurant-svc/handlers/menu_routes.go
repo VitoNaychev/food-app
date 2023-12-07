@@ -14,8 +14,8 @@ type MenuServer struct {
 	verifier        auth.Verifier
 }
 
-func NewMenuServer(secretKey []byte, menuStore models.MenuStore, restaurantStore models.RestaurantStore) MenuServer {
-	return MenuServer{
+func NewMenuServer(secretKey []byte, menuStore models.MenuStore, restaurantStore models.RestaurantStore) *MenuServer {
+	return &MenuServer{
 		secretKey:       secretKey,
 		menuStore:       menuStore,
 		restaurantStore: restaurantStore,
