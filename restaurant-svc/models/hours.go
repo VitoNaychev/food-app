@@ -7,5 +7,5 @@ type Hours struct {
 	Day          int
 	Opening      time.Time
 	Closing      time.Time
-	RestaurantID int
+	RestaurantID int `db:"restaurant_id"`
 }

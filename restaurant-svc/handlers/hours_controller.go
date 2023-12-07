@@ -119,6 +119,7 @@ func (h *HoursServer) createHours(w http.ResponseWriter, r *http.Request) {
 		err = h.hoursStore.CreateHours(&hours)
 		if err != nil {
 			handleInternalServerError(w, err)
+			return
 		}
 
 		hoursArr = append(hoursArr, hours)
