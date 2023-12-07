@@ -1,8 +1,6 @@
 package handlers_test
 
 import (
-	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +8,6 @@ import (
 	"time"
 
 	"github.com/VitoNaychev/food-app/auth"
-	"github.com/VitoNaychev/food-app/reqbuilder"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
@@ -53,9 +50,9 @@ func TestHoursEndpointAuthentication(t *testing.T) {
 	server := handlers.NewHoursServer(testEnv.SecretKey, nil, nil)
 
 	cases := map[string]*http.Request{
-		"get hours":    NewGetHoursRequest(""),
-		"create hours": NewCreateHoursRequest("", nil),
-		"update hours": NewUpdateHoursRequest("", nil),
+		"get hours":    handlers.NewGetHoursRequest(""),
+		"create hours": handlers.NewCreateHoursRequest("", nil),
+		"update hours": handlers.NewUpdateHoursRequest("", nil),
 	}
 
 	tabletests.RunAuthenticationTests(t, &server, cases)
@@ -76,8 +73,8 @@ func TestHoursRequestValidation(t *testing.T) {
 	shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
 
 	cases := map[string]*http.Request{
-		"create hours": tabletests.NewDummyRequest(http.MethodPost, "/restaurant/address", shackJWT),
-		"update hours": tabletests.NewDummyRequest(http.MethodPut, "/restaurant/address", shackJWT),
+		"create hours": handlers.NewCreateHoursRequest(shackJWT, []models.Hours{}),
+		"update hours": handlers.NewUpdateHoursRequest(shackJWT, []models.Hours{}),
 	}
 
 	tabletests.RunRequestValidationTests(t, &server, cases)
@@ -103,7 +100,7 @@ func TestUpdateHours(t *testing.T) {
 		updatedHours[0].Opening, _ = time.Parse("15:04", "13:00")
 		updatedHours[1].Opening, _ = time.Parse("15:04", "13:00")
 
-		request := NewUpdateHoursRequest(dominosJWT, updatedHours)
+		request := handlers.NewUpdateHoursRequest(dominosJWT, updatedHours)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -122,7 +119,7 @@ func TestUpdateHours(t *testing.T) {
 		updatedHours[0].Opening, _ = time.Parse("15:04", "13:00")
 		updatedHours[1].Opening, _ = time.Parse("15:04", "13:00")
 
-		request := NewUpdateHoursRequest(shackJWT, updatedHours)
+		request := handlers.NewUpdateHoursRequest(shackJWT, updatedHours)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -139,7 +136,7 @@ func TestUpdateHours(t *testing.T) {
 		updatedHours[0].Opening, _ = time.Parse("15:04", "13:00")
 		updatedHours[1] = updatedHours[0]
 
-		request := NewUpdateHoursRequest(dominosJWT, updatedHours)
+		request := handlers.NewUpdateHoursRequest(dominosJWT, updatedHours)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -147,21 +144,6 @@ func TestUpdateHours(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrDuplicateDays)
 	})
-}
-
-func NewUpdateHoursRequest(jwt string, hours []models.Hours) *http.Request {
-	updateHoursRequestArr := []handlers.HoursRequest{}
-	for _, hour := range hours {
-		updateHoursRequestArr = append(updateHoursRequestArr, handlers.HoursToHoursRequest(hour))
-	}
-
-	body := bytes.NewBuffer([]byte{})
-	json.NewEncoder(body).Encode(updateHoursRequestArr)
-
-	request, _ := http.NewRequest(http.MethodPut, "/restaurant/hours/", body)
-	request.Header.Add("Token", jwt)
-
-	return request
 }
 
 func TestCreateHours(t *testing.T) {
@@ -178,7 +160,7 @@ func TestCreateHours(t *testing.T) {
 
 	t.Run("returns Bad Request if working hours already set", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
-		request := NewCreateHoursRequest(dominosJWT, testdata.DominosHours)
+		request := handlers.NewCreateHoursRequest(dominosJWT, testdata.DominosHours)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -191,7 +173,7 @@ func TestCreateHours(t *testing.T) {
 		incompleteHours := testdata.ShackHours[1:6]
 
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
-		request := NewCreateHoursRequest(shackJWT, incompleteHours)
+		request := handlers.NewCreateHoursRequest(shackJWT, incompleteHours)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -209,7 +191,7 @@ func TestCreateHours(t *testing.T) {
 		duplicateHours[7] = duplicateHours[3]
 
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
-		request := NewCreateHoursRequest(shackJWT, duplicateHours)
+		request := handlers.NewCreateHoursRequest(shackJWT, duplicateHours)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -223,7 +205,7 @@ func TestCreateHours(t *testing.T) {
 
 	t.Run("creates working hours for Shack and sets HOURS_SET bit", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
-		request := NewCreateHoursRequest(shackJWT, testdata.ShackHours)
+		request := handlers.NewCreateHoursRequest(shackJWT, testdata.ShackHours)
 		response := httptest.NewRecorder()
 
 		// Previous failing tests may have tampered with
@@ -246,7 +228,7 @@ func TestCreateHours(t *testing.T) {
 func assertRestaurantStatus(t testing.TB, restaurant models.Restaurant, status models.Status) {
 	t.Helper()
 
-	if restaurant.Status&status != status {
+	if restaurant.Status == status {
 		switch status {
 		case models.HOURS_SET | models.HOURS_SET:
 			t.Errorf("didn't set HOUR_SET bit in restaurant state")
@@ -254,19 +236,6 @@ func assertRestaurantStatus(t testing.TB, restaurant models.Restaurant, status m
 			t.Errorf("set HOUR_SET bit in restaurant state, when shouldn't have")
 		}
 	}
-}
-
-func NewCreateHoursRequest(jwt string, hours []models.Hours) *http.Request {
-	createHoursRequestArr := []handlers.HoursRequest{}
-	for _, hour := range hours {
-		createHoursRequestArr = append(createHoursRequestArr, handlers.HoursToHoursRequest(hour))
-	}
-
-	request := reqbuilder.NewRequestWithBody[[]handlers.HoursRequest](
-		http.MethodPost, "/restaurant/hours/", createHoursRequestArr)
-	request.Header.Add("Token", jwt)
-
-	return request
 }
 
 func TestGetHours(t *testing.T) {
@@ -282,7 +251,7 @@ func TestGetHours(t *testing.T) {
 
 	t.Run("returns working hours on Chicken Shack", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
-		request := NewGetHoursRequest(shackJWT)
+		request := handlers.NewGetHoursRequest(shackJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -294,7 +263,7 @@ func TestGetHours(t *testing.T) {
 
 	t.Run("returns working hours for Dominos", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
-		request := NewGetHoursRequest(dominosJWT)
+		request := handlers.NewGetHoursRequest(dominosJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -303,13 +272,6 @@ func TestGetHours(t *testing.T) {
 
 		assertHoursResponseBody(t, response.Body, testdata.DominosHours)
 	})
-}
-
-func NewGetHoursRequest(jwt string) *http.Request {
-	request, _ := http.NewRequest(http.MethodGet, "/restaurant/hours/", nil)
-	request.Header.Add("Token", jwt)
-
-	return request
 }
 
 func assertHoursResponseBody(t testing.TB, body io.Reader, hours []models.Hours) {

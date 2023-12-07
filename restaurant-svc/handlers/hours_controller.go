@@ -106,6 +106,7 @@ func (h *HoursServer) createHours(w http.ResponseWriter, r *http.Request) {
 
 	if err = checkForDuplicateOrMissingDays(createHoursRequestArr); err != nil {
 		handleBadRequest(w, err)
+		return
 	}
 
 	var hoursArr []models.Hours
