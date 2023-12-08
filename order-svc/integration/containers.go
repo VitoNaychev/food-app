@@ -16,7 +16,7 @@ import (
 func NewDatabaseContainer(t testing.TB) string {
 	keys := []string{"DBUSER", "DBPASS", "DBNAME"}
 
-	env, err := loadenv.LoadEnviornment("../config/test.env", keys)
+	env, err := loadenv.LoadEnviornment("../test.env", keys)
 	if err != nil {
 		testutil.HandleLoadEnviornmentError(err)
 		t.Fatal()

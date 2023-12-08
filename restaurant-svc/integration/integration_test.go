@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 	keys := []string{"SECRET", "EXPIRES_AT", "DBUSER", "DBPASS", "DBNAME"}
 
 	var err error
-	env, err = loadenv.LoadEnviornment("../config/test.env", keys)
+	env, err = loadenv.LoadEnviornment("../test.env", keys)
 	if err != nil {
 		testutil.HandleLoadEnviornmentError(err)
 		os.Exit(1)
