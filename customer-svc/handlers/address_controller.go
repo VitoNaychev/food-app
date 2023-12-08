@@ -14,7 +14,7 @@ import (
 func (c *CustomerAddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 	updateAddressRequest, err := validation.ValidateBody[UpdateAddressRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, ErrInvalidRequestField)
+		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 

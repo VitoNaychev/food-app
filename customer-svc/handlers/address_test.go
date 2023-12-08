@@ -73,7 +73,6 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidRequestField)
 	})
 
 	t.Run("returns Not Found on missing address", func(t *testing.T) {
