@@ -10,23 +10,23 @@ import (
 type VerifyJWTFunc func(token string) (msgtypes.AuthResponse, error)
 
 type CancelOrderRequest struct {
-	ID int `validate:"min=1"`
+	ID int `validate:"min=1" json:"id"`
 }
 
 type CancelOrderResponse struct {
-	Status bool
+	Status bool `json:"status"`
 }
 
 type OrderResponse struct {
-	ID              int            `validate:"min=1"`
-	CustomerID      int            `validate:"min=1"`
-	RestaurantID    int            `validate:"min=1"`
-	Items           []int          `validate:"required"`
-	Total           float64        `validate:"min=0.01"`
-	DeliveryTime    time.Time      `validate:"required"`
-	Status          models.Status  `validate:"min=0,max=8"`
-	PickupAddress   models.Address `validate:"required"`
-	DeliveryAddress models.Address `validate:"required"`
+	ID              int            `validate:"min=1"       json:"id"`
+	CustomerID      int            `validate:"min=1"       json:"customer_id"`
+	RestaurantID    int            `validate:"min=1"       json:"restaurant_id"`
+	Items           []int          `validate:"required"    json:"items"`
+	Total           float64        `validate:"min=0.01"    json:"total"`
+	DeliveryTime    time.Time      `validate:"required"    json:"delivery_time"`
+	Status          models.Status  `validate:"min=0,max=8" json:"status"`
+	PickupAddress   models.Address `validate:"required"    json:"pickup_address"`
+	DeliveryAddress models.Address `validate:"required"    json:"delivery_address"`
 }
 
 func NewOrderResponseBody(order models.Order, pickupAddress, deliveryAddress models.Address) OrderResponse {
@@ -44,13 +44,12 @@ func NewOrderResponseBody(order models.Order, pickupAddress, deliveryAddress mod
 }
 
 type CreateOrderRequest struct {
-	RestaurantID    int `validate:"min=1"`
-	Items           []int
-	Total           float64 `validate:"min=0.01"`
-	DeliveryTime    time.Time
-	Status          models.Status
-	PickupAddress   CreateOrderAddress
-	DeliveryAddress CreateOrderAddress
+	RestaurantID    int                `validate:"min=1"    json:"restaurant_id"`
+	Items           []int              `validate:"required" json:"items"`
+	Total           float64            `validate:"min=0.01" json:"total"`
+	DeliveryTime    time.Time          `validate:"required" json:"delivery_time"`
+	PickupAddress   CreateOrderAddress `validate:"required" json:"pickup_address"`
+	DeliveryAddress CreateOrderAddress `validate:"required" json:"delivery_address"`
 }
 
 func NewCeateOrderRequestBody(order models.Order, pickupAddress models.Address, deliveryAddress models.Address) CreateOrderRequest {
@@ -77,7 +76,6 @@ func NewCeateOrderRequestBody(order models.Order, pickupAddress models.Address, 
 		Items:           order.Items,
 		Total:           order.Total,
 		DeliveryTime:    order.DeliveryTime,
-		Status:          order.Status,
 		PickupAddress:   createPickupAddress,
 		DeliveryAddress: createDeliveryAddress,
 	}
@@ -93,7 +91,6 @@ func CreateOrderRequestToOrder(createOrderRequest CreateOrderRequest, customerID
 		Items:           createOrderRequest.Items,
 		Total:           createOrderRequest.Total,
 		DeliveryTime:    createOrderRequest.DeliveryTime,
-		Status:          createOrderRequest.Status,
 		PickupAddress:   -1,
 		DeliveryAddress: -1,
 	}
@@ -110,12 +107,12 @@ func GetDeliveryAddressFromCreateOrderRequest(createOrderRequest CreateOrderRequ
 }
 
 type CreateOrderAddress struct {
-	Lat          float64
-	Lon          float64
-	AddressLine1 string
-	AddressLine2 string
-	City         string
-	Country      string
+	Lat          float64 `validate:"required,latitude" json:"lat"`
+	Lon          float64 `validate:"required,latitude" json:"lon"`
+	AddressLine1 string  `validate:"required"          json:"address_line1"`
+	AddressLine2 string  `validate:""                  json:"address_line2"`
+	City         string  `validate:"required"          json:"city"`
+	Country      string  `validate:"required"          json:"country"`
 }
 
 func CreateOrderAddressToAddress(createOrderAddress CreateOrderAddress) models.Address {

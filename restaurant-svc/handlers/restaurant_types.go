@@ -3,11 +3,11 @@ package handlers
 import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 
 type UpdateRestaurantRequest struct {
-	Name        string `validate:"required,max=30"`
-	PhoneNumber string `validate:"required,phonenumber,max=16"`
-	Email       string `validate:"required,email,max=30"`
-	Password    string `valdiate:"required"`
-	IBAN        string `validate:"required"`
+	Name        string `validate:"required,max=30"             json:"name"`
+	PhoneNumber string `validate:"required,phonenumber,max=16" json:"phone_number"`
+	Email       string `validate:"required,email,max=30"       json:"email"`
+	Password    string `valdiate:"required"                    json:"password"`
+	IBAN        string `validate:"required"                    json:"iban"`
 }
 
 func UpdateRestaurantRequestToRestaurant(request UpdateRestaurantRequest, id int, status models.Status) models.Restaurant {
@@ -37,20 +37,20 @@ func RestaurantToUpdateRestaurantRequest(restaurant models.Restaurant) UpdateRes
 }
 
 type JWTResponse struct {
-	Token string
+	Token string `json:"token"`
 }
 
 type CreateRestaurantResponse struct {
-	JWT        JWTResponse
-	Restaurant RestaurantResponse
+	JWT        JWTResponse        `json:"jwt"`
+	Restaurant RestaurantResponse `json:"restaurant"`
 }
 
 type RestaurantResponse struct {
-	ID          int
-	Name        string
-	PhoneNumber string
-	Email       string
-	IBAN        string
+	ID          int    `validate:"min=1"                       json:"id"`
+	Name        string `validate:"required,max=30"             json:"name"`
+	PhoneNumber string `validate:"required,phonenumber,max=16" json:"phone_number"`
+	Email       string `validate:"required,email,max=30"       json:"email"`
+	IBAN        string `validate:"required"                    json:"iban"`
 }
 
 func RestaurantToRestaurantResponse(restaurant models.Restaurant) RestaurantResponse {
@@ -66,11 +66,11 @@ func RestaurantToRestaurantResponse(restaurant models.Restaurant) RestaurantResp
 }
 
 type CreateRestaurantRequest struct {
-	Name        string `validate:"required,max=30"`
-	PhoneNumber string `validate:"required,phonenumber,max=16"`
-	Email       string `validate:"required,email,max=30"`
-	Password    string `valdiate:"required"`
-	IBAN        string `validate:"required"`
+	Name        string `validate:"required,max=30"             json:"name"`
+	PhoneNumber string `validate:"required,phonenumber,max=16" json:"phone_number"`
+	Email       string `validate:"required,email,max=30"       json:"email"`
+	Password    string `valdiate:"required"                    json:"password"`
+	IBAN        string `validate:"required"                    json:"iban"`
 }
 
 func RestaurantToCreateRestaurantRequest(restaurant models.Restaurant) CreateRestaurantRequest {

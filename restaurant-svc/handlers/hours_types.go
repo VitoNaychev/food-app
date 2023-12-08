@@ -7,9 +7,9 @@ import (
 )
 
 type HoursRequest struct {
-	Day     int    `validate:"min=1,max=7"`
-	Opening string `validate:"required,workinghours"`
-	Closing string `validate:"required,workinghours"`
+	Day     int    `validate:"min=1,max=7"           json:"day"`
+	Opening string `validate:"required,workinghours" json:"opening"`
+	Closing string `validate:"required,workinghours" json:"closing"`
 }
 
 func HoursToHoursRequest(hours models.Hours) HoursRequest {
@@ -36,11 +36,11 @@ func HoursRequestToHours(createHoursRequest HoursRequest, restaurantID int) mode
 }
 
 type HoursResponse struct {
-	ID           int    `validate:"min=1"`
-	Day          int    `validate:"min=1,max=7"`
-	Opening      string `validate:"required,workinghours"`
-	Closing      string `validate:"required,workinghours"`
-	RestaurantID int    `validate:"min=1"`
+	ID           int    `validate:"min=1"                 json:"id"`
+	Day          int    `validate:"min=1,max=7"           json:"day"`
+	Opening      string `validate:"required,workinghours" json:"opening"`
+	Closing      string `validate:"required,workinghours" json:"closing"`
+	RestaurantID int    `validate:"min=1"                 json:"restaurant_id"`
 }
 
 func HoursToHoursResponse(hours models.Hours) HoursResponse {

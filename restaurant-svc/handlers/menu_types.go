@@ -7,10 +7,10 @@ type DeleteMenuItemRequest struct {
 }
 
 type UpdateMenuItemRequest struct {
-	ID      int     `validate:"min=1"`
-	Name    string  `validate:"min=2,max=20"`
-	Price   float32 `validate:"required,max=1000"`
-	Details string  `validate:"max=1000"`
+	ID      int     `validate:"min=1"             json:"id"`
+	Name    string  `validate:"min=2,max=20"      json:"name"`
+	Price   float32 `validate:"required,max=1000" json:"price"`
+	Details string  `validate:"max=1000"          json:"details"`
 }
 
 func MenuItemToUpdateMenuItemRequest(item models.MenuItem) UpdateMenuItemRequest {
@@ -37,9 +37,9 @@ func UpdateMenuItemRequestToMenuItem(request UpdateMenuItemRequest, restaurantID
 }
 
 type CreateMenuItemRequest struct {
-	Name    string  `validate:"min=2,max=20"`
-	Price   float32 `validate:"required,max=1000"`
-	Details string  `validate:"max=1000"`
+	Name    string  `validate:"min=2,max=20"      json:"name"`
+	Price   float32 `validate:"required,max=1000" json:"price"`
+	Details string  `validate:"max=1000"          json:"details"`
 }
 
 func MenuItemToCreateMenuItemRequest(item models.MenuItem) CreateMenuItemRequest {
