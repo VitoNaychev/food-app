@@ -18,18 +18,31 @@ type CancelOrderResponse struct {
 }
 
 type OrderResponse struct {
-	ID              int            `validate:"min=1"       json:"id"`
-	CustomerID      int            `validate:"min=1"       json:"customer_id"`
-	RestaurantID    int            `validate:"min=1"       json:"restaurant_id"`
-	Items           []int          `validate:"required"    json:"items"`
-	Total           float64        `validate:"min=0.01"    json:"total"`
-	DeliveryTime    time.Time      `validate:"required"    json:"delivery_time"`
-	Status          models.Status  `validate:"min=0,max=8" json:"status"`
-	PickupAddress   models.Address `validate:"required"    json:"pickup_address"`
-	DeliveryAddress models.Address `validate:"required"    json:"delivery_address"`
+	ID              int             `validate:"min=1"       json:"id"`
+	CustomerID      int             `validate:"min=1"       json:"customer_id"`
+	RestaurantID    int             `validate:"min=1"       json:"restaurant_id"`
+	Items           []int           `validate:"required"    json:"items"`
+	Total           float64         `validate:"min=0.01"    json:"total"`
+	DeliveryTime    time.Time       `validate:"required"    json:"delivery_time"`
+	Status          models.Status   `validate:"min=0,max=8" json:"status"`
+	PickupAddress   AddressResponse `validate:"required"    json:"pickup_address"`
+	DeliveryAddress AddressResponse `validate:"required"    json:"delivery_address"`
+}
+
+type AddressResponse struct {
+	Id           int     `validate:"min=1"               json:"id"`
+	Lat          float64 `validate:"latitude,required"   json:"lat"`
+	Lon          float64 `validate:"longitude,required"  json:"lon"`
+	AddressLine1 string  `validate:"required,max=100"    json:"address_line1"`
+	AddressLine2 string  `validate:"max=100"             json:"address_line2"`
+	City         string  `validate:"required,max=70"     json:"city"`
+	Country      string  `validate:"required,max=60"     json:"country"`
 }
 
 func NewOrderResponseBody(order models.Order, pickupAddress, deliveryAddress models.Address) OrderResponse {
+	pickupAddressResponse := AddressToAddressResponse(pickupAddress)
+	deliveryAddressResponse := AddressToAddressResponse(deliveryAddress)
+
 	return OrderResponse{
 		ID:              order.ID,
 		CustomerID:      order.CustomerID,
@@ -38,8 +51,20 @@ func NewOrderResponseBody(order models.Order, pickupAddress, deliveryAddress mod
 		Total:           order.Total,
 		DeliveryTime:    order.DeliveryTime,
 		Status:          order.Status,
-		PickupAddress:   pickupAddress,
-		DeliveryAddress: deliveryAddress,
+		PickupAddress:   pickupAddressResponse,
+		DeliveryAddress: deliveryAddressResponse,
+	}
+}
+
+func AddressToAddressResponse(address models.Address) AddressResponse {
+	return AddressResponse{
+		Id:           address.ID,
+		Lat:          address.Lat,
+		Lon:          address.Lon,
+		AddressLine1: address.AddressLine1,
+		AddressLine2: address.AddressLine2,
+		City:         address.City,
+		Country:      address.Country,
 	}
 }
 
@@ -109,10 +134,10 @@ func GetDeliveryAddressFromCreateOrderRequest(createOrderRequest CreateOrderRequ
 type CreateOrderAddress struct {
 	Lat          float64 `validate:"required,latitude" json:"lat"`
 	Lon          float64 `validate:"required,latitude" json:"lon"`
-	AddressLine1 string  `validate:"required"          json:"address_line1"`
-	AddressLine2 string  `validate:""                  json:"address_line2"`
-	City         string  `validate:"required"          json:"city"`
-	Country      string  `validate:"required"          json:"country"`
+	AddressLine1 string  `validate:"required,max=100"  json:"address_line1"`
+	AddressLine2 string  `validate:"max=100"           json:"address_line2"`
+	City         string  `validate:"required,max=70"   json:"city"`
+	Country      string  `validate:"required,max=60"   json:"country"`
 }
 
 func CreateOrderAddressToAddress(createOrderAddress CreateOrderAddress) models.Address {

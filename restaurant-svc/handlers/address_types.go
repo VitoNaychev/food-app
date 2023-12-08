@@ -5,10 +5,10 @@ import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 type UpdateAddressRequest struct {
 	Lat          float64 `validate:"latitude,required"  json:"lat"`
 	Lon          float64 `validate:"longitude,required" json:"lon"`
-	AddressLine1 string  `validate:"required,max=40"    json:"address_line1"`
-	AddressLine2 string  `validate:"max=40"             json:"address_line2"`
-	City         string  `validate:"required,max=40"    json:"city"`
-	Country      string  `validate:"required,max=20"    json:"country"`
+	AddressLine1 string  `validate:"required,max=100"   json:"address_line1"`
+	AddressLine2 string  `validate:"max=100"            json:"address_line2"`
+	City         string  `validate:"required,max=70"    json:"city"`
+	Country      string  `validate:"required,max=60"    json:"country"`
 }
 
 func AddressToUpdateAddressRequest(address models.Address) UpdateAddressRequest {
@@ -46,10 +46,10 @@ type DeleteAddressRequest struct {
 type CreateAddressRequest struct {
 	Lat          float64 `validate:"latitude,required"  json:"lat"`
 	Lon          float64 `validate:"longitude,required" json:"lon"`
-	AddressLine1 string  `validate:"required,max=40"    json:"address_line1"`
-	AddressLine2 string  `validate:"max=40"             json:"address_line2"`
-	City         string  `validate:"required,max=40"    json:"city"`
-	Country      string  `validate:"required,max=20"    json:"country"`
+	AddressLine1 string  `validate:"required,max=100"   json:"address_line1"`
+	AddressLine2 string  `validate:"max=100"            json:"address_line2"`
+	City         string  `validate:"required,max=70"    json:"city"`
+	Country      string  `validate:"required,max=60"    json:"country"`
 }
 
 func AddressToCreateAddressRequest(address models.Address) CreateAddressRequest {

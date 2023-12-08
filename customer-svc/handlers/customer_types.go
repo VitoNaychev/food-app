@@ -3,15 +3,15 @@ package handlers
 import "github.com/VitoNaychev/food-app/customer-svc/models"
 
 type JWTResponse struct {
-	Token string
+	Token string `validate:"required" json:"token"`
 }
 
 type GetCustomerResponse struct {
-	Id          int    `json:"id"`
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
-	PhoneNumber string `json:"phone_number"`
-	Email       string `json:"email"`
+	Id          int    `validate:"min=1"                       json:"id"`
+	FirstName   string `validate:"required,max=20"             json:"first_name"`
+	LastName    string `validate:"required,max=20"             json:"last_name"`
+	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
+	Email       string `validate:"required,email,max=60"       json:"email"`
 }
 
 func CustomerToGetCustomerResponse(customer models.Customer) GetCustomerResponse {
@@ -27,11 +27,11 @@ func CustomerToGetCustomerResponse(customer models.Customer) GetCustomerResponse
 }
 
 type CreateCustomerRequest struct {
-	FirstName   string `validate:"required,max=20"      json:"first_name"`
-	LastName    string `validate:"required,max=20"      json:"last_name"`
-	PhoneNumber string `validate:"required,phonenumber" json:"phone_number"`
-	Email       string `validate:"required,email"       json:"email"`
-	Password    string `validate:"required,max=72"      json:"password"`
+	FirstName   string `validate:"required,max=20"             json:"first_name"`
+	LastName    string `validate:"required,max=20"             json:"last_name"`
+	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
+	Email       string `validate:"required,email,max=60"       json:"email"`
+	Password    string `validate:"required,max=72"             json:"password"`
 }
 
 func CustomerToCreateCustomerRequest(customer models.Customer) CreateCustomerRequest {
@@ -59,16 +59,16 @@ func CreateCustomerRequestToCustomer(createCustomerRequest CreateCustomerRequest
 }
 
 type CreateCustomerResponse struct {
-	JWT      JWTResponse
-	Customer CustomerResponse
+	JWT      JWTResponse      `validate:"required" json:"token"`
+	Customer CustomerResponse `validate:"required" json:"customer"`
 }
 
 type CustomerResponse struct {
-	Id          int    `validate:"min=1"                json:"id"`
-	FirstName   string `validate:"required,max=20"      json:"first_name"`
-	LastName    string `validate:"required,max=20"      json:"last_name"`
-	PhoneNumber string `validate:"required,phonenumber" json:"phone_number"`
-	Email       string `validate:"required,email"       json:"email"`
+	Id          int    `validate:"min=1"                       json:"id"`
+	FirstName   string `validate:"required,max=20"             json:"first_name"`
+	LastName    string `validate:"required,max=20"             json:"last_name"`
+	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
+	Email       string `validate:"required,email,max=60"       json:"email"`
 }
 
 func CustomerToCustomerResponse(customer models.Customer) CustomerResponse {
@@ -84,8 +84,8 @@ func CustomerToCustomerResponse(customer models.Customer) CustomerResponse {
 }
 
 type LoginCustomerRequest struct {
-	Email    string `validate:"required,email"       json:"email"`
-	Password string `validate:"required,max=72"      json:"password"`
+	Email    string `validate:"required,email,max=60" json:"email"`
+	Password string `validate:"required,max=72"       json:"password"`
 }
 
 func CustomerToLoginCustomerRequest(customer models.Customer) LoginCustomerRequest {
@@ -98,11 +98,11 @@ func CustomerToLoginCustomerRequest(customer models.Customer) LoginCustomerReque
 }
 
 type UpdateCustomerRequest struct {
-	FirstName   string `validate:"required,max=20"      json:"first_name"`
-	LastName    string `validate:"required,max=20"      json:"last_name"`
-	PhoneNumber string `validate:"required,phonenumber" json:"phone_number"`
-	Email       string `validate:"required,email"       json:"email"`
-	Password    string `validate:"required,max=72"      json:"password"`
+	FirstName   string `validate:"required,max=20"             json:"first_name"`
+	LastName    string `validate:"required,max=20"             json:"last_name"`
+	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
+	Email       string `validate:"required,email,max=60"       json:"email"`
+	Password    string `validate:"required,max=72"             json:"password"`
 }
 
 func CustomerToUpdateCustomerRequest(customer models.Customer) UpdateCustomerRequest {

@@ -3,9 +3,9 @@ package handlers
 import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 
 type UpdateRestaurantRequest struct {
-	Name        string `validate:"required,max=30"             json:"name"`
-	PhoneNumber string `validate:"required,phonenumber,max=16" json:"phone_number"`
-	Email       string `validate:"required,email,max=30"       json:"email"`
+	Name        string `validate:"required,max=40"             json:"name"`
+	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
+	Email       string `validate:"required,email,max=60"       json:"email"`
 	Password    string `valdiate:"required"                    json:"password"`
 	IBAN        string `validate:"required"                    json:"iban"`
 }
@@ -37,19 +37,19 @@ func RestaurantToUpdateRestaurantRequest(restaurant models.Restaurant) UpdateRes
 }
 
 type JWTResponse struct {
-	Token string `json:"token"`
+	Token string `validate:"required" json:"token"`
 }
 
 type CreateRestaurantResponse struct {
-	JWT        JWTResponse        `json:"jwt"`
-	Restaurant RestaurantResponse `json:"restaurant"`
+	JWT        JWTResponse        `validate:"required" json:"jwt"`
+	Restaurant RestaurantResponse `validate:"required" json:"restaurant"`
 }
 
 type RestaurantResponse struct {
 	ID          int    `validate:"min=1"                       json:"id"`
-	Name        string `validate:"required,max=30"             json:"name"`
-	PhoneNumber string `validate:"required,phonenumber,max=16" json:"phone_number"`
-	Email       string `validate:"required,email,max=30"       json:"email"`
+	Name        string `validate:"required,max=40"             json:"name"`
+	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
+	Email       string `validate:"required,email,max=60"       json:"email"`
 	IBAN        string `validate:"required"                    json:"iban"`
 }
 
@@ -66,9 +66,9 @@ func RestaurantToRestaurantResponse(restaurant models.Restaurant) RestaurantResp
 }
 
 type CreateRestaurantRequest struct {
-	Name        string `validate:"required,max=30"             json:"name"`
-	PhoneNumber string `validate:"required,phonenumber,max=16" json:"phone_number"`
-	Email       string `validate:"required,email,max=30"       json:"email"`
+	Name        string `validate:"required,max=40"             json:"name"`
+	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
+	Email       string `validate:"required,email,max=60"       json:"email"`
 	Password    string `valdiate:"required"                    json:"password"`
 	IBAN        string `validate:"required"                    json:"iban"`
 }
