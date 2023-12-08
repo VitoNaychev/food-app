@@ -7,16 +7,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/food-app/customer-svc/config"
+	"github.com/VitoNaychev/food-app/loadenv"
+	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-var env config.Enviornment
+var env loadenv.Enviornment
 
 func TestMain(m *testing.M) {
-	env = config.LoadEnviornment("../config/test.env")
+	keys := []string{"SECRET", "EXPIRES_AT", "DBUSER", "DBPASS", "DBNAME"}
+
+	var err error
+	env, err = loadenv.LoadEnviornment("../config/test.env", keys)
+	if err != nil {
+		testutil.HandleLoadEnviornmentError(err)
+		os.Exit(1)
+	}
 
 	code := m.Run()
 	os.Exit(code)

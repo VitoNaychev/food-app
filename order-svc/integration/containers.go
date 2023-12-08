@@ -6,14 +6,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/food-app/order-svc/config"
+	"github.com/VitoNaychev/food-app/loadenv"
+	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 func NewDatabaseContainer(t testing.TB) string {
-	env := config.LoadEnviornment("../config/test.env")
+	keys := []string{"DBUSER", "DBPASS", "DBNAME"}
+
+	env, err := loadenv.LoadEnviornment("../config/test.env", keys)
+	if err != nil {
+		testutil.HandleLoadEnviornmentError(err)
+		t.Fatal()
+	}
+
 	ctx := context.Background()
 
 	pgContainer, err := postgres.RunContainer(ctx,
