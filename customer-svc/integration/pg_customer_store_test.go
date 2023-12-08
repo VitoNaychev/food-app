@@ -6,10 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/customer-svc/handlers"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
 	"github.com/VitoNaychev/food-app/customer-svc/testdata"
-	"github.com/VitoNaychev/food-app/customer-svc/testutil"
+	"github.com/VitoNaychev/food-app/parser"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestCustomerServerOperations(t *testing.T) {
@@ -34,7 +36,7 @@ func TestCustomerServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 
 		wantCustomer := handlers.CustomerToCustomerResponse(testdata.PeterCustomer)
-		got := testutil.ParseCreateCustomerResponse(t, response.Body)
+		got := parser.FromJSON[handlers.CreateCustomerResponse](response.Body)
 
 		testutil.AssertEqual(t, got.Customer, wantCustomer)
 
@@ -51,7 +53,7 @@ func TestCustomerServerOperations(t *testing.T) {
 			testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 			want := handlers.CustomerToCustomerResponse(testdata.PeterCustomer)
-			got := testutil.ParseCustomerResponse(t, response.Body)
+			got := parser.FromJSON[handlers.CustomerResponse](response.Body)
 
 			testutil.AssertEqual(t, got, want)
 		})
@@ -69,7 +71,7 @@ func TestCustomerServerOperations(t *testing.T) {
 			testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 			want := handlers.CustomerToCustomerResponse(updateCustomer)
-			got := testutil.ParseCustomerResponse(t, response.Body)
+			got := parser.FromJSON[handlers.CustomerResponse](response.Body)
 
 			testutil.AssertEqual(t, got, want)
 		})
@@ -91,7 +93,7 @@ func TestCustomerServerOperations(t *testing.T) {
 			server.ServeHTTP(response, request)
 
 			testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-			testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
+			testutil.AssertErrorResponse(t, response.Body, auth.ErrSubjectNotFound)
 		})
 	}
 }

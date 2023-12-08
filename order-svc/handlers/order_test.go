@@ -10,8 +10,9 @@ import (
 
 	"github.com/VitoNaychev/food-app/order-svc/handlers"
 	"github.com/VitoNaychev/food-app/order-svc/models"
+	"github.com/VitoNaychev/food-app/order-svc/stubs"
 	"github.com/VitoNaychev/food-app/order-svc/testdata"
-	"github.com/VitoNaychev/food-app/order-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -20,7 +21,7 @@ func dummyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestAuthMiddleware(t *testing.T) {
-	handler := handlers.AuthMiddleware(dummyHandler, testutil.StubVerifyJWT)
+	handler := handlers.AuthMiddleware(dummyHandler, stubs.StubVerifyJWT)
 
 	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -67,9 +68,9 @@ func TestAuthMiddleware(t *testing.T) {
 }
 
 func TestOrderEndpointAuthentication(t *testing.T) {
-	orderStore := &testutil.StubOrderStore{}
-	addressStore := &testutil.StubAddressStore{}
-	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
+	orderStore := &stubs.StubOrderStore{}
+	addressStore := &stubs.StubAddressStore{}
+	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
@@ -93,13 +94,13 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 type GenericResponse interface{}
 
 func TestOrderResponseValidity(t *testing.T) {
-	orderStore := &testutil.StubOrderStore{
+	orderStore := &stubs.StubOrderStore{
 		Orders: []models.Order{testdata.PeterOrder1, testdata.PeterOrder2},
 	}
-	addressStore := &testutil.StubAddressStore{
+	addressStore := &stubs.StubAddressStore{
 		Addresses: []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -159,13 +160,13 @@ func TestOrderResponseValidity(t *testing.T) {
 }
 
 func TestCancelOrder(t *testing.T) {
-	orderStore := &testutil.StubOrderStore{
+	orderStore := &stubs.StubOrderStore{
 		Orders: []models.Order{testdata.PeterOrder1, testdata.PeterOrder2},
 	}
-	addressStore := &testutil.StubAddressStore{
+	addressStore := &stubs.StubAddressStore{
 		Addresses: []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
 
 	t.Run("returns Status true when order is cancelable", func(t *testing.T) {
 		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 1}
@@ -218,9 +219,9 @@ func TestCancelOrder(t *testing.T) {
 }
 
 func TestCreateOrder(t *testing.T) {
-	orderStore := &testutil.StubOrderStore{CreatedOrders: []models.Order{}, Orders: nil}
-	addressStore := &testutil.StubAddressStore{CreatedAddresses: []models.Address{}, Addresses: nil}
-	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
+	orderStore := &stubs.StubOrderStore{CreatedOrders: []models.Order{}, Orders: nil}
+	addressStore := &stubs.StubAddressStore{CreatedAddresses: []models.Address{}, Addresses: nil}
+	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
 
 	t.Run("creates new order and returns it", func(t *testing.T) {
 		createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -255,15 +256,15 @@ func TestCreateOrder(t *testing.T) {
 }
 
 func TestGetCurrentOrders(t *testing.T) {
-	orderStore := &testutil.StubOrderStore{
+	orderStore := &stubs.StubOrderStore{
 		CreatedOrders: nil,
 		Orders:        []models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder},
 	}
-	addressStore := &testutil.StubAddressStore{
+	addressStore := &stubs.StubAddressStore{
 		CreatedAddresses: nil,
 		Addresses:        []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
 
 	t.Run("returns current orders for customer Peter", func(t *testing.T) {
 		request := handlers.NewGetCurrentOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
@@ -280,20 +281,20 @@ func TestGetCurrentOrders(t *testing.T) {
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertGetOrderResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 }
 
 func TestGetOrders(t *testing.T) {
-	orderStore := &testutil.StubOrderStore{
+	orderStore := &stubs.StubOrderStore{
 		CreatedOrders: nil,
 		Orders:        []models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder},
 	}
-	addressStore := &testutil.StubAddressStore{
+	addressStore := &stubs.StubAddressStore{
 		CreatedAddresses: nil,
 		Addresses:        []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
 
 	t.Run("returns orders of customer Peter", func(t *testing.T) {
 		request := handlers.NewGetAllOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
@@ -310,7 +311,7 @@ func TestGetOrders(t *testing.T) {
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertGetOrderResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("returns orders of customer Alice", func(t *testing.T) {
@@ -328,6 +329,6 @@ func TestGetOrders(t *testing.T) {
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertGetOrderResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 }

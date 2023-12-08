@@ -2,15 +2,15 @@ package integration
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
-	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestCustomerServerOperations(t *testing.T) {
@@ -40,8 +40,7 @@ func TestCustomerServerOperations(t *testing.T) {
 
 		wantRestaurant := handlers.RestaurantToRestaurantResponse(td.ShackRestaurant)
 
-		var got handlers.CreateRestaurantResponse
-		json.NewDecoder(response.Body).Decode(&got)
+		got := parser.FromJSON[handlers.CreateRestaurantResponse](response.Body)
 
 		testutil.AssertEqual(t, got.Restaurant, wantRestaurant)
 
@@ -58,8 +57,7 @@ func TestCustomerServerOperations(t *testing.T) {
 
 		wantRestaurant := handlers.RestaurantToRestaurantResponse(td.ShackRestaurant)
 
-		var got handlers.RestaurantResponse
-		json.NewDecoder(response.Body).Decode(&got)
+		got := parser.FromJSON[handlers.RestaurantResponse](response.Body)
 
 		testutil.AssertEqual(t, got, wantRestaurant)
 	})
@@ -77,8 +75,7 @@ func TestCustomerServerOperations(t *testing.T) {
 
 		wantRestaurant := handlers.RestaurantToRestaurantResponse(updateRestaurant)
 
-		var got handlers.RestaurantResponse
-		json.NewDecoder(response.Body).Decode(&got)
+		got := parser.FromJSON[handlers.RestaurantResponse](response.Body)
 
 		testutil.AssertEqual(t, got, wantRestaurant)
 	})

@@ -2,17 +2,16 @@ package integration
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
-	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestHoursServerOperations(t *testing.T) {
@@ -47,7 +46,7 @@ func TestHoursServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := handlers.HoursArrToHoursResponseArr(td.ShackHours)
-		got := ParseJSON[[]handlers.HoursResponse](response.Body)
+		got := parser.FromJSON[[]handlers.HoursResponse](response.Body)
 
 		testutil.AssertEqual(t, got, want)
 	})
@@ -61,7 +60,7 @@ func TestHoursServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := handlers.HoursArrToHoursResponseArr(td.ShackHours)
-		got := ParseJSON[[]handlers.HoursResponse](response.Body)
+		got := parser.FromJSON[[]handlers.HoursResponse](response.Body)
 
 		testutil.AssertEqual(t, got, want)
 	})
@@ -79,14 +78,8 @@ func TestHoursServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := handlers.HoursArrToHoursResponseArr(updateHours)
-		got := ParseJSON[[]handlers.HoursResponse](response.Body)
+		got := parser.FromJSON[[]handlers.HoursResponse](response.Body)
 
 		testutil.AssertEqual(t, got, want)
 	})
-}
-
-func ParseJSON[T any](r io.Reader) T {
-	var parsedData T
-	json.NewDecoder(r).Decode(&parsedData)
-	return parsedData
 }

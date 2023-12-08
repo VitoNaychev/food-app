@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/VitoNaychev/food-app/order-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func RunAuthenticationTests(t *testing.T, server http.Handler, cases map[string]*http.Request) {

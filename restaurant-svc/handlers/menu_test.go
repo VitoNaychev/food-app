@@ -9,8 +9,8 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
-	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
-	"github.com/VitoNaychev/food-app/restaurant-svc/testutil/tabletests"
+	"github.com/VitoNaychev/food-app/testutil"
+	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
 )
 

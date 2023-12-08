@@ -10,16 +10,17 @@ import (
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/customer-svc/handlers"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/customer-svc/stubs"
 	td "github.com/VitoNaychev/food-app/customer-svc/testdata"
-	"github.com/VitoNaychev/food-app/customer-svc/testutil"
 	"github.com/VitoNaychev/food-app/msgtypes"
+	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestCustomerEndpointAuthentication(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	store := testutil.NewStubCustomerStore(customerData)
+	store := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	invalidJWT := "thisIsAnInvalidJWT"
@@ -44,7 +45,7 @@ func TestCustomerEndpointAuthentication(t *testing.T) {
 
 func TestAuthHandler(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	store := testutil.NewStubCustomerStore(customerData)
+	store := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("returns OK status and customer ID on valid JWT", func(t *testing.T) {
@@ -159,7 +160,7 @@ func TestAuthHandler(t *testing.T) {
 
 func TestUpdateUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	store := testutil.NewStubCustomerStore(customerData)
+	store := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("updates customer information on valid JWT", func(t *testing.T) {
@@ -175,13 +176,13 @@ func TestUpdateUser(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertUpdatedCustomer(t, store, updateCustomer)
+		stubs.AssertUpdatedCustomer(t, store, updateCustomer)
 	})
 }
 
 func TestDeleteUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	store := testutil.NewStubCustomerStore(customerData)
+	store := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("deletes customer on valid JWT", func(t *testing.T) {
@@ -191,13 +192,13 @@ func TestDeleteUser(t *testing.T) {
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
-		testutil.AssertDeletedCustomer(t, store, td.PeterCustomer)
+		stubs.AssertDeletedCustomer(t, store, td.PeterCustomer)
 	})
 }
 
 func TestLoginUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	store := testutil.NewStubCustomerStore(customerData)
+	store := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("returns JWT on Peter's credentials", func(t *testing.T) {
@@ -255,7 +256,7 @@ func TestLoginUser(t *testing.T) {
 
 func TestCreateUser(t *testing.T) {
 	customerData := []models.Customer{}
-	store := testutil.NewStubCustomerStore(customerData)
+	store := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("stores customer on POST", func(t *testing.T) {
@@ -270,7 +271,7 @@ func TestCreateUser(t *testing.T) {
 		want := http.StatusAccepted
 
 		testutil.AssertStatus(t, got, want)
-		testutil.AssertCreatedCustomer(t, store, td.PeterCustomer)
+		stubs.AssertCreatedCustomer(t, store, td.PeterCustomer)
 
 	})
 
@@ -314,7 +315,7 @@ func TestCreateUser(t *testing.T) {
 
 func TestGetUser(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	store := testutil.NewStubCustomerStore(customerData)
+	store := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("returns Peter's customer information", func(t *testing.T) {

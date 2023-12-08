@@ -1,4 +1,4 @@
-package testutil
+package stubs
 
 import (
 	"github.com/VitoNaychev/food-app/customer-svc/models"

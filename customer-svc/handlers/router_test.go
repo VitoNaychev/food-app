@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/food-app/customer-svc/handlers"
-	"github.com/VitoNaychev/food-app/customer-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 var customerHandlerMessage = "Hello from customer handler"

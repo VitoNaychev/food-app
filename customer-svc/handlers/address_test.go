@@ -10,14 +10,15 @@ import (
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/customer-svc/handlers"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/customer-svc/stubs"
 	td "github.com/VitoNaychev/food-app/customer-svc/testdata"
-	"github.com/VitoNaychev/food-app/customer-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestAddressEndpointAuthentication(t *testing.T) {
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	stubAddressStore := testutil.NewStubAddressStore(nil)
-	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
+	stubAddressStore := stubs.NewStubAddressStore(nil)
+	stubCustomerStore := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
 
 	invalidJWT := "thisIsAnInvalidJWT"
@@ -42,8 +43,8 @@ func TestAddressEndpointAuthentication(t *testing.T) {
 func TestUpdateCustomerAddress(t *testing.T) {
 	addressData := []models.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	stubAddressStore := testutil.NewStubAddressStore(addressData)
-	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
+	stubAddressStore := stubs.NewStubAddressStore(addressData)
+	stubCustomerStore := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
 
 	t.Run("updates address on valid body and credentials", func(t *testing.T) {
@@ -58,7 +59,7 @@ func TestUpdateCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertUpdatedAddress(t, stubAddressStore, updatedAddress)
+		stubs.AssertUpdatedAddress(t, stubAddressStore, updatedAddress)
 	})
 
 	t.Run("returns Bad Request on invalid request", func(t *testing.T) {
@@ -109,8 +110,8 @@ func TestUpdateCustomerAddress(t *testing.T) {
 func TestDeleteCustomerAddress(t *testing.T) {
 	addressData := []models.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	stubAddressStore := testutil.NewStubAddressStore(addressData)
-	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
+	stubAddressStore := stubs.NewStubAddressStore(addressData)
+	stubCustomerStore := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
 
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
@@ -163,15 +164,15 @@ func TestDeleteCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertDeletedAddress(t, stubAddressStore, td.PeterAddress1)
+		stubs.AssertDeletedAddress(t, stubAddressStore, td.PeterAddress1)
 	})
 }
 
 func TestSaveCustomerAddress(t *testing.T) {
 	addressData := []models.Address{}
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	stubAddressStore := testutil.NewStubAddressStore(addressData)
-	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
+	stubAddressStore := stubs.NewStubAddressStore(addressData)
+	stubCustomerStore := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
 
 	t.Run("returns Bad Request on inavlid request", func(t *testing.T) {
@@ -194,7 +195,7 @@ func TestSaveCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertStoredAddress(t, stubAddressStore, td.PeterAddress1)
+		stubs.AssertStoredAddress(t, stubAddressStore, td.PeterAddress1)
 	})
 
 	t.Run("saves Alice's new address", func(t *testing.T) {
@@ -208,15 +209,15 @@ func TestSaveCustomerAddress(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-		testutil.AssertStoredAddress(t, stubAddressStore, td.AliceAddress)
+		stubs.AssertStoredAddress(t, stubAddressStore, td.AliceAddress)
 	})
 }
 
 func TestGetCustomerAddress(t *testing.T) {
 	addressData := []models.Address{td.PeterAddress1, td.PeterAddress2, td.AliceAddress}
 	customerData := []models.Customer{td.PeterCustomer, td.AliceCustomer}
-	stubAddressStore := testutil.NewStubAddressStore(addressData)
-	stubCustomerStore := testutil.NewStubCustomerStore(customerData)
+	stubAddressStore := stubs.NewStubAddressStore(addressData)
+	stubCustomerStore := stubs.NewStubCustomerStore(customerData)
 	server := handlers.NewCustomerAddressServer(stubAddressStore, stubCustomerStore, testEnv.SecretKey)
 
 	t.Run("returns Peter's addresses", func(t *testing.T) {

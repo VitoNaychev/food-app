@@ -10,8 +10,9 @@ import (
 
 	"github.com/VitoNaychev/food-app/order-svc/handlers"
 	"github.com/VitoNaychev/food-app/order-svc/models"
+	"github.com/VitoNaychev/food-app/order-svc/stubs"
 	"github.com/VitoNaychev/food-app/order-svc/testdata"
-	"github.com/VitoNaychev/food-app/order-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestOrderServerOperations(t *testing.T) {
@@ -27,7 +28,7 @@ func TestOrderServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := handlers.NewOrderServer(orderStore, addressStore, testutil.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -53,7 +54,7 @@ func TestOrderServerOperations(t *testing.T) {
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertGetOrderResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("get current orders", func(t *testing.T) {
@@ -70,7 +71,7 @@ func TestOrderServerOperations(t *testing.T) {
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertGetOrderResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("cancel order", func(t *testing.T) {
@@ -99,6 +100,6 @@ func TestOrderServerOperations(t *testing.T) {
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
 
-		testutil.AssertGetOrderResponse(t, got, want)
+		testutil.AssertEqual(t, got, want)
 	})
 }

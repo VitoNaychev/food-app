@@ -6,11 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
-	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestMenuServerOperations(t *testing.T) {
@@ -72,7 +73,7 @@ func TestMenuServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		got := ParseJSON[models.MenuItem](response.Body)
+		got := parser.FromJSON[models.MenuItem](response.Body)
 
 		testutil.AssertEqual(t, got, testItem)
 	})
@@ -86,7 +87,7 @@ func TestMenuServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []models.MenuItem{testItem}
-		got := ParseJSON[[]models.MenuItem](response.Body)
+		got := parser.FromJSON[[]models.MenuItem](response.Body)
 
 		testutil.AssertEqual(t, got, want)
 	})
@@ -103,7 +104,7 @@ func TestMenuServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		got := ParseJSON[models.MenuItem](response.Body)
+		got := parser.FromJSON[models.MenuItem](response.Body)
 
 		testutil.AssertEqual(t, got, updateItem)
 	})
@@ -126,7 +127,7 @@ func TestMenuServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []models.MenuItem{}
-		got := ParseJSON[[]models.MenuItem](response.Body)
+		got := parser.FromJSON[[]models.MenuItem](response.Body)
 
 		testutil.AssertEqual(t, got, want)
 	})

@@ -2,16 +2,16 @@ package integration
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
-	"github.com/VitoNaychev/food-app/restaurant-svc/testutil"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestAddressServerOperations(t *testing.T) {
@@ -45,8 +45,7 @@ func TestAddressServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		var got models.Address
-		json.NewDecoder(response.Body).Decode(&got)
+		got := parser.FromJSON[models.Address](response.Body)
 
 		testutil.AssertEqual(t, got, td.ShackAddress)
 	})
@@ -59,8 +58,7 @@ func TestAddressServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		var got models.Address
-		json.NewDecoder(response.Body).Decode(&got)
+		got := parser.FromJSON[models.Address](response.Body)
 
 		testutil.AssertEqual(t, got, td.ShackAddress)
 	})
@@ -76,8 +74,7 @@ func TestAddressServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		var got models.Address
-		json.NewDecoder(response.Body).Decode(&got)
+		got := parser.FromJSON[models.Address](response.Body)
 
 		testutil.AssertEqual(t, got, updateRestaurant)
 	})

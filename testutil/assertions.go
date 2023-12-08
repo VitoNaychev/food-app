@@ -8,8 +8,28 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+type GenericTypeToResponseFunction func(interface{}) interface{}
+
+func AssertResponseBody[T, V any](t testing.TB, body io.Reader, data T, ConversionFunction GenericTypeToResponseFunction) {
+	t.Helper()
+
+	got, err := validation.ValidateBody[V](body)
+	if err != nil {
+		t.Fatalf("didn't recieve valid response: %v", err)
+	}
+
+	var want V
+	var ok bool
+	if want, ok = ConversionFunction(data).(V); !ok {
+		t.Fatalf("couldn't cast output of ConversionFunction to %T", want)
+	}
+
+	AssertEqual(t, got, want)
+}
 
 func AssertEqual[T any](t testing.TB, got, want T) {
 	t.Helper()

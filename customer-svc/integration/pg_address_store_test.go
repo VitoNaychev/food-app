@@ -10,7 +10,8 @@ import (
 	"github.com/VitoNaychev/food-app/customer-svc/handlers"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
 	"github.com/VitoNaychev/food-app/customer-svc/testdata"
-	"github.com/VitoNaychev/food-app/customer-svc/testutil"
+	"github.com/VitoNaychev/food-app/parser"
+	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestAddressServerOperations(t *testing.T) {
@@ -39,13 +40,13 @@ func TestAddressServerOperations(t *testing.T) {
 		response := createNewAddress(t, server, testdata.PeterAddress1, peterJWT)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		got := testutil.ParseAddressResponse(t, response.Body)
+		got := parser.FromJSON[models.Address](response.Body)
 		testutil.AssertEqual(t, got, testdata.PeterAddress1)
 
 		response = createNewAddress(t, server, testdata.PeterAddress2, peterJWT)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		got = testutil.ParseAddressResponse(t, response.Body)
+		got = parser.FromJSON[models.Address](response.Body)
 		testutil.AssertEqual(t, got, testdata.PeterAddress2)
 
 	})
@@ -64,7 +65,7 @@ func TestAddressServerOperations(t *testing.T) {
 			handlers.AddressToGetAddressResponse(testdata.PeterAddress1),
 			handlers.AddressToGetAddressResponse(testdata.PeterAddress2),
 		}
-		got := testutil.ParseGetAddressResponse(t, response.Body)
+		got := parser.FromJSON[[]handlers.GetAddressResponse](response.Body)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 		testutil.AssertEqual(t, got, want)
@@ -81,7 +82,7 @@ func TestAddressServerOperations(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		got := testutil.ParseAddressResponse(t, response.Body)
+		got := parser.FromJSON[models.Address](response.Body)
 		testutil.AssertEqual(t, got, updateAddress)
 	})
 
@@ -105,7 +106,7 @@ func TestAddressServerOperations(t *testing.T) {
 		want := []handlers.GetAddressResponse{
 			handlers.AddressToGetAddressResponse(testdata.PeterAddress1),
 		}
-		got := testutil.ParseGetAddressResponse(t, response.Body)
+		got := parser.FromJSON[[]handlers.GetAddressResponse](response.Body)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 		testutil.AssertEqual(t, got, want)
