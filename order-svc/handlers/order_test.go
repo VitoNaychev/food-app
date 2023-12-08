@@ -13,6 +13,7 @@ import (
 	"github.com/VitoNaychev/food-app/order-svc/stubs"
 	"github.com/VitoNaychev/food-app/order-svc/testdata"
 	"github.com/VitoNaychev/food-app/testutil"
+	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -80,18 +81,23 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 		"cancel order authentication":      handlers.NewCancelOrderRequest(invalidJWT, handlers.CancelOrderRequest{}),
 	}
 
-	for name, request := range cases {
-		t.Run(name, func(t *testing.T) {
-			response := httptest.NewRecorder()
-
-			server.ServeHTTP(response, request)
-
-			testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-		})
-	}
+	tabletests.RunAuthenticationTests(t, server, cases)
 }
 
-type GenericResponse interface{}
+func TestOrderRequestValidation(t *testing.T) {
+	orderStore := &stubs.StubOrderStore{}
+	addressStore := &stubs.StubAddressStore{}
+	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+
+	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
+
+	cases := map[string]*http.Request{
+		"create order": handlers.NewCreateOrderRequest(peterJWT, handlers.CreateOrderRequest{}),
+		"cancel order": handlers.NewCancelOrderRequest(peterJWT, handlers.CancelOrderRequest{}),
+	}
+
+	tabletests.RunRequestValidationTests(t, server, cases)
+}
 
 func TestOrderResponseValidity(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{
@@ -106,57 +112,42 @@ func TestOrderResponseValidity(t *testing.T) {
 	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
 	cancelOrderRequestBody := handlers.CancelOrderRequest{ID: testdata.PeterOrder1.ID}
 
-	cases := []struct {
-		Name               string
-		Request            *http.Request
-		ValidationFunction func(io.Reader) (GenericResponse, error)
-	}{
+	cases := []tabletests.ResponseValidationTestcase{
 		{
-			"get all orders",
-			handlers.NewGetAllOrdersRequest(peterJWT),
-			func(r io.Reader) (GenericResponse, error) {
+			Name:    "get all orders",
+			Request: handlers.NewGetAllOrdersRequest(peterJWT),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[[]handlers.OrderResponse](r)
 				return response, err
 			},
 		},
 		{
-			"get current orders",
-			handlers.NewGetCurrentOrdersRequest(peterJWT),
-			func(r io.Reader) (GenericResponse, error) {
+			Name:    "get current orders",
+			Request: handlers.NewGetCurrentOrdersRequest(peterJWT),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[[]handlers.OrderResponse](r)
 				return response, err
 			},
 		},
 		{
-			"create order",
-			handlers.NewCreateOrderRequest(peterJWT, createOrderRequestBody),
-			func(r io.Reader) (GenericResponse, error) {
+			Name:    "create order",
+			Request: handlers.NewCreateOrderRequest(peterJWT, createOrderRequestBody),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.OrderResponse](r)
 				return response, err
 			},
 		},
 		{
-			"cancel order",
-			handlers.NewCancelOrderRequest(peterJWT, cancelOrderRequestBody),
-			func(r io.Reader) (GenericResponse, error) {
+			Name:    "cancel order",
+			Request: handlers.NewCancelOrderRequest(peterJWT, cancelOrderRequestBody),
+			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.CancelOrderResponse](r)
 				return response, err
 			},
 		},
 	}
 
-	for _, test := range cases {
-		t.Run(test.Name, func(t *testing.T) {
-			response := httptest.NewRecorder()
-
-			server.ServeHTTP(response, test.Request)
-
-			_, err := test.ValidationFunction(response.Body)
-			if err != nil {
-				t.Errorf("invalid response body, %v", err)
-			}
-		})
-	}
+	tabletests.RunResponseValidationTests(t, server, cases)
 }
 
 func TestCancelOrder(t *testing.T) {

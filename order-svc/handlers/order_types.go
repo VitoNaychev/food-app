@@ -10,7 +10,7 @@ import (
 type VerifyJWTFunc func(token string) (msgtypes.AuthResponse, error)
 
 type CancelOrderRequest struct {
-	ID int
+	ID int `validate:"min=1"`
 }
 
 type CancelOrderResponse struct {
@@ -44,9 +44,9 @@ func NewOrderResponseBody(order models.Order, pickupAddress, deliveryAddress mod
 }
 
 type CreateOrderRequest struct {
-	RestaurantID    int
+	RestaurantID    int `validate:"min=1"`
 	Items           []int
-	Total           float64
+	Total           float64 `validate:"min=0.01"`
 	DeliveryTime    time.Time
 	Status          models.Status
 	PickupAddress   CreateOrderAddress

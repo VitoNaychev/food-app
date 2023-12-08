@@ -64,8 +64,11 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 }
 
 func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
-	var cancelOrderRequest CancelOrderRequest
-	json.NewDecoder(r.Body).Decode(&cancelOrderRequest)
+	cancelOrderRequest, err := validation.ValidateBody[CancelOrderRequest](r.Body)
+	if err != nil {
+		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		return
+	}
 
 	order, err := o.orderStore.GetOrderByID(cancelOrderRequest.ID)
 	if err != nil {
@@ -94,7 +97,11 @@ func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
-	createOrderRequest, _ := validation.ValidateBody[CreateOrderRequest](r.Body)
+	createOrderRequest, err := validation.ValidateBody[CreateOrderRequest](r.Body)
+	if err != nil {
+		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		return
+	}
 
 	customerJWT := r.Header["Token"][0]
 	authResponse := authResponseMap[customerJWT]
@@ -103,7 +110,7 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 	pickupAddress := GetPickupAddressFromCreateOrderRequest(createOrderRequest)
 	deliveryAddress := GetDeliveryAddressFromCreateOrderRequest(createOrderRequest)
 
-	err := o.addressStore.CreateAddress(&pickupAddress)
+	err = o.addressStore.CreateAddress(&pickupAddress)
 	if err != nil {
 		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
