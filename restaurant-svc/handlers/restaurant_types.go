@@ -6,7 +6,7 @@ type UpdateRestaurantRequest struct {
 	Name        string `validate:"required,max=40"             json:"name"`
 	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
 	Email       string `validate:"required,email,max=60"       json:"email"`
-	Password    string `valdiate:"required"                    json:"password"`
+	Password    string `valdiate:"required,max=72"             json:"password"`
 	IBAN        string `validate:"required"                    json:"iban"`
 }
 
@@ -69,7 +69,7 @@ type CreateRestaurantRequest struct {
 	Name        string `validate:"required,max=40"             json:"name"`
 	PhoneNumber string `validate:"required,phonenumber,max=20" json:"phone_number"`
 	Email       string `validate:"required,email,max=60"       json:"email"`
-	Password    string `valdiate:"required"                    json:"password"`
+	Password    string `valdiate:"required,max=72"             json:"password"`
 	IBAN        string `validate:"required"                    json:"iban"`
 }
 
