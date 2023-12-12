@@ -13,20 +13,27 @@ type RestaurantServer struct {
 	expiresAt time.Duration
 	store     models.RestaurantStore
 	verifier  auth.Verifier
+	http.Handler
 }
 
 func NewRestaurantServer(secretKey []byte, expiresAt time.Duration, store models.RestaurantStore) *RestaurantServer {
-	restaurantServer := RestaurantServer{
+	s := RestaurantServer{
 		secretKey: secretKey,
 		expiresAt: expiresAt,
 		store:     store,
 		verifier:  NewRestaurantVerifier(store),
 	}
 
-	return &restaurantServer
+	router := http.NewServeMux()
+	router.HandleFunc("/restaurant/", s.RestaurantHandler)
+	router.HandleFunc("/restaurant/login/", s.LoginHandler)
+
+	s.Handler = router
+
+	return &s
 }
 
-func (s *RestaurantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *RestaurantServer) RestaurantHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		s.createRestaurant(w, r)

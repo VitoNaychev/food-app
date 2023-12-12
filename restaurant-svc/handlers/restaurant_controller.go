@@ -12,6 +12,35 @@ import (
 	"github.com/VitoNaychev/food-app/validation"
 )
 
+func (s *RestaurantServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	loginRestaurantRequest, err := validation.ValidateBody[LoginRestaurantRequest](r.Body)
+	if err != nil {
+		httperrors.HandleBadRequest(w, err)
+		return
+	}
+
+	restaurant, err := s.store.GetRestaurantByEmail(loginRestaurantRequest.Email)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			httperrors.HandleUnauthorized(w, ErrInvalidCredentials)
+			return
+		} else {
+			httperrors.HandleInternalServerError(w, err)
+			return
+		}
+	}
+
+	if restaurant.Password != loginRestaurantRequest.Password {
+		httperrors.HandleUnauthorized(w, ErrInvalidCredentials)
+		return
+	}
+
+	jwtToken, _ := auth.GenerateJWT(s.secretKey, s.expiresAt, restaurant.ID)
+	jwtResponse := JWTResponse{Token: jwtToken}
+
+	json.NewEncoder(w).Encode(jwtResponse)
+}
+
 func (s *RestaurantServer) deleteRestaurant(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 

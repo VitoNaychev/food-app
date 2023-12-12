@@ -62,7 +62,7 @@ func AssertValidResponse(t testing.TB, err error) {
 	t.Helper()
 
 	if err != nil {
-		t.Fatalf("invalid response body %v", err)
+		t.Fatalf("invalid response body: %v", err)
 	}
 }
 

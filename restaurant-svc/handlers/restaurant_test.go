@@ -70,6 +70,7 @@ func TestRestaurantRequestValidation(t *testing.T) {
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := map[string]*http.Request{
+		"login restaurant":  handlers.NewLoginRestaurantRequest(models.Restaurant{}),
 		"create restaurant": handlers.NewCreateRestaurantRequest(models.Restaurant{}),
 		"update restaurant": handlers.NewUpdateRestaurantRequest(dominosJWT, models.Restaurant{}),
 	}
@@ -125,6 +126,53 @@ func TestRestaurantEnpointAuthentication(t *testing.T) {
 	}
 
 	tabletests.RunAuthenticationTests(t, server, cases)
+}
+
+func TestLoginRestaurant(t *testing.T) {
+	store := &StubRestaurantStore{
+		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
+	}
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+
+	t.Run("returns JWT on correct credentials", func(t *testing.T) {
+		request := handlers.NewLoginRestaurantRequest(testdata.ShackRestaurant)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		jwtResponse, err := validation.ValidateBody[handlers.JWTResponse](response.Body)
+		testutil.AssertValidResponse(t, err)
+
+		testutil.AssertJWT(t, jwtResponse.Token, testEnv.SecretKey, testdata.ShackRestaurant.ID)
+	})
+
+	t.Run("returns Unauthorized on incorrect email", func(t *testing.T) {
+		invalidRestaurant := testdata.ShackRestaurant
+		invalidRestaurant.Email = "notshack@gmail.com"
+
+		request := handlers.NewLoginRestaurantRequest(invalidRestaurant)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidCredentials)
+	})
+
+	t.Run("returns Unauthorized on incorrect password", func(t *testing.T) {
+		invalidRestaurant := testdata.ShackRestaurant
+		invalidRestaurant.Password = "wrongpassword"
+
+		request := handlers.NewLoginRestaurantRequest(invalidRestaurant)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidCredentials)
+	})
 }
 
 func TestDeleteRestaurant(t *testing.T) {

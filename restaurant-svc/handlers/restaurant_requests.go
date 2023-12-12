@@ -5,8 +5,17 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/VitoNaychev/food-app/reqbuilder"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 )
+
+func NewLoginRestaurantRequest(restaurant models.Restaurant) *http.Request {
+	requestBody := LoginRestaurantRequest{restaurant.Email, restaurant.Password}
+	request := reqbuilder.NewRequestWithBody[LoginRestaurantRequest](
+		http.MethodPost, "/restaurant/login/", requestBody)
+
+	return request
+}
 
 func NewDeleteRestaruantRequest(jwt string) *http.Request {
 	request, _ := http.NewRequest(http.MethodDelete, "/restaurant/", nil)
