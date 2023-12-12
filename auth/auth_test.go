@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/VitoNaychev/food-app/auth"
-	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -91,7 +91,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusUnauthorized)
 
-		var errorResponse errorresponse.ErrorResponse
+		var errorResponse httperrors.ErrorResponse
 		decoder := json.NewDecoder(response.Body)
 		decoder.DisallowUnknownFields()
 		decoder.Decode(&errorResponse)
@@ -197,7 +197,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 func assertErrorResponse(t testing.TB, body io.Reader, expetedError error) {
 	t.Helper()
 
-	var errorResponse errorresponse.ErrorResponse
+	var errorResponse httperrors.ErrorResponse
 	json.NewDecoder(body).Decode(&errorResponse)
 
 	if errorResponse.Message != expetedError.Error() {

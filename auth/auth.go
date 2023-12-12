@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -45,30 +45,30 @@ func AuthenticationMiddleware(endpointHandler func(w http.ResponseWriter, r *htt
 	secretKey []byte) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil {
-			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
+			httperrors.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
 			return
 		}
 
 		token, err := VerifyJWT(r.Header["Token"][0], secretKey)
 		if err != nil {
-			errorresponse.WriteJSONError(w, http.StatusUnauthorized, err)
+			httperrors.WriteJSONError(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		id, err := getIDFromToken(token)
 		if err != nil {
-			errorresponse.WriteJSONError(w, http.StatusUnauthorized, err)
+			httperrors.WriteJSONError(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		exists, err := verifier.DoesSubjectExist(id)
 		if err != nil {
-			errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+			httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		if !exists {
-			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrSubjectNotFound)
+			httperrors.WriteJSONError(w, http.StatusNotFound, ErrSubjectNotFound)
 			return
 		}
 

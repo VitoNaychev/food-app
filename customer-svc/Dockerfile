@@ -16,8 +16,8 @@ COPY ../validation /app/validation
 # Copy the msgtypes package at /app/msgtypes
 COPY ../msgtypes /app/msgtypes
 
-# Copy the errorresponse package at /app/errorresponse
-COPY ../errorresponse /app/errorresponse
+# Copy the httperrors package at /app/httperrors
+COPY ../httperrors /app/httperrors
 
 # Copy go.mod and go.sum in /app
 COPY ../go.mod /app

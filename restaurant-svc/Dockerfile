@@ -16,8 +16,8 @@ COPY ../validation /app/validation
 # Copy the msgtypes package at /app/msgtypes
 COPY ../msgtypes /app/msgtypes
 
-# Copy the errorresponse package at /app/errorresponse
-COPY ../errorresponse /app/errorresponse
+# Copy the httperrors package at /app/httperrors
+COPY ../httperrors /app/httperrors
 
 # Copy the reqbuilder package at /app/reqbuilder
 COPY ../reqbuilder /app/reqbuilder

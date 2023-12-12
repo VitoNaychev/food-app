@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
 )
@@ -14,7 +14,7 @@ import (
 func (c *AddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 	updateAddressRequest, err := validation.ValidateBody[UpdateAddressRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -22,25 +22,25 @@ func (c *AddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 
 	restaurant, err := c.restaurantStore.GetRestaurantByID(restaurantID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if restaurant.Status&models.ADDRESS_SET == 0 {
-		errorresponse.WriteJSONError(w, http.StatusNotFound, ErrAddressNotSet)
+		httperrors.WriteJSONError(w, http.StatusNotFound, ErrAddressNotSet)
 		return
 	}
 
 	currentAddress, err := c.addressStore.GetAddressByRestaurantID(restaurantID)
 	if err != nil {
-		handleInternalServerError(w, err)
+		httperrors.HandleInternalServerError(w, err)
 	}
 
 	address := UpdateAddressRequestToAddress(updateAddressRequest, currentAddress.ID, restaurantID)
 
 	err = c.addressStore.UpdateAddress(&address)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 	}
 
 	json.NewEncoder(w).Encode(address)
@@ -49,7 +49,7 @@ func (c *AddressServer) updateAddress(w http.ResponseWriter, r *http.Request) {
 func (c *AddressServer) createAddress(w http.ResponseWriter, r *http.Request) {
 	createAddressRequest, err := validation.ValidateBody[CreateAddressRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -57,12 +57,12 @@ func (c *AddressServer) createAddress(w http.ResponseWriter, r *http.Request) {
 
 	restaurant, err := c.restaurantStore.GetRestaurantByID(restaurantID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if restaurant.Status&models.ADDRESS_SET != 0 {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, ErrAddressAlreadySet)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, ErrAddressAlreadySet)
 		return
 	}
 
@@ -70,14 +70,14 @@ func (c *AddressServer) createAddress(w http.ResponseWriter, r *http.Request) {
 
 	err = c.addressStore.CreateAddress(&address)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	restaurant.Status = restaurant.Status | models.ADDRESS_SET
 	err = c.restaurantStore.UpdateRestaurant(&restaurant)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -89,16 +89,16 @@ func (c *AddressServer) getAddress(w http.ResponseWriter, r *http.Request) {
 
 	_, err := c.restaurantStore.GetRestaurantByID(restaurantID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	address, err := c.addressStore.GetAddressByID(restaurantID)
 	if errors.Is(err, models.ErrNotFound) {
-		errorresponse.WriteJSONError(w, http.StatusNotFound, err)
+		httperrors.WriteJSONError(w, http.StatusNotFound, err)
 		return
 	} else if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 

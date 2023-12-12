@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
 )
@@ -15,29 +15,29 @@ func (h *HoursServer) updateHours(w http.ResponseWriter, r *http.Request) {
 
 	updateHoursRequestArr, err := validation.ValidateBody[[]HoursRequest](r.Body)
 	if err != nil {
-		handleBadRequest(w, err)
+		httperrors.HandleBadRequest(w, err)
 		return
 	}
 
 	restaurant, err := h.restaurantStore.GetRestaurantByID(restaurantID)
 	if err != nil {
-		handleInternalServerError(w, err)
+		httperrors.HandleInternalServerError(w, err)
 		return
 	}
 
 	if !isRestaurantStatusBitSet(restaurant, models.HOURS_SET) {
-		handleBadRequest(w, ErrHoursNotSet)
+		httperrors.HandleBadRequest(w, ErrHoursNotSet)
 		return
 	}
 
 	if err := checkForDuplicateDays(updateHoursRequestArr); err != nil {
-		handleBadRequest(w, err)
+		httperrors.HandleBadRequest(w, err)
 		return
 	}
 
 	currentHoursArr, err := h.hoursStore.GetHoursByRestaurantID(restaurantID)
 	if err != nil {
-		handleInternalServerError(w, err)
+		httperrors.HandleInternalServerError(w, err)
 		return
 	}
 
@@ -52,7 +52,7 @@ func (h *HoursServer) updateHours(w http.ResponseWriter, r *http.Request) {
 	for _, updateHours := range updateHoursArr {
 		err := h.hoursStore.UpdateHours(&updateHours)
 		if err != nil {
-			errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+			httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -92,23 +92,23 @@ func (h *HoursServer) createHours(w http.ResponseWriter, r *http.Request) {
 
 	restaurant, err := h.restaurantStore.GetRestaurantByID(restaurantID)
 	if err != nil {
-		handleInternalServerError(w, err)
+		httperrors.HandleInternalServerError(w, err)
 		return
 	}
 
 	if isRestaurantStatusBitSet(restaurant, models.HOURS_SET) {
-		handleBadRequest(w, ErrHoursAlreadySet)
+		httperrors.HandleBadRequest(w, ErrHoursAlreadySet)
 		return
 	}
 
 	createHoursRequestArr, err := validation.ValidateBody[[]HoursRequest](r.Body)
 	if err != nil {
-		handleBadRequest(w, err)
+		httperrors.HandleBadRequest(w, err)
 		return
 	}
 
 	if err = checkForDuplicateOrMissingDays(createHoursRequestArr); err != nil {
-		handleBadRequest(w, err)
+		httperrors.HandleBadRequest(w, err)
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *HoursServer) createHours(w http.ResponseWriter, r *http.Request) {
 
 		err = h.hoursStore.CreateHours(&hours)
 		if err != nil {
-			handleInternalServerError(w, err)
+			httperrors.HandleInternalServerError(w, err)
 			return
 		}
 
@@ -128,7 +128,7 @@ func (h *HoursServer) createHours(w http.ResponseWriter, r *http.Request) {
 	restaurant.Status = restaurant.Status | models.HOURS_SET
 	err = h.restaurantStore.UpdateRestaurant(&restaurant)
 	if err != nil {
-		handleInternalServerError(w, err)
+		httperrors.HandleInternalServerError(w, err)
 		return
 	}
 
@@ -180,17 +180,9 @@ func (h *HoursServer) getHours(w http.ResponseWriter, r *http.Request) {
 
 	hours, err := h.hoursStore.GetHoursByRestaurantID(restaurantID)
 	if err != nil {
-		handleInternalServerError(w, err)
+		httperrors.HandleInternalServerError(w, err)
 	}
 
 	hoursResponse := HoursArrToHoursResponseArr(hours)
 	json.NewEncoder(w).Encode(hoursResponse)
-}
-
-func handleBadRequest(w http.ResponseWriter, err error) {
-	errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
-}
-
-func handleInternalServerError(w http.ResponseWriter, err error) {
-	errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
 }

@@ -8,7 +8,7 @@ import (
 
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
-	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
@@ -67,7 +67,7 @@ func getCustomerIDFromToken(token *jwt.Token) (int, error) {
 func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	loginCustomerRequest, err := validation.ValidateBody[LoginCustomerRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -75,16 +75,16 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			// wrap models.ErrNotFound in customer handlers error type?
-			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrCustomerNotFound)
+			httperrors.WriteJSONError(w, http.StatusUnauthorized, ErrCustomerNotFound)
 			return
 		} else {
-			errorresponse.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
+			httperrors.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 			return
 		}
 	}
 
 	if customer.Password != loginCustomerRequest.Password {
-		errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrInvalidCredentials)
+		httperrors.WriteJSONError(w, http.StatusUnauthorized, ErrInvalidCredentials)
 		return
 	}
 
@@ -103,7 +103,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 
 	updateCustomerRequest, err := validation.ValidateBody[UpdateCustomerRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -111,7 +111,7 @@ func (c *CustomerServer) updateCustomer(w http.ResponseWriter, r *http.Request) 
 
 	err = c.store.UpdateCustomer(&customer)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 	}
 
 	json.NewEncoder(w).Encode(CustomerToCustomerResponse(customer))
@@ -130,16 +130,16 @@ func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) 
 	createCustomerRequest, err := validation.ValidateBody[CreateCustomerRequest](r.Body)
 	if err != nil {
 		// Add error wrapping for validation errors
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	_, err = c.store.GetCustomerByEmail(createCustomerRequest.Email)
 	if err == nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, ErrExistingCustomer)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, ErrExistingCustomer)
 		return
 	} else if err != models.ErrNotFound {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 		return
 	}
 
@@ -147,7 +147,7 @@ func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) 
 
 	err = c.store.CreateCustomer(&customer)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 		return
 	}
 
@@ -178,10 +178,10 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 func handleStoreError(w http.ResponseWriter, err error) {
 	if errors.Is(err, models.ErrNotFound) {
 		// wrap models.ErrNotFound in customer handlers error type?
-		errorresponse.WriteJSONError(w, http.StatusNotFound, ErrCustomerNotFound)
+		httperrors.WriteJSONError(w, http.StatusNotFound, ErrCustomerNotFound)
 		return
 	} else {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 		return
 	}
 }

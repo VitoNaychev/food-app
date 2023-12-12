@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -42,7 +42,7 @@ func AssertEqual[T any](t testing.TB, got, want T) {
 func AssertErrorResponse(t testing.TB, body io.Reader, expetedError error) {
 	t.Helper()
 
-	var errorResponse errorresponse.ErrorResponse
+	var errorResponse httperrors.ErrorResponse
 	json.NewDecoder(body).Decode(&errorResponse)
 
 	if errorResponse.Message != expetedError.Error() {

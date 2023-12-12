@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/VitoNaychev/food-app/auth"
-	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
 )
@@ -17,7 +17,7 @@ func (s *RestaurantServer) deleteRestaurant(w http.ResponseWriter, r *http.Reque
 
 	err := s.store.DeleteRestaurant(restaurantID)
 	if err != nil {
-		handleInternalServerError(w, err)
+		httperrors.HandleInternalServerError(w, err)
 	}
 }
 
@@ -26,13 +26,13 @@ func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Reque
 
 	updateRestaurantRequest, err := validation.ValidateBody[UpdateRestaurantRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	oldRestaurant, err := s.store.GetRestaurantByID(restaurantID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -42,7 +42,7 @@ func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Reque
 
 	err = s.store.UpdateRestaurant(&newRestaurant)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (s *RestaurantServer) getRestaurant(w http.ResponseWriter, r *http.Request)
 
 	restaurant, err := s.store.GetRestaurantByID(restaurantID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 	}
 
 	getRestaurantResponse := RestaurantToRestaurantResponse(restaurant)
@@ -65,20 +65,20 @@ func (s *RestaurantServer) getRestaurant(w http.ResponseWriter, r *http.Request)
 func (s *RestaurantServer) createRestaurant(w http.ResponseWriter, r *http.Request) {
 	createRestaurantRequest, err := validation.ValidateBody[CreateRestaurantRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	restaurant := CreateRestaurantRequestToRestaurant(createRestaurantRequest)
 	if _, err = s.store.GetRestaurantByEmail(restaurant.Email); !errors.Is(err, models.ErrNotFound) {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, ErrExistingRestaurant)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, ErrExistingRestaurant)
 		return
 	}
 
 	restaurant.Status = models.CREATED
 	err = s.store.CreateRestaurant(&restaurant)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/VitoNaychev/food-app/errorresponse"
+	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
@@ -32,28 +32,28 @@ func VerifyJWT(token string) (authResponse msgtypes.AuthResponse, err error) {
 func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verifyJWT VerifyJWTFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if tokenHeader := r.Header.Get("Token"); tokenHeader == "" {
-			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
+			httperrors.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
 			return
 		}
 
 		authResponse, err := verifyJWT(r.Header["Token"][0])
 		if err != nil {
-			errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+			httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		if authResponse.Status == msgtypes.MISSING_TOKEN {
-			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
+			httperrors.WriteJSONError(w, http.StatusUnauthorized, ErrMissingToken)
 			return
 		}
 
 		if authResponse.Status == msgtypes.INVALID {
-			errorresponse.WriteJSONError(w, http.StatusUnauthorized, ErrInvalidToken)
+			httperrors.WriteJSONError(w, http.StatusUnauthorized, ErrInvalidToken)
 			return
 		}
 
 		if authResponse.Status == msgtypes.NOT_FOUND {
-			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrCustomerNotFound)
+			httperrors.WriteJSONError(w, http.StatusNotFound, ErrCustomerNotFound)
 			return
 		}
 
@@ -66,17 +66,17 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
 	cancelOrderRequest, err := validation.ValidateBody[CancelOrderRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	order, err := o.orderStore.GetOrderByID(cancelOrderRequest.ID)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
-			errorresponse.WriteJSONError(w, http.StatusNotFound, ErrOrderNotFound)
+			httperrors.WriteJSONError(w, http.StatusNotFound, ErrOrderNotFound)
 			return
 		} else {
-			errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+			httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -88,7 +88,7 @@ func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
 
 	err = o.orderStore.CancelOrder(cancelOrderRequest.ID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
 func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 	createOrderRequest, err := validation.ValidateBody[CreateOrderRequest](r.Body)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusBadRequest, err)
+		httperrors.WriteJSONError(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -112,12 +112,12 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 
 	err = o.addressStore.CreateAddress(&pickupAddress)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 	err = o.addressStore.CreateAddress(&deliveryAddress)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 	order.Status = models.APPROVAL_PENDING
 	err = o.orderStore.CreateOrder(&order)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -142,7 +142,7 @@ func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
 
 	orders, err := o.orderStore.GetOrdersByCustomerID(authResponse.ID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -160,7 +160,7 @@ func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
 
 	orders, err := o.orderStore.GetCurrentOrdersByCustomerID(authResponse.ID)
 	if err != nil {
-		errorresponse.WriteJSONError(w, http.StatusInternalServerError, err)
+		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 	}
 
 	orderResponseArr := []OrderResponse{}
