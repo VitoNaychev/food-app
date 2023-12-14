@@ -38,10 +38,10 @@ func (s *RestaurantServer) RestaurantHandler(w http.ResponseWriter, r *http.Requ
 	case http.MethodPost:
 		s.createRestaurant(w, r)
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(s.getRestaurant, s.verifier, s.secretKey)(w, r)
+		auth.AuthenticationMW(s.getRestaurant, s.verifier, s.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(s.updateRestaurant, s.verifier, s.secretKey)(w, r)
+		auth.AuthenticationMW(s.updateRestaurant, s.verifier, s.secretKey)(w, r)
 	case http.MethodDelete:
-		auth.AuthenticationMiddleware(s.deleteRestaurant, s.verifier, s.secretKey)(w, r)
+		auth.AuthenticationMW(s.deleteRestaurant, s.verifier, s.secretKey)(w, r)
 	}
 }

@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	ErrMissingToken       = errors.New("missing token")
+	ErrInvalidToken       = errors.New("token is invalid")
 	ErrInvalidCredentials = errors.New("invalid user credentials")
 	ErrMissingSubject     = errors.New("token does not contain subject field")
 	ErrNonIntegerSubject  = errors.New("token subject field is not an integer")

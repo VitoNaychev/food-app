@@ -11,6 +11,8 @@ import (
 
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/httperrors"
+	"github.com/VitoNaychev/food-app/msgtypes"
+	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -67,9 +69,9 @@ func (d *DummyVerifier) DoesSubjectExist(id int) (bool, error) {
 	return true, nil
 }
 
-func TestAuthenticationMiddleware(t *testing.T) {
+func TestAuthenticationMW(t *testing.T) {
 	dummyVerifier := &DummyVerifier{false, false}
-	dummyHandler := auth.AuthenticationMiddleware(DummyHandler, dummyVerifier, secretKey)
+	dummyHandler := auth.AuthenticationMW(DummyHandler, dummyVerifier, secretKey)
 
 	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodPost, "/", nil)
@@ -191,6 +193,64 @@ func TestAuthenticationMiddleware(t *testing.T) {
 		if got != want {
 			t.Errorf("got %d want %d", got, want)
 		}
+	})
+}
+
+func StubVerifyJWT(jwt string) (msgtypes.AuthResponse, error) {
+	if jwt == "invalidJWT" {
+		return msgtypes.AuthResponse{Status: msgtypes.INVALID, ID: 0}, nil
+	} else if jwt == "10" {
+		return msgtypes.AuthResponse{Status: msgtypes.NOT_FOUND, ID: 0}, nil
+	} else {
+		id, _ := strconv.Atoi(jwt)
+		return msgtypes.AuthResponse{Status: msgtypes.OK, ID: id}, nil
+	}
+}
+
+func TestAuthMiddleware(t *testing.T) {
+	handler := auth.RemoteAuthenticationMW(DummyHandler, StubVerifyJWT)
+
+	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		response := httptest.NewRecorder()
+
+		handler(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
+		customerJWT := "invalidJWT"
+		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		request.Header.Add("Token", customerJWT)
+
+		response := httptest.NewRecorder()
+
+		handler(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		testutil.AssertErrorResponse(t, response.Body, auth.ErrInvalidToken)
+	})
+
+	t.Run("returns Not Found on nonexistent customer", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		request.Header.Add("Token", strconv.Itoa(10))
+		response := httptest.NewRecorder()
+
+		handler(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
+		testutil.AssertErrorResponse(t, response.Body, auth.ErrSubjectNotFound)
+	})
+
+	t.Run("returns Accepted on authentic customer", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodGet, "/", nil)
+		request.Header.Add("Token", strconv.Itoa(1))
+		response := httptest.NewRecorder()
+
+		handler(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
 	})
 }
 

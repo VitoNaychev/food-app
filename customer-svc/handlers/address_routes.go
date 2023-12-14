@@ -28,12 +28,12 @@ func NewCustomerAddressServer(addressStore models.CustomerAddressStore, customer
 func (c *CustomerAddressServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		auth.AuthenticationMiddleware(c.createAddress, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.createAddress, c.verifier, c.secretKey)(w, r)
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(c.getAddress, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.getAddress, c.verifier, c.secretKey)(w, r)
 	case http.MethodDelete:
-		auth.AuthenticationMiddleware(c.deleteAddress, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.deleteAddress, c.verifier, c.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(c.updateAddress, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.updateAddress, c.verifier, c.secretKey)(w, r)
 	}
 }

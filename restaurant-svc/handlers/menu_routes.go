@@ -26,12 +26,12 @@ func NewMenuServer(secretKey []byte, menuStore models.MenuStore, restaurantStore
 func (m *MenuServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(m.getMenu, m.verifier, m.secretKey)(w, r)
+		auth.AuthenticationMW(m.getMenu, m.verifier, m.secretKey)(w, r)
 	case http.MethodPost:
-		auth.AuthenticationMiddleware(m.createMenuItem, m.verifier, m.secretKey)(w, r)
+		auth.AuthenticationMW(m.createMenuItem, m.verifier, m.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(m.updateMenuItem, m.verifier, m.secretKey)(w, r)
+		auth.AuthenticationMW(m.updateMenuItem, m.verifier, m.secretKey)(w, r)
 	case http.MethodDelete:
-		auth.AuthenticationMiddleware(m.deleteMenuItem, m.verifier, m.secretKey)(w, r)
+		auth.AuthenticationMW(m.deleteMenuItem, m.verifier, m.secretKey)(w, r)
 	}
 }

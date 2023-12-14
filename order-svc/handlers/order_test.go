@@ -17,57 +17,6 @@ import (
 	"github.com/VitoNaychev/food-app/validation"
 )
 
-func dummyHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusAccepted)
-}
-
-func TestAuthMiddleware(t *testing.T) {
-	handler := handlers.AuthMiddleware(dummyHandler, stubs.StubVerifyJWT)
-
-	t.Run("returns Unauthorized on missing JWT", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/", nil)
-		response := httptest.NewRecorder()
-
-		handler(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-	})
-
-	t.Run("returns Unauthorized on invalid JWT", func(t *testing.T) {
-		customerJWT := "invalidJWT"
-		request, _ := http.NewRequest(http.MethodGet, "/", nil)
-		request.Header.Add("Token", customerJWT)
-
-		response := httptest.NewRecorder()
-
-		handler(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrInvalidToken)
-	})
-
-	t.Run("returns Not Found on nonexistent customer", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/", nil)
-		request.Header.Add("Token", strconv.Itoa(10))
-		response := httptest.NewRecorder()
-
-		handler(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusNotFound)
-		testutil.AssertErrorResponse(t, response.Body, handlers.ErrCustomerNotFound)
-	})
-
-	t.Run("returns Accepted on authentic customer", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodGet, "/", nil)
-		request.Header.Add("Token", strconv.Itoa(testdata.PeterCustomerID))
-		response := httptest.NewRecorder()
-
-		handler(response, request)
-
-		testutil.AssertStatus(t, response.Code, http.StatusAccepted)
-	})
-}
-
 func TestOrderEndpointAuthentication(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{}
 	addressStore := &stubs.StubAddressStore{}

@@ -28,10 +28,10 @@ func NewAddressServer(secretKey []byte, addressStore models.AddressStore, restau
 func (c *AddressServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		auth.AuthenticationMiddleware(c.createAddress, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.createAddress, c.verifier, c.secretKey)(w, r)
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(c.getAddress, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.getAddress, c.verifier, c.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(c.updateAddress, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.updateAddress, c.verifier, c.secretKey)(w, r)
 	}
 }

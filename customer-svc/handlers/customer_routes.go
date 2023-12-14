@@ -44,10 +44,10 @@ func (c *CustomerServer) CustomerHandler(w http.ResponseWriter, r *http.Request)
 	case http.MethodPost:
 		c.createCustomer(w, r)
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(c.getCustomer, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.getCustomer, c.verifier, c.secretKey)(w, r)
 	case http.MethodDelete:
-		auth.AuthenticationMiddleware(c.deleteCustomer, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.deleteCustomer, c.verifier, c.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(c.updateCustomer, c.verifier, c.secretKey)(w, r)
+		auth.AuthenticationMW(c.updateCustomer, c.verifier, c.secretKey)(w, r)
 	}
 }

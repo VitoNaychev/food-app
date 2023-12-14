@@ -3,11 +3,8 @@ package handlers
 import (
 	"time"
 
-	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 )
-
-type VerifyJWTFunc func(token string) (msgtypes.AuthResponse, error)
 
 type CancelOrderRequest struct {
 	ID int `validate:"min=1" json:"id"`

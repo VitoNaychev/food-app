@@ -30,10 +30,10 @@ func NewHoursServer(secretKey []byte,
 func (h *HoursServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(h.getHours, h.verifier, h.secretKey)(w, r)
+		auth.AuthenticationMW(h.getHours, h.verifier, h.secretKey)(w, r)
 	case http.MethodPost:
-		auth.AuthenticationMiddleware(h.createHours, h.verifier, h.secretKey)(w, r)
+		auth.AuthenticationMW(h.createHours, h.verifier, h.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(h.updateHours, h.verifier, h.secretKey)(w, r)
+		auth.AuthenticationMW(h.updateHours, h.verifier, h.secretKey)(w, r)
 	}
 }

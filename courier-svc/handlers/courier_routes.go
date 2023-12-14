@@ -38,10 +38,10 @@ func (s *CourierServer) CourierHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		s.createCourier(w, r)
 	case http.MethodGet:
-		auth.AuthenticationMiddleware(s.getCourier, s.verifier, s.secretKey)(w, r)
+		auth.AuthenticationMW(s.getCourier, s.verifier, s.secretKey)(w, r)
 	case http.MethodPut:
-		auth.AuthenticationMiddleware(s.updateCourier, s.verifier, s.secretKey)(w, r)
+		auth.AuthenticationMW(s.updateCourier, s.verifier, s.secretKey)(w, r)
 	case http.MethodDelete:
-		auth.AuthenticationMiddleware(s.deleteCourier, s.verifier, s.secretKey)(w, r)
+		auth.AuthenticationMW(s.deleteCourier, s.verifier, s.secretKey)(w, r)
 	}
 }
