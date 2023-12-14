@@ -31,6 +31,14 @@ func AssertResponseBody[T, V any](t testing.TB, body io.Reader, data T, Conversi
 	AssertEqual(t, got, want)
 }
 
+func AssertNil(t testing.TB, got interface{}) {
+	t.Helper()
+
+	if got != nil {
+		t.Errorf("expected nil, got %v", got)
+	}
+}
+
 func AssertEqual[T any](t testing.TB, got, want T) {
 	t.Helper()
 
