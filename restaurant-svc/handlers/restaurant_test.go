@@ -58,10 +58,6 @@ func (s *StubRestaurantStore) GetRestaurantByEmail(email string) (models.Restaur
 	return models.Restaurant{}, models.ErrNotFound
 }
 
-type DummyRequest struct {
-	S string
-}
-
 func TestRestaurantRequestValidation(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
