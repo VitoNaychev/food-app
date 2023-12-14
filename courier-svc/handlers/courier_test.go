@@ -10,6 +10,7 @@ import (
 	"github.com/VitoNaychev/food-app/courier-svc/handlers"
 	"github.com/VitoNaychev/food-app/courier-svc/models"
 	"github.com/VitoNaychev/food-app/courier-svc/testdata"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
@@ -45,7 +46,7 @@ func (s *StubCourierStore) GetCourierByID(id int) (models.Courier, error) {
 		}
 	}
 
-	return models.Courier{}, models.ErrNotFound
+	return models.Courier{}, storeerrors.ErrNotFound
 }
 
 func (s *StubCourierStore) GetCourierByEmail(email string) (models.Courier, error) {
@@ -55,7 +56,7 @@ func (s *StubCourierStore) GetCourierByEmail(email string) (models.Courier, erro
 		}
 	}
 
-	return models.Courier{}, models.ErrNotFound
+	return models.Courier{}, storeerrors.ErrNotFound
 }
 
 func TestCourierRequestValidation(t *testing.T) {

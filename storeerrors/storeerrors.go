@@ -1,4 +1,4 @@
-package models
+package storeerrors
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ func (d *StoreError) Error() string {
 	return d.message
 }
 
-func NewStoreError(message string) *StoreError {
+func New(message string) *StoreError {
 	return &StoreError{message}
 }
 
@@ -22,13 +22,13 @@ var (
 	ErrNotFound = &StoreError{"didn't find object in database"}
 )
 
-func pgxErrorToStoreError(err error) error {
+func FromPgxError(err error) error {
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		}
 
-		return NewStoreError(err.Error())
+		return New(err.Error())
 	}
 	return nil
 }

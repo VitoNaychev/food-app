@@ -9,6 +9,7 @@ import (
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -21,7 +22,7 @@ func (s *RestaurantServer) LoginHandler(w http.ResponseWriter, r *http.Request) 
 
 	restaurant, err := s.store.GetRestaurantByEmail(loginRestaurantRequest.Email)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
+		if errors.Is(err, storeerrors.ErrNotFound) {
 			httperrors.HandleUnauthorized(w, ErrInvalidCredentials)
 			return
 		} else {
@@ -99,7 +100,7 @@ func (s *RestaurantServer) createRestaurant(w http.ResponseWriter, r *http.Reque
 	}
 
 	restaurant := CreateRestaurantRequestToRestaurant(createRestaurantRequest)
-	if _, err = s.store.GetRestaurantByEmail(restaurant.Email); !errors.Is(err, models.ErrNotFound) {
+	if _, err = s.store.GetRestaurantByEmail(restaurant.Email); !errors.Is(err, storeerrors.ErrNotFound) {
 		httperrors.WriteJSONError(w, http.StatusBadRequest, ErrExistingRestaurant)
 		return
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/order-svc/models"
+	"github.com/VitoNaychev/food-app/storeerrors"
 )
 
 func StubVerifyJWT(jwt string) (msgtypes.AuthResponse, error) {
@@ -64,7 +65,7 @@ func (s *StubAddressStore) GetAddressByID(id int) (models.Address, error) {
 			return address, nil
 		}
 	}
-	return models.Address{}, models.ErrNotFound
+	return models.Address{}, storeerrors.ErrNotFound
 }
 
 type StubOrderStore struct {
@@ -78,7 +79,7 @@ func (s *StubOrderStore) GetOrderByID(id int) (models.Order, error) {
 			return order, nil
 		}
 	}
-	return models.Order{}, models.ErrNotFound
+	return models.Order{}, storeerrors.ErrNotFound
 }
 
 func (s *StubOrderStore) CancelOrder(id int) error {

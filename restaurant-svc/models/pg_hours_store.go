@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -46,7 +47,7 @@ func (p *PgHoursStore) GetHoursByRestaurantID(restaurantID int) ([]Hours, error)
 	hours, err := pgx.CollectRows(row, pgx.RowToStructByName[Hours])
 
 	if err != nil {
-		return []Hours{}, pgxErrorToStoreError(err)
+		return []Hours{}, storeerrors.FromPgxError(err)
 	}
 
 	return hours, nil
@@ -62,5 +63,5 @@ func (p *PgHoursStore) UpdateHours(hours *Hours) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }

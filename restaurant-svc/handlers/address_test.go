@@ -12,6 +12,7 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
@@ -37,7 +38,7 @@ func (s *StubAddressStore) GetAddressByID(id int) (models.Address, error) {
 		}
 	}
 
-	return models.Address{}, models.ErrNotFound
+	return models.Address{}, storeerrors.ErrNotFound
 }
 
 func (s *StubAddressStore) GetAddressByRestaurantID(restaurantID int) (models.Address, error) {
@@ -47,7 +48,7 @@ func (s *StubAddressStore) GetAddressByRestaurantID(restaurantID int) (models.Ad
 		}
 	}
 
-	return models.Address{}, models.ErrNotFound
+	return models.Address{}, storeerrors.ErrNotFound
 }
 
 func (s *StubAddressStore) UpdateAddress(address *models.Address) error {

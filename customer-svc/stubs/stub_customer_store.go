@@ -2,6 +2,7 @@ package stubs
 
 import (
 	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/storeerrors"
 )
 
 type StubCustomerStore struct {
@@ -27,7 +28,7 @@ func (s *StubCustomerStore) GetCustomerByID(id int) (models.Customer, error) {
 		}
 	}
 
-	return models.Customer{}, models.ErrNotFound
+	return models.Customer{}, storeerrors.ErrNotFound
 }
 
 func (s *StubCustomerStore) GetCustomerByEmail(email string) (models.Customer, error) {
@@ -37,7 +38,7 @@ func (s *StubCustomerStore) GetCustomerByEmail(email string) (models.Customer, e
 		}
 	}
 
-	return models.Customer{}, models.ErrNotFound
+	return models.Customer{}, storeerrors.ErrNotFound
 }
 
 func (s *StubCustomerStore) CreateCustomer(customer *models.Customer) error {
@@ -63,7 +64,7 @@ func (s *StubCustomerStore) DeleteCustomer(id int) error {
 		}
 	}
 
-	return models.ErrNotFound
+	return storeerrors.ErrNotFound
 }
 
 func (s *StubCustomerStore) Empty() {

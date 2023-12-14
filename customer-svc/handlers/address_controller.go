@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/VitoNaychev/food-app/customer-svc/models"
 	"github.com/VitoNaychev/food-app/httperrors"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -127,8 +127,8 @@ func (c *CustomerAddressServer) getAddress(w http.ResponseWriter, r *http.Reques
 }
 
 func handleAddressStoreError(w http.ResponseWriter, err error, missingEntityError error) {
-	if errors.Is(err, models.ErrNotFound) {
-		// wrap models.ErrNotFound in customer handlers error type?
+	if errors.Is(err, storeerrors.ErrNotFound) {
+		// wrap storeerrors.ErrNotFound in customer handlers error type?
 		httperrors.WriteJSONError(w, http.StatusNotFound, missingEntityError)
 		return
 	} else {

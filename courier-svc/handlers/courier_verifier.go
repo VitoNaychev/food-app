@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/VitoNaychev/food-app/courier-svc/models"
+	"github.com/VitoNaychev/food-app/storeerrors"
 )
 
 type CourierVerifier struct {
@@ -16,7 +17,7 @@ func NewCourierVerifier(store models.CourierStore) *CourierVerifier {
 
 func (c *CourierVerifier) DoesSubjectExist(id int) (bool, error) {
 	_, err := c.store.GetCourierByID(id)
-	if errors.Is(err, models.ErrNotFound) {
+	if errors.Is(err, storeerrors.ErrNotFound) {
 		return false, nil
 	} else if err != nil {
 		return false, err

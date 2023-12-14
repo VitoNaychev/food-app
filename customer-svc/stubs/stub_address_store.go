@@ -3,6 +3,7 @@ package stubs
 import (
 	"github.com/VitoNaychev/food-app/customer-svc/models"
 	td "github.com/VitoNaychev/food-app/customer-svc/testdata"
+	"github.com/VitoNaychev/food-app/storeerrors"
 )
 
 type StubAddressStore struct {
@@ -27,7 +28,7 @@ func (s *StubAddressStore) GetAddressByID(id int) (models.Address, error) {
 			return address, nil
 		}
 	}
-	return models.Address{}, models.ErrNotFound
+	return models.Address{}, storeerrors.ErrNotFound
 }
 
 func (s *StubAddressStore) GetAddressesByCustomerID(customerId int) ([]models.Address, error) {

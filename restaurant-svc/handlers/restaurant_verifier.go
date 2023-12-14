@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
+	"github.com/VitoNaychev/food-app/storeerrors"
 )
 
 type RestaurantVerifier struct {
@@ -16,7 +17,7 @@ func NewRestaurantVerifier(store models.RestaurantStore) *RestaurantVerifier {
 
 func (c *RestaurantVerifier) DoesSubjectExist(id int) (bool, error) {
 	_, err := c.store.GetRestaurantByID(id)
-	if errors.Is(err, models.ErrNotFound) {
+	if errors.Is(err, storeerrors.ErrNotFound) {
 		return false, nil
 	} else if err != nil {
 		return false, err

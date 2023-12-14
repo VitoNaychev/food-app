@@ -7,9 +7,9 @@ import (
 	"strconv"
 
 	"github.com/VitoNaychev/food-app/auth"
-	"github.com/VitoNaychev/food-app/customer-svc/models"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/msgtypes"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -36,7 +36,7 @@ func (c *CustomerServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err = c.store.GetCustomerByID(customerID)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
+		if errors.Is(err, storeerrors.ErrNotFound) {
 			handleAuthError(w, authResponse, msgtypes.NOT_FOUND)
 			return
 		} else {
@@ -73,8 +73,8 @@ func (c *CustomerServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	customer, err := c.store.GetCustomerByEmail(loginCustomerRequest.Email)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
-			// wrap models.ErrNotFound in customer handlers error type?
+		if errors.Is(err, storeerrors.ErrNotFound) {
+			// wrap storeerrors.ErrNotFound in customer handlers error type?
 			httperrors.WriteJSONError(w, http.StatusUnauthorized, ErrCustomerNotFound)
 			return
 		} else {
@@ -138,7 +138,7 @@ func (c *CustomerServer) createCustomer(w http.ResponseWriter, r *http.Request) 
 	if err == nil {
 		httperrors.WriteJSONError(w, http.StatusBadRequest, ErrExistingCustomer)
 		return
-	} else if err != models.ErrNotFound {
+	} else if err != storeerrors.ErrNotFound {
 		httperrors.WriteJSONError(w, http.StatusInternalServerError, ErrDatabaseError)
 		return
 	}
@@ -176,8 +176,8 @@ func (c *CustomerServer) getCustomer(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleStoreError(w http.ResponseWriter, err error) {
-	if errors.Is(err, models.ErrNotFound) {
-		// wrap models.ErrNotFound in customer handlers error type?
+	if errors.Is(err, storeerrors.ErrNotFound) {
+		// wrap storeerrors.ErrNotFound in customer handlers error type?
 		httperrors.WriteJSONError(w, http.StatusNotFound, ErrCustomerNotFound)
 		return
 	} else {

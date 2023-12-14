@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/VitoNaychev/food-app/auth"
-	"github.com/VitoNaychev/food-app/courier-svc/models"
 	"github.com/VitoNaychev/food-app/httperrors"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -21,7 +21,7 @@ func (s *CourierServer) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	courier, err := s.store.GetCourierByEmail(loginCourierRequest.Email)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
+		if errors.Is(err, storeerrors.ErrNotFound) {
 			httperrors.HandleUnauthorized(w, ErrInvalidCredentials)
 			return
 		} else {
@@ -92,7 +92,7 @@ func (s *CourierServer) createCourier(w http.ResponseWriter, r *http.Request) {
 	}
 
 	courier := CreateCourierRequestToCourier(createCourierRequest)
-	if _, err = s.store.GetCourierByEmail(courier.Email); !errors.Is(err, models.ErrNotFound) {
+	if _, err = s.store.GetCourierByEmail(courier.Email); !errors.Is(err, storeerrors.ErrNotFound) {
 		httperrors.WriteJSONError(w, http.StatusBadRequest, ErrExistingCourier)
 		return
 	}

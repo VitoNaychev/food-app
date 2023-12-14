@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -32,7 +33,7 @@ func (p *PgCourierStore) GetCourierByEmail(email string) (Courier, error) {
 	courier, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Courier])
 
 	if err != nil {
-		return Courier{}, pgxErrorToStoreError(err)
+		return Courier{}, storeerrors.FromPgxError(err)
 	}
 
 	return courier, nil
@@ -48,7 +49,7 @@ func (p *PgCourierStore) GetCourierByID(id int) (Courier, error) {
 	courier, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Courier])
 
 	if err != nil {
-		return Courier{}, pgxErrorToStoreError(err)
+		return Courier{}, storeerrors.FromPgxError(err)
 	}
 
 	return courier, nil
@@ -67,7 +68,7 @@ func (p *PgCourierStore) CreateCourier(courier *Courier) error {
 	}
 
 	err := p.conn.QueryRow(context.Background(), query, args).Scan(&courier.ID)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgCourierStore) DeleteCourier(id int) error {
@@ -77,7 +78,7 @@ func (p *PgCourierStore) DeleteCourier(id int) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgCourierStore) UpdateCourier(courier *Courier) error {
@@ -94,5 +95,5 @@ func (p *PgCourierStore) UpdateCourier(courier *Courier) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }

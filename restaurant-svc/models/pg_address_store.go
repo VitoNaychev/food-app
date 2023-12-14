@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -49,7 +50,7 @@ func (p *PgAddressStore) GetAddressByID(id int) (Address, error) {
 	address, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Address])
 
 	if err != nil {
-		return Address{}, pgxErrorToStoreError(err)
+		return Address{}, storeerrors.FromPgxError(err)
 	}
 
 	return address, nil
@@ -65,7 +66,7 @@ func (p *PgAddressStore) GetAddressByRestaurantID(restaurantID int) (Address, er
 	address, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Address])
 
 	if err != nil {
-		return Address{}, pgxErrorToStoreError(err)
+		return Address{}, storeerrors.FromPgxError(err)
 	}
 
 	return address, nil
@@ -78,7 +79,7 @@ func (p *PgAddressStore) DeleteAddress(id int) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgAddressStore) UpdateAddress(address *Address) error {
@@ -95,5 +96,5 @@ func (p *PgAddressStore) UpdateAddress(address *Address) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }

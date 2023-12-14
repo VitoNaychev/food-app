@@ -8,6 +8,7 @@ import (
 
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -28,7 +29,7 @@ func (m *MenuServer) deleteMenuItem(w http.ResponseWriter, r *http.Request) {
 
 	currentMenuItem, err := m.menuStore.GetMenuItemByID(deleteMenuItemRequest.ID)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
+		if errors.Is(err, storeerrors.ErrNotFound) {
 			httperrors.HandleNotFound(w, ErrMissingMenuItem)
 		} else {
 			httperrors.HandleInternalServerError(w, err)
@@ -64,7 +65,7 @@ func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 
 	currentMenuItem, err := m.menuStore.GetMenuItemByID(updateMenuItemRequest.ID)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
+		if errors.Is(err, storeerrors.ErrNotFound) {
 			httperrors.HandleNotFound(w, ErrMissingMenuItem)
 		} else {
 			httperrors.HandleInternalServerError(w, err)

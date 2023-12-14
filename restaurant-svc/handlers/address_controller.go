@@ -8,6 +8,7 @@ import (
 
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -94,7 +95,7 @@ func (c *AddressServer) getAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	address, err := c.addressStore.GetAddressByID(restaurantID)
-	if errors.Is(err, models.ErrNotFound) {
+	if errors.Is(err, storeerrors.ErrNotFound) {
 		httperrors.WriteJSONError(w, http.StatusNotFound, err)
 		return
 	} else if err != nil {

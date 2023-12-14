@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -30,7 +31,7 @@ func (p *PgAddressStore) GetAddressByID(id int) (Address, error) {
 	address, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Address])
 
 	if err != nil {
-		return Address{}, pgxErrorToStoreError(err)
+		return Address{}, storeerrors.FromPgxError(err)
 	}
 
 	return address, nil

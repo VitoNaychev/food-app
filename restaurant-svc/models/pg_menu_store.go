@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -47,7 +48,7 @@ func (p *PgMenuStore) GetMenuItemByID(id int) (MenuItem, error) {
 	menuItem, err := pgx.CollectOneRow(row, pgx.RowToStructByName[MenuItem])
 
 	if err != nil {
-		return MenuItem{}, pgxErrorToStoreError(err)
+		return MenuItem{}, storeerrors.FromPgxError(err)
 	}
 
 	return menuItem, nil
@@ -63,7 +64,7 @@ func (p *PgMenuStore) GetMenuByRestaurantID(restaurantID int) ([]MenuItem, error
 	menuItem, err := pgx.CollectRows(row, pgx.RowToStructByName[MenuItem])
 
 	if err != nil {
-		return []MenuItem{}, pgxErrorToStoreError(err)
+		return []MenuItem{}, storeerrors.FromPgxError(err)
 	}
 
 	return menuItem, nil
@@ -76,7 +77,7 @@ func (p *PgMenuStore) DeleteMenuItem(id int) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgMenuStore) UpdateMenuItem(menuItem *MenuItem) error {
@@ -91,5 +92,5 @@ func (p *PgMenuStore) UpdateMenuItem(menuItem *MenuItem) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }

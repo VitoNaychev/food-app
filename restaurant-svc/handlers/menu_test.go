@@ -9,6 +9,7 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
@@ -44,7 +45,7 @@ func (m *StubMenuStore) GetMenuItemByID(id int) (models.MenuItem, error) {
 		}
 	}
 
-	return models.MenuItem{}, models.ErrNotFound
+	return models.MenuItem{}, storeerrors.ErrNotFound
 }
 
 func (m *StubMenuStore) GetMenuByRestaurantID(restaurantID int) ([]models.MenuItem, error) {

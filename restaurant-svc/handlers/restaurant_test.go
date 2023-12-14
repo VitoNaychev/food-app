@@ -10,6 +10,7 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
@@ -45,7 +46,7 @@ func (s *StubRestaurantStore) GetRestaurantByID(id int) (models.Restaurant, erro
 		}
 	}
 
-	return models.Restaurant{}, models.ErrNotFound
+	return models.Restaurant{}, storeerrors.ErrNotFound
 }
 
 func (s *StubRestaurantStore) GetRestaurantByEmail(email string) (models.Restaurant, error) {
@@ -55,7 +56,7 @@ func (s *StubRestaurantStore) GetRestaurantByEmail(email string) (models.Restaur
 		}
 	}
 
-	return models.Restaurant{}, models.ErrNotFound
+	return models.Restaurant{}, storeerrors.ErrNotFound
 }
 
 func TestRestaurantRequestValidation(t *testing.T) {

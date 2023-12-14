@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -30,7 +31,7 @@ func (p *PgOrderStore) GetOrdersByCustomerID(customerId int) ([]Order, error) {
 	orders, err := pgx.CollectRows(row, pgx.RowToStructByName[Order])
 
 	if err != nil {
-		return []Order{}, pgxErrorToStoreError(err)
+		return []Order{}, storeerrors.FromPgxError(err)
 	}
 
 	return orders, nil
@@ -51,7 +52,7 @@ func (p *PgOrderStore) GetCurrentOrdersByCustomerID(customerId int) ([]Order, er
 	orders, err := pgx.CollectRows(row, pgx.RowToStructByName[Order])
 
 	if err != nil {
-		return []Order{}, pgxErrorToStoreError(err)
+		return []Order{}, storeerrors.FromPgxError(err)
 	}
 
 	return orders, nil
@@ -72,7 +73,7 @@ func (p *PgOrderStore) CreateOrder(order *Order) error {
 	}
 
 	err := p.conn.QueryRow(context.Background(), query, args).Scan(&order.ID)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 
 }
 
@@ -84,7 +85,7 @@ func (p *PgOrderStore) CancelOrder(id int) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgOrderStore) GetOrderByID(id int) (Order, error) {
@@ -97,7 +98,7 @@ func (p *PgOrderStore) GetOrderByID(id int) (Order, error) {
 	order, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Order])
 
 	if err != nil {
-		return Order{}, pgxErrorToStoreError(err)
+		return Order{}, storeerrors.FromPgxError(err)
 	}
 
 	return order, nil

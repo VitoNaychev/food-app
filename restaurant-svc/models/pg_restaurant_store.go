@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -32,7 +33,7 @@ func (p *PgRestaurantStore) GetRestaurantByEmail(email string) (Restaurant, erro
 	restaurant, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Restaurant])
 
 	if err != nil {
-		return Restaurant{}, pgxErrorToStoreError(err)
+		return Restaurant{}, storeerrors.FromPgxError(err)
 	}
 
 	return restaurant, nil
@@ -48,7 +49,7 @@ func (p *PgRestaurantStore) GetRestaurantByID(id int) (Restaurant, error) {
 	restaurant, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Restaurant])
 
 	if err != nil {
-		return Restaurant{}, pgxErrorToStoreError(err)
+		return Restaurant{}, storeerrors.FromPgxError(err)
 	}
 
 	return restaurant, nil
@@ -67,7 +68,7 @@ func (p *PgRestaurantStore) CreateRestaurant(restaurant *Restaurant) error {
 	}
 
 	err := p.conn.QueryRow(context.Background(), query, args).Scan(&restaurant.ID)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgRestaurantStore) DeleteRestaurant(id int) error {
@@ -77,7 +78,7 @@ func (p *PgRestaurantStore) DeleteRestaurant(id int) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgRestaurantStore) UpdateRestaurant(restaurant *Restaurant) error {
@@ -94,5 +95,5 @@ func (p *PgRestaurantStore) UpdateRestaurant(restaurant *Restaurant) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }

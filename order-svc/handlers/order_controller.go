@@ -8,6 +8,7 @@ import (
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/order-svc/models"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -72,7 +73,7 @@ func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
 
 	order, err := o.orderStore.GetOrderByID(cancelOrderRequest.ID)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
+		if errors.Is(err, storeerrors.ErrNotFound) {
 			httperrors.WriteJSONError(w, http.StatusNotFound, ErrOrderNotFound)
 			return
 		} else {

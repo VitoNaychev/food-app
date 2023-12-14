@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -31,7 +32,7 @@ func (p *PgCustomerStore) GetCustomerByEmail(email string) (Customer, error) {
 	customer, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Customer])
 
 	if err != nil {
-		return Customer{}, pgxErrorToStoreError(err)
+		return Customer{}, storeerrors.FromPgxError(err)
 	}
 
 	return customer, nil
@@ -47,7 +48,7 @@ func (p *PgCustomerStore) GetCustomerByID(id int) (Customer, error) {
 	customer, err := pgx.CollectOneRow(row, pgx.RowToStructByName[Customer])
 
 	if err != nil {
-		return Customer{}, pgxErrorToStoreError(err)
+		return Customer{}, storeerrors.FromPgxError(err)
 	}
 
 	return customer, nil
@@ -65,7 +66,7 @@ func (p *PgCustomerStore) CreateCustomer(customer *Customer) error {
 	}
 
 	err := p.conn.QueryRow(context.Background(), query, args).Scan(&customer.Id)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgCustomerStore) DeleteCustomer(id int) error {
@@ -75,7 +76,7 @@ func (p *PgCustomerStore) DeleteCustomer(id int) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgCustomerStore) UpdateCustomer(customer *Customer) error {
@@ -91,5 +92,5 @@ func (p *PgCustomerStore) UpdateCustomer(customer *Customer) error {
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
-	return pgxErrorToStoreError(err)
+	return storeerrors.FromPgxError(err)
 }
