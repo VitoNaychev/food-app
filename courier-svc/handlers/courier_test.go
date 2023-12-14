@@ -64,11 +64,11 @@ func TestCourierRequestValidation(t *testing.T) {
 	}
 	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
-	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
+	jimJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
 	cases := map[string]*http.Request{
 		"login courier":  handlers.NewLoginCourierRequest(models.Courier{}),
 		"create courier": handlers.NewCreateCourierRequest(models.Courier{}),
-		"update courier": handlers.NewUpdateCourierRequest(dominosJWT, models.Courier{}),
+		"update courier": handlers.NewUpdateCourierRequest(jimJWT, models.Courier{}),
 	}
 
 	tabletests.RunRequestValidationTests(t, server, cases)
@@ -80,11 +80,11 @@ func TestCourierResponseValidity(t *testing.T) {
 	}
 	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
-	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
+	jimJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
 	cases := []tabletests.ResponseValidationTestcase{
 		{
 			Name:    "get courier",
-			Request: handlers.NewGetCourierRequest(dominosJWT),
+			Request: handlers.NewGetCourierRequest(jimJWT),
 			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.CourierResponse](r)
 				return response, err
@@ -100,7 +100,7 @@ func TestCourierResponseValidity(t *testing.T) {
 		},
 		{
 			Name:    "update courier",
-			Request: handlers.NewUpdateCourierRequest(dominosJWT, testdata.JimCourier),
+			Request: handlers.NewUpdateCourierRequest(jimJWT, testdata.JimCourier),
 			ValidationFunction: func(r io.Reader) (tabletests.GenericResponse, error) {
 				response, err := validation.ValidateBody[handlers.CourierResponse](r)
 				return response, err
@@ -178,9 +178,9 @@ func TestDeleteCourier(t *testing.T) {
 	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("deletes courier on DELETE", func(t *testing.T) {
-		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
+		jimJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
 
-		request := handlers.NewDeleteCourierRequest(dominosJWT)
+		request := handlers.NewDeleteCourierRequest(jimJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -201,9 +201,9 @@ func TestUpdateCourier(t *testing.T) {
 		updatedCourier := testdata.JimCourier
 		updatedCourier.Email = "prisonmike@gmail.com"
 
-		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
+		jimJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
 
-		request := handlers.NewUpdateCourierRequest(dominosJWT, updatedCourier)
+		request := handlers.NewUpdateCourierRequest(jimJWT, updatedCourier)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -221,8 +221,8 @@ func TestGetCourier(t *testing.T) {
 	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
 
 	t.Run("returns courier on GET", func(t *testing.T) {
-		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.MichaelCourier.ID)
-		request := handlers.NewGetCourierRequest(shackJWT)
+		michaelJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.MichaelCourier.ID)
+		request := handlers.NewGetCourierRequest(michaelJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
