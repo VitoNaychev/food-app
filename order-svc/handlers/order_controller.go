@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/msgtypes"
@@ -11,8 +12,6 @@ import (
 	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
 )
-
-var authResponseMap = make(map[string]msgtypes.AuthResponse)
 
 func VerifyJWT(token string) (authResponse msgtypes.AuthResponse, err error) {
 	request, err := http.NewRequest(http.MethodPost, "http://customer-svc:8080/customer/auth/", nil)
@@ -58,7 +57,7 @@ func AuthMiddleware(handler func(w http.ResponseWriter, r *http.Request), verify
 			return
 		}
 
-		authResponseMap[r.Header["Token"][0]] = authResponse
+		r.Header.Add("Subject", strconv.Itoa(authResponse.ID))
 
 		handler(w, r)
 	})
@@ -104,10 +103,9 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	customerJWT := r.Header["Token"][0]
-	authResponse := authResponseMap[customerJWT]
+	customerID, _ := strconv.Atoi(r.Header["Subject"][0])
 
-	order := CreateOrderRequestToOrder(createOrderRequest, authResponse.ID)
+	order := CreateOrderRequestToOrder(createOrderRequest, customerID)
 	pickupAddress := GetPickupAddressFromCreateOrderRequest(createOrderRequest)
 	deliveryAddress := GetDeliveryAddressFromCreateOrderRequest(createOrderRequest)
 
@@ -138,10 +136,9 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
-	customerJWT := r.Header["Token"][0]
-	authResponse := authResponseMap[customerJWT]
+	customerID, _ := strconv.Atoi(r.Header["Subject"][0])
 
-	orders, err := o.orderStore.GetOrdersByCustomerID(authResponse.ID)
+	orders, err := o.orderStore.GetOrdersByCustomerID(customerID)
 	if err != nil {
 		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 		return
@@ -156,10 +153,9 @@ func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
-	customerJWT := r.Header["Token"][0]
-	authResponse := authResponseMap[customerJWT]
+	customerID, _ := strconv.Atoi(r.Header["Subject"][0])
 
-	orders, err := o.orderStore.GetCurrentOrdersByCustomerID(authResponse.ID)
+	orders, err := o.orderStore.GetCurrentOrdersByCustomerID(customerID)
 	if err != nil {
 		httperrors.WriteJSONError(w, http.StatusInternalServerError, err)
 	}
