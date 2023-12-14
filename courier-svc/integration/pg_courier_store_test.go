@@ -23,7 +23,7 @@ func TestCustomerServerOperations(t *testing.T) {
 
 	server := handlers.NewCourierServer(env.SecretKey, env.ExpiresAt, &courierStore)
 
-	var shackJWT string
+	var michaelJWT string
 
 	t.Run("create new courier", func(t *testing.T) {
 		request := handlers.NewCreateCourierRequest(td.MichaelCourier)
@@ -39,11 +39,11 @@ func TestCustomerServerOperations(t *testing.T) {
 
 		testutil.AssertEqual(t, got.Courier, wantCourier)
 
-		shackJWT = got.JWT.Token
+		michaelJWT = got.JWT.Token
 	})
 
 	t.Run("get courier", func(t *testing.T) {
-		request := handlers.NewGetCourierRequest(shackJWT)
+		request := handlers.NewGetCourierRequest(michaelJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -61,7 +61,7 @@ func TestCustomerServerOperations(t *testing.T) {
 		updateCourier := td.MichaelCourier
 		updateCourier.LastName = "Scarn"
 
-		request := handlers.NewUpdateCourierRequest(shackJWT, updateCourier)
+		request := handlers.NewUpdateCourierRequest(michaelJWT, updateCourier)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -76,7 +76,7 @@ func TestCustomerServerOperations(t *testing.T) {
 	})
 
 	t.Run("delete courier", func(t *testing.T) {
-		request := handlers.NewDeleteCourierRequest(shackJWT)
+		request := handlers.NewDeleteCourierRequest(michaelJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
@@ -85,7 +85,7 @@ func TestCustomerServerOperations(t *testing.T) {
 	})
 
 	t.Run("get deleted courier", func(t *testing.T) {
-		request := handlers.NewGetCourierRequest(shackJWT)
+		request := handlers.NewGetCourierRequest(michaelJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
