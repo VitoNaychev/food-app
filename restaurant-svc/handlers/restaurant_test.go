@@ -119,7 +119,7 @@ func TestRestaurantEnpointAuthentication(t *testing.T) {
 	cases := map[string]*http.Request{
 		"get restaurant":    handlers.NewGetRestaurantRequest(invalidJWT),
 		"update restaurant": handlers.NewUpdateRestaurantRequest(invalidJWT, models.Restaurant{}),
-		"delete restaurant": handlers.NewDeleteRestaruantRequest(invalidJWT),
+		"delete restaurant": handlers.NewDeleteRestaurantRequest(invalidJWT),
 	}
 
 	tabletests.RunAuthenticationTests(t, server, cases)
@@ -181,7 +181,7 @@ func TestDeleteRestaurant(t *testing.T) {
 	t.Run("deletes restaurant on DELETE", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 
-		request := handlers.NewDeleteRestaruantRequest(dominosJWT)
+		request := handlers.NewDeleteRestaurantRequest(dominosJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)

@@ -81,7 +81,7 @@ func TestCustomerServerOperations(t *testing.T) {
 	})
 
 	t.Run("delete restaurant", func(t *testing.T) {
-		request := handlers.NewDeleteRestaruantRequest(shackJWT)
+		request := handlers.NewDeleteRestaurantRequest(shackJWT)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)

@@ -17,7 +17,7 @@ func NewLoginRestaurantRequest(restaurant models.Restaurant) *http.Request {
 	return request
 }
 
-func NewDeleteRestaruantRequest(jwt string) *http.Request {
+func NewDeleteRestaurantRequest(jwt string) *http.Request {
 	request, _ := http.NewRequest(http.MethodDelete, "/restaurant/", nil)
 	request.Header.Add("Token", jwt)
 
