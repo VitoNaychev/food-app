@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 )
 
@@ -12,14 +13,16 @@ type MenuServer struct {
 	menuStore       models.MenuStore
 	restaurantStore models.RestaurantStore
 	verifier        auth.Verifier
+	publisher       events.EventPublisher
 }
 
-func NewMenuServer(secretKey []byte, menuStore models.MenuStore, restaurantStore models.RestaurantStore) *MenuServer {
+func NewMenuServer(secretKey []byte, menuStore models.MenuStore, restaurantStore models.RestaurantStore, publisher events.EventPublisher) *MenuServer {
 	return &MenuServer{
 		secretKey:       secretKey,
 		menuStore:       menuStore,
 		restaurantStore: restaurantStore,
 		verifier:        NewRestaurantVerifier(restaurantStore),
+		publisher:       publisher,
 	}
 }
 

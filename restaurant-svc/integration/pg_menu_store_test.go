@@ -14,6 +14,13 @@ import (
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
+type FakePublisher struct {
+}
+
+func (s *FakePublisher) Publish(topic string, event interface{}) error {
+	return nil
+}
+
 func TestMenuServerOperations(t *testing.T) {
 	connStr := SetupDatabaseContainer(t)
 
@@ -40,7 +47,7 @@ func TestMenuServerOperations(t *testing.T) {
 	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore)
 	addressServer := handlers.NewAddressServer(env.SecretKey, &addressStore, &restaurantStore)
 	hoursServer := handlers.NewHoursServer(env.SecretKey, &hoursStore, &restaurantStore)
-	menuServer := handlers.NewMenuServer(env.SecretKey, &menuStore, &restaurantStore)
+	menuServer := handlers.NewMenuServer(env.SecretKey, &menuStore, &restaurantStore, &FakePublisher{})
 
 	server := handlers.NewRouterServer(restaurantServer, addressServer, hoursServer, menuServer)
 

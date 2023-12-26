@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
@@ -14,6 +15,17 @@ import (
 	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
 )
+
+type StubPublisher struct {
+	topic string
+	event interface{}
+}
+
+func (s *StubPublisher) Publish(topic string, event interface{}) error {
+	s.topic = topic
+	s.event = event
+	return nil
+}
 
 type StubMenuStore struct {
 	menus            []models.MenuItem
@@ -65,7 +77,7 @@ func TestMenuEndpointAuthentication(t *testing.T) {
 
 	menuStore := &StubMenuStore{}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore)
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, nil)
 	invalidJWT := "invalidJWT"
 
 	cases := map[string]*http.Request{
@@ -85,7 +97,7 @@ func TestMenuRequestValdiation(t *testing.T) {
 
 	menuStore := &StubMenuStore{}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore)
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, nil)
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
 
 	cases := map[string]*http.Request{
@@ -106,7 +118,7 @@ func TestDeleteMenuItem(t *testing.T) {
 		menus: append(td.DominosMenu, td.ForeignMenuItem),
 	}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore)
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, nil)
 
 	t.Run("deletes menu item on DELETE", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
@@ -168,7 +180,7 @@ func TestUpdateMenuItem(t *testing.T) {
 		menus: append(td.DominosMenu, td.ForeignMenuItem),
 	}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore)
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, nil)
 
 	t.Run("updates menu item on PUT", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
@@ -236,6 +248,8 @@ func TestUpdateMenuItem(t *testing.T) {
 }
 
 func TestCreateMenuItem(t *testing.T) {
+	EventPublisher := &StubPublisher{}
+
 	restaurantStore := &StubRestaurantStore{
 		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
 	}
@@ -244,7 +258,7 @@ func TestCreateMenuItem(t *testing.T) {
 		menus: td.DominosMenu,
 	}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore)
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, EventPublisher)
 
 	t.Run("creates menu item on POST", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
@@ -271,6 +285,11 @@ func TestCreateMenuItem(t *testing.T) {
 		testutil.AssertValidResponse(t, err)
 
 		testutil.AssertEqual(t, got, want)
+
+		wantEvent := events.MenuItemCreatedEvent{ID: want.ID, RestaurantID: td.DominosRestaurant.ID, Name: want.Name, Price: want.Price}
+		testutil.AssertEqual(t, EventPublisher.topic, events.RESTAURANT_EVENTS_TOPIC)
+		testutil.AssertEqual(t, EventPublisher.event, interface{}(wantEvent))
+
 	})
 
 	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {
@@ -299,7 +318,7 @@ func TestGetMenu(t *testing.T) {
 		menus: td.DominosMenu,
 	}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore)
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, nil)
 
 	t.Run("gets menu on GET", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)

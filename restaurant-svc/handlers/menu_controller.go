@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/storeerrors"
@@ -108,6 +109,8 @@ func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(menuItem)
+
+	m.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, events.NewMenuItemCreatedEvent(menuItem, restaurantID))
 }
 
 func (m *MenuServer) getMenu(w http.ResponseWriter, r *http.Request) {
