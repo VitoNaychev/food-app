@@ -12,8 +12,10 @@ type DummyHandlerSpy struct {
 	message string
 }
 
-func (d *DummyHandlerSpy) DummyHandler(event DummyEvent) error {
-	d.message = event.Message
+func (d *DummyHandlerSpy) DummyHandler(event events.EventEnvelope, payload []byte) error {
+	var dummyEvent DummyEvent
+	json.Unmarshal(payload, &dummyEvent)
+	d.message = dummyEvent.Message
 
 	return nil
 }
@@ -25,17 +27,18 @@ func TestKafkaEventConsumer(t *testing.T) {
 	testutil.AssertNil(t, err)
 
 	spy := DummyHandlerSpy{}
-	kafkaEventHandler := events.NewKafkaEventHandler[DummyEvent](spy.DummyHandler)
+	kafkaEventHandler := events.NewKafkaEventHandler(spy.DummyHandler)
 
 	topic := "test-topic"
 	kafkaEventConsumer.RegisterEventHandler(topic, &kafkaEventHandler)
 
-	event := DummyEvent{"Hello, World"}
+	payload := DummyEvent{"Hello, World"}
+	event := events.NewEvent(1, 1, payload)
 
 	message, _ := json.Marshal(event)
 	produceMessage(t, containerID, topic, string(message))
 
-	testutil.AssertEqual(t, spy.message, event.Message)
+	testutil.AssertEqual(t, spy.message, payload.Message)
 
 	kafkaEventConsumer.Close()
 }

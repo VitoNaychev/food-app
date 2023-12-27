@@ -16,14 +16,20 @@ func TestKafkaPublisher(t *testing.T) {
 	defer publisher.Close()
 
 	topic := "test-topic"
-	event := DummyEvent{"Hello, World!"}
+	payload := DummyEvent{"Hello, World!"}
+
+	event := events.NewEvent(1, 1, payload)
 
 	err = publisher.Publish(topic, event)
 	testutil.AssertNil(t, err)
 
 	message := consumeMessage(t, containerID, topic)
 
-	var got DummyEvent
+	var got events.GenericEvent
 	json.Unmarshal([]byte(message), &got)
-	testutil.AssertEqual(t, got, event)
+
+	var gotPayload DummyEvent
+	json.Unmarshal(got.Payload, &gotPayload)
+
+	testutil.AssertEqual(t, gotPayload, payload)
 }

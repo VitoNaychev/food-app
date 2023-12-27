@@ -2,6 +2,7 @@ package events
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/IBM/sarama"
 )
@@ -27,10 +28,13 @@ func (k *KafkaEventPublisher) Close() {
 	k.producer.Close()
 }
 
-func (k *KafkaEventPublisher) Publish(topic string, event interface{}) error {
+func (k *KafkaEventPublisher) Publish(topic string, event Event) error {
 	eventJSON, _ := json.Marshal(event)
 
-	message := &sarama.ProducerMessage{Topic: topic, Value: sarama.ByteEncoder(eventJSON)}
+	key := sarama.StringEncoder(strconv.Itoa(event.AggregateID))
+	value := sarama.ByteEncoder(eventJSON)
+
+	message := &sarama.ProducerMessage{Topic: topic, Key: key, Value: value}
 	_, _, err := k.producer.SendMessage(message)
 
 	return err

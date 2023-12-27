@@ -3,41 +3,36 @@ package events
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"sync"
 
 	"github.com/IBM/sarama"
 )
 
-func TypedHandlerToEventHandlerFunc[T any](typedHandler func(T) error) EventHandlerFunc {
-	return EventHandlerFunc(func(i interface{}) error {
-		if typedParam, ok := i.(T); ok {
-			return typedHandler(typedParam)
-		} else {
-			return fmt.Errorf("trying to call event handler with incorrect type")
-		}
-	})
-}
-
-type BaseKafkaEventHandler[T any] struct {
+type BaseKafkaEventHandler struct {
 	EventHandler EventHandlerFunc
 }
 
-func NewKafkaEventHandler[T any](eventHandler func(T) error) BaseKafkaEventHandler[T] {
-	kafkeEventHandler := BaseKafkaEventHandler[T]{}
-	kafkeEventHandler.EventHandler = TypedHandlerToEventHandlerFunc(eventHandler)
+func NewKafkaEventHandler(eventHandler EventHandlerFunc) BaseKafkaEventHandler {
+	kafkeEventHandler := BaseKafkaEventHandler{}
+	kafkeEventHandler.EventHandler = eventHandler
 
 	return kafkeEventHandler
 }
 
-func (b *BaseKafkaEventHandler[T]) Setup(sarama.ConsumerGroupSession) error { return nil }
+func (b *BaseKafkaEventHandler) Setup(sarama.ConsumerGroupSession) error { return nil }
 
-func (b *BaseKafkaEventHandler[T]) ConsumeClaim(sess sarama.ConsumerGroupSession, claims sarama.ConsumerGroupClaim) error {
+func (b *BaseKafkaEventHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claims sarama.ConsumerGroupClaim) error {
 	for message := range claims.Messages() {
-		var event T
-		json.Unmarshal(message.Value, &event)
+		var genericEvent GenericEvent
+		json.Unmarshal(message.Value, &genericEvent)
 
-		err := b.EventHandler(event)
+		envelope := EventEnvelope{
+			EventID:     genericEvent.EventID,
+			AggregateID: genericEvent.AggregateID,
+			Timestamp:   genericEvent.Timestamp,
+		}
+
+		err := b.EventHandler(envelope, genericEvent.Payload)
 		if err != nil {
 			return err
 		}
@@ -47,7 +42,7 @@ func (b *BaseKafkaEventHandler[T]) ConsumeClaim(sess sarama.ConsumerGroupSession
 	return nil
 }
 
-func (b *BaseKafkaEventHandler[T]) Cleanup(sarama.ConsumerGroupSession) error { return nil }
+func (b *BaseKafkaEventHandler) Cleanup(sarama.ConsumerGroupSession) error { return nil }
 
 type KafkaEventConsumer struct {
 	ctx        context.Context
