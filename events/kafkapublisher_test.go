@@ -15,21 +15,33 @@ func TestKafkaPublisher(t *testing.T) {
 	testutil.AssertNil(t, err)
 	defer publisher.Close()
 
-	topic := "test-topic"
+	aggID := 1
 	payload := DummyEvent{"Hello, World!"}
+	want := events.NewEvent(DUMMY_EVENT_ID, aggID, payload)
 
-	event := events.NewEvent(1, 1, payload)
-
-	err = publisher.Publish(topic, event)
+	topic := "test-topic"
+	err = publisher.Publish(topic, want)
 	testutil.AssertNil(t, err)
 
 	message := consumeMessage(t, containerID, topic)
+	genericEvent := UnmarshalGenericEvent[DummyEvent]([]byte(message))
+	got := GenericEventToEvent(genericEvent)
 
-	var got events.GenericEvent
-	json.Unmarshal([]byte(message), &got)
+	testutil.AssertEqual(t, got, want)
+}
 
-	var gotPayload DummyEvent
-	json.Unmarshal(got.Payload, &gotPayload)
+func UnmarshalGenericEvent[T any](data []byte) (event events.GenericEvent[T]) {
+	json.Unmarshal(data, &event)
+	return
+}
 
-	testutil.AssertEqual(t, gotPayload, payload)
+func GenericEventToEvent[T any](generic events.GenericEvent[T]) events.Event {
+	event := events.Event{
+		EventID:     generic.EventID,
+		AggregateID: generic.AggregateID,
+		Timestamp:   generic.Timestamp,
+		Payload:     generic.Payload,
+	}
+
+	return event
 }

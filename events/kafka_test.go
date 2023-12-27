@@ -11,6 +11,8 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/kafka"
 )
 
+const DUMMY_EVENT_ID = 10
+
 type DummyEvent struct {
 	Message string
 }

@@ -23,16 +23,16 @@ func (b *BaseKafkaEventHandler) Setup(sarama.ConsumerGroupSession) error { retur
 
 func (b *BaseKafkaEventHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claims sarama.ConsumerGroupClaim) error {
 	for message := range claims.Messages() {
-		var genericEvent GenericEvent
-		json.Unmarshal(message.Value, &genericEvent)
+		var unmarshalEvent UnmarshalEvent
+		json.Unmarshal(message.Value, &unmarshalEvent)
 
 		envelope := EventEnvelope{
-			EventID:     genericEvent.EventID,
-			AggregateID: genericEvent.AggregateID,
-			Timestamp:   genericEvent.Timestamp,
+			EventID:     unmarshalEvent.EventID,
+			AggregateID: unmarshalEvent.AggregateID,
+			Timestamp:   unmarshalEvent.Timestamp,
 		}
 
-		err := b.EventHandler(envelope, genericEvent.Payload)
+		err := b.EventHandler(envelope, unmarshalEvent.Payload)
 		if err != nil {
 			return err
 		}

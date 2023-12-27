@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type EventEnvelope struct {
+	EventID     int
+	AggregateID int
+	Timestamp   time.Time
+}
+
 type Event struct {
 	EventID     int
 	AggregateID int
@@ -12,17 +18,18 @@ type Event struct {
 	Payload     interface{}
 }
 
-type EventEnvelope struct {
-	EventID     int
-	AggregateID int
-	Timestamp   time.Time
-}
-
-type GenericEvent struct {
+type UnmarshalEvent struct {
 	EventID     int
 	AggregateID int
 	Timestamp   time.Time
 	Payload     json.RawMessage
+}
+
+type GenericEvent[T any] struct {
+	EventID     int
+	AggregateID int
+	Timestamp   time.Time
+	Payload     T
 }
 
 func NewEvent(eventID, aggregateID int, payload interface{}) Event {
