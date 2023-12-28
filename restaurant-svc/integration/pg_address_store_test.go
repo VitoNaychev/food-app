@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestAddressServerOperations(t *testing.T) {
-	connStr := SetupDatabaseContainer(t)
+	connStr := integrationutil.SetupDatabaseContainer(t, env)
 
 	addressStore, err := models.NewPgAddressStore(context.Background(), connStr)
 	if err != nil {

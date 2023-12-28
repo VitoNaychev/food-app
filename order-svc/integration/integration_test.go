@@ -11,7 +11,7 @@ import (
 var env loadenv.Enviornment
 
 func TestMain(m *testing.M) {
-	keys := []string{"SECRET", "EXPIRES_AT", "DBUSER", "DBPASS", "DBNAME"}
+	keys := []string{"DBUSER", "DBPASS", "DBNAME"}
 
 	var err error
 	env, err = loadenv.LoadEnviornment("../test.env", keys)

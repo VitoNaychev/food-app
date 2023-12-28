@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/order-svc/handlers"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 	"github.com/VitoNaychev/food-app/order-svc/stubs"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestOrderServerOperations(t *testing.T) {
-	connStr := NewDatabaseContainer(t)
+	connStr := integrationutil.SetupDatabaseContainer(t, env)
 
 	orderStore, err := models.NewPgOrderStore(context.Background(), connStr)
 	if err != nil {

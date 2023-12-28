@@ -1,4 +1,4 @@
-package integration
+package integrationutil
 
 import (
 	"context"
@@ -7,21 +7,12 @@ import (
 	"time"
 
 	"github.com/VitoNaychev/food-app/loadenv"
-	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func NewDatabaseContainer(t testing.TB) string {
-	keys := []string{"DBUSER", "DBPASS", "DBNAME"}
-
-	env, err := loadenv.LoadEnviornment("../test.env", keys)
-	if err != nil {
-		testutil.HandleLoadEnviornmentError(err)
-		t.Fatal()
-	}
-
+func SetupDatabaseContainer(t testing.TB, env loadenv.Enviornment) string {
 	ctx := context.Background()
 
 	pgContainer, err := postgres.RunContainer(ctx,

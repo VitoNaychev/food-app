@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
@@ -22,7 +23,7 @@ func (s *FakePublisher) Publish(topic string, event interface{}) error {
 }
 
 func TestMenuServerOperations(t *testing.T) {
-	connStr := SetupDatabaseContainer(t)
+	connStr := integrationutil.SetupDatabaseContainer(t, env)
 
 	menuStore, err := models.NewPgMenuStore(context.Background(), connStr)
 	if err != nil {

@@ -9,12 +9,13 @@ import (
 	"github.com/VitoNaychev/food-app/courier-svc/handlers"
 	"github.com/VitoNaychev/food-app/courier-svc/models"
 	td "github.com/VitoNaychev/food-app/courier-svc/testdata"
+	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestCustomerServerOperations(t *testing.T) {
-	connStr := SetupDatabaseContainer(t)
+	connStr := integrationutil.SetupDatabaseContainer(t, env)
 
 	courierStore, err := models.NewPgCourierStore(context.Background(), connStr)
 	if err != nil {

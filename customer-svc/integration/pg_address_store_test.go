@@ -10,12 +10,13 @@ import (
 	"github.com/VitoNaychev/food-app/customer-svc/handlers"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
 	"github.com/VitoNaychev/food-app/customer-svc/testdata"
+	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestAddressServerOperations(t *testing.T) {
-	connStr := SetupDatabaseContainer(t)
+	connStr := integrationutil.SetupDatabaseContainer(t, testEnv)
 
 	addressStore, err := models.NewPgAddressStore(context.Background(), connStr)
 	if err != nil {
