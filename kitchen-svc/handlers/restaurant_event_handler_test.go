@@ -27,6 +27,10 @@ func (d *DummyService) CreateMenuItem(id int, restaurantID int, name string, pri
 	return nil
 }
 
+func (d *DummyService) GetRestaurantByID(id int) (domain.Restaurant, error) {
+	return domain.Restaurant{}, nil
+}
+
 func TestRestaurantEventHandlers(t *testing.T) {
 	service := &DummyService{}
 	endpoint := handlers.NewRestaurantEventEndpoint(service)
@@ -40,4 +44,5 @@ func TestRestaurantEventHandlers(t *testing.T) {
 
 		testutil.AssertEqual(t, service.createRestaurantID, restaurant.ID)
 	})
+
 }

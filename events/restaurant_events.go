@@ -4,6 +4,14 @@ import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 
 const RESTAURANT_EVENTS_TOPIC = "restaurant-events-topic"
 
+const (
+	RESTAURANT_CREATED_EVENT_ID = iota
+)
+
+type RestaurantCreatedEvent struct {
+	ID int `validate:"min=1"             json:"id"`
+}
+
 type MenuItemCreatedEvent struct {
 	ID           int     `validate:"min=1"             json:"id"`
 	RestaurantID int     `validate:"min=1"             json:"restaurant_id"`

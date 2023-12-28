@@ -11,6 +11,14 @@ type EventEnvelope struct {
 	Timestamp   time.Time
 }
 
+func NewEventEnvelope(eventID, aggregateID int) EventEnvelope {
+	return EventEnvelope{
+		EventID:     eventID,
+		AggregateID: aggregateID,
+		Timestamp:   time.Now(),
+	}
+}
+
 type Event struct {
 	EventID     int
 	AggregateID int

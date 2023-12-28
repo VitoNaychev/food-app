@@ -31,6 +31,15 @@ func (k *KitchenService) CreateRestaurant(id int) error {
 	return nil
 }
 
+func (k *KitchenService) GetRestaurantByID(id int) (domain.Restaurant, error) {
+	restaurant, err := k.restaurantStore.GetRestaurantByID(id)
+	if err != nil {
+		return domain.Restaurant{}, err
+	}
+
+	return restaurant, nil
+}
+
 func (k *KitchenService) CreateMenuItem(id int, restaurantID int, name string, price float32) error {
 	panic("unimplemented")
 }

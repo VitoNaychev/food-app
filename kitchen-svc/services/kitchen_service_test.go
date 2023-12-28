@@ -22,7 +22,7 @@ func (s *StubRestaurantStore) CreateRestaurant(restaurant *domain.Restaurant) er
 }
 
 func (s *StubRestaurantStore) GetRestaurantByID(id int) (domain.Restaurant, error) {
-	panic("unimplemented")
+	return s.restaurant, nil
 }
 
 func (s *StubRestaurantStore) UpdateRestaurant(restaurant *domain.Restaurant) error {
@@ -37,5 +37,11 @@ func TestKithenService(t *testing.T) {
 		service.CreateRestaurant(restaurant.ID)
 
 		testutil.AssertEqual(t, store.restaurant, restaurant)
+	})
+
+	t.Run("gets restaurant by id", func(t *testing.T) {
+		got, _ := service.GetRestaurantByID(restaurant.ID)
+
+		testutil.AssertEqual(t, got, restaurant)
 	})
 }
