@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
@@ -18,7 +19,7 @@ import (
 type FakePublisher struct {
 }
 
-func (s *FakePublisher) Publish(topic string, event interface{}) error {
+func (s *FakePublisher) Publish(topic string, event events.Event) error {
 	return nil
 }
 
