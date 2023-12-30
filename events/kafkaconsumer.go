@@ -79,10 +79,10 @@ func (k *KafkaEventConsumer) Close() {
 
 func (k *KafkaEventConsumer) RegisterEventHandler(topic string, consumerGroupHandler sarama.ConsumerGroupHandler) {
 	k.handlersWg.Add(1)
-	go k.HandleEvents(topic, consumerGroupHandler)
+	go k.handleEvents(topic, consumerGroupHandler)
 }
 
-func (k *KafkaEventConsumer) HandleEvents(topic string, consumerGroupHandler sarama.ConsumerGroupHandler) {
+func (k *KafkaEventConsumer) handleEvents(topic string, consumerGroupHandler sarama.ConsumerGroupHandler) {
 	for {
 		select {
 		case <-k.ctx.Done():
