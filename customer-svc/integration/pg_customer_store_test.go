@@ -12,11 +12,15 @@ import (
 	"github.com/VitoNaychev/food-app/customer-svc/testdata"
 	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
+	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestCustomerServerOperations(t *testing.T) {
-	connStr := integrationutil.SetupDatabaseContainer(t, testEnv)
+	config := pgconfig.GetConfigFromEnv(testEnv)
+	integrationutil.SetupDatabaseContainer(t, &config)
+
+	connStr := config.GetConnectionString()
 
 	store, err := models.NewPgCustomerStore(context.Background(), connStr)
 	if err != nil {

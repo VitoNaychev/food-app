@@ -6,21 +6,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/food-app/appenv"
+	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func SetupDatabaseContainer(t testing.TB, env appenv.Enviornment) string {
+func SetupDatabaseContainer(t testing.TB, config *pgconfig.Config) {
 	ctx := context.Background()
 
 	pgContainer, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:15.3-alpine"),
 		postgres.WithInitScripts(filepath.Join("..", "sql-scripts", "init.sql")),
-		postgres.WithDatabase(env.Dbname),
-		postgres.WithUsername(env.Dbuser),
-		postgres.WithPassword(env.Dbpass),
+		postgres.WithDatabase(config.Database),
+		postgres.WithUsername(config.User),
+		postgres.WithPassword(config.Password),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).WithStartupTimeout(5*time.Second),
@@ -36,10 +36,15 @@ func SetupDatabaseContainer(t testing.TB, env appenv.Enviornment) string {
 		}
 	})
 
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	host, err := pgContainer.Host(ctx)
 	if err != nil {
-		t.Fatalf("couldn't get connection string: %v", err)
+		t.Fatalf("couldn't get container host: %v", err)
+	}
+	port, err := pgContainer.MappedPort(ctx, "5432/tcp")
+	if err != nil {
+		t.Fatalf("couldn't get exposed port: %v", err)
 	}
 
-	return connStr
+	config.Host = host
+	config.Port = port.Port()
 }

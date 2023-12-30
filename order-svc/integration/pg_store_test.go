@@ -13,11 +13,15 @@ import (
 	"github.com/VitoNaychev/food-app/order-svc/models"
 	"github.com/VitoNaychev/food-app/order-svc/stubs"
 	"github.com/VitoNaychev/food-app/order-svc/testdata"
+	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestOrderServerOperations(t *testing.T) {
-	connStr := integrationutil.SetupDatabaseContainer(t, env)
+	config := pgconfig.GetConfigFromEnv(env)
+	integrationutil.SetupDatabaseContainer(t, &config)
+
+	connStr := config.GetConnectionString()
 
 	orderStore, err := models.NewPgOrderStore(context.Background(), connStr)
 	if err != nil {

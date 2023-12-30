@@ -11,13 +11,15 @@ import (
 	td "github.com/VitoNaychev/food-app/courier-svc/testdata"
 	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
+	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestCustomerServerOperations(t *testing.T) {
-	connStr := integrationutil.SetupDatabaseContainer(t, env)
+	config := pgconfig.GetConfigFromEnv(env)
+	integrationutil.SetupDatabaseContainer(t, &config)
 
-	courierStore, err := models.NewPgCourierStore(context.Background(), connStr)
+	courierStore, err := models.NewPgCourierStore(context.Background(), config.GetConnectionString())
 	if err != nil {
 		t.Fatal(err)
 	}

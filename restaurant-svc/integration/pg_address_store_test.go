@@ -8,6 +8,7 @@ import (
 
 	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
+	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
@@ -16,7 +17,10 @@ import (
 )
 
 func TestAddressServerOperations(t *testing.T) {
-	connStr := integrationutil.SetupDatabaseContainer(t, env)
+	config := pgconfig.GetConfigFromEnv(env)
+	integrationutil.SetupDatabaseContainer(t, &config)
+
+	connStr := config.GetConnectionString()
 
 	addressStore, err := models.NewPgAddressStore(context.Background(), connStr)
 	if err != nil {

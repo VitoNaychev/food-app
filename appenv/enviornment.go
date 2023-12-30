@@ -16,6 +16,8 @@ type Enviornment struct {
 	SecretKey []byte
 	ExpiresAt time.Duration
 
+	Dbhost string
+	Dbport string
 	Dbuser string
 	Dbpass string
 	Dbname string

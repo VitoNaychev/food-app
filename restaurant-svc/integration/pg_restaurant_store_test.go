@@ -8,6 +8,7 @@ import (
 
 	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
+	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
@@ -15,7 +16,10 @@ import (
 )
 
 func TestCustomerServerOperations(t *testing.T) {
-	connStr := integrationutil.SetupDatabaseContainer(t, env)
+	config := pgconfig.GetConfigFromEnv(env)
+	integrationutil.SetupDatabaseContainer(t, &config)
+
+	connStr := config.GetConnectionString()
 
 	restaurantStore, err := models.NewPgRestaurantStore(context.Background(), connStr)
 	if err != nil {
