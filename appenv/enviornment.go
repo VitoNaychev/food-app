@@ -1,4 +1,4 @@
-package loadenv
+package appenv
 
 import (
 	"errors"
@@ -19,6 +19,8 @@ type Enviornment struct {
 	Dbuser string
 	Dbpass string
 	Dbname string
+
+	KafkaBrokers []string
 }
 
 func LoadEnviornment(file string, keys []string) (Enviornment, error) {

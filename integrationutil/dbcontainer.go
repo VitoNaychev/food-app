@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/VitoNaychev/food-app/loadenv"
+	"github.com/VitoNaychev/food-app/appenv"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func SetupDatabaseContainer(t testing.TB, env loadenv.Enviornment) string {
+func SetupDatabaseContainer(t testing.TB, env appenv.Enviornment) string {
 	ctx := context.Background()
 
 	pgContainer, err := postgres.RunContainer(ctx,
