@@ -18,10 +18,10 @@ import (
 
 type StubPublisher struct {
 	topic string
-	event interface{}
+	event events.Event
 }
 
-func (s *StubPublisher) Publish(topic string, event interface{}) error {
+func (s *StubPublisher) Publish(topic string, event events.Event) error {
 	s.topic = topic
 	s.event = event
 	return nil
@@ -288,7 +288,7 @@ func TestCreateMenuItem(t *testing.T) {
 
 		wantEvent := events.MenuItemCreatedEvent{ID: want.ID, RestaurantID: td.DominosRestaurant.ID, Name: want.Name, Price: want.Price}
 		testutil.AssertEqual(t, EventPublisher.topic, events.RESTAURANT_EVENTS_TOPIC)
-		testutil.AssertEqual(t, EventPublisher.event, interface{}(wantEvent))
+		testutil.AssertEqual(t, EventPublisher.event.Payload, interface{}(wantEvent))
 
 	})
 

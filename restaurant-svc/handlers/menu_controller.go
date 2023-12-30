@@ -110,7 +110,8 @@ func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(menuItem)
 
-	m.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, events.NewMenuItemCreatedEvent(menuItem, restaurantID))
+	event := events.NewEvent(events.RESTAURANT_CREATED_EVENT_ID, restaurantID, events.NewMenuItemCreatedEvent(menuItem, restaurantID))
+	m.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, event)
 }
 
 func (m *MenuServer) getMenu(w http.ResponseWriter, r *http.Request) {
