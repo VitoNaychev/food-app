@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/food-app/events"
+	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
 func TestKafkaPublisher(t *testing.T) {
-	containerID, brokersAddrs := SetupKafkaContainer(t)
+	containerID, brokersAddrs := integrationutil.SetupKafkaContainer(t)
 
 	publisher, err := events.NewKafkaEventPublisher(brokersAddrs)
 	testutil.AssertNil(t, err)

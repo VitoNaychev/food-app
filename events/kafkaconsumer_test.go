@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/VitoNaychev/food-app/events"
+	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
@@ -21,7 +22,7 @@ func (d *DummyHandlerSpy) DummyHandler(event events.EventEnvelope, payload []byt
 }
 
 func TestKafkaEventConsumer(t *testing.T) {
-	containerID, brokersAddrs := SetupKafkaContainer(t)
+	containerID, brokersAddrs := integrationutil.SetupKafkaContainer(t)
 
 	kafkaEventConsumer, err := events.NewKafkaEventConsumer(brokersAddrs, "test-group")
 	testutil.AssertNil(t, err)
