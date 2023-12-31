@@ -2,6 +2,7 @@ package pgconfig
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/VitoNaychev/food-app/appenv"
 )
@@ -12,11 +13,13 @@ type Config struct {
 	User     string
 	Password string
 	Database string
+	Options  []string
 }
 
 func (c *Config) GetConnectionString() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
-		c.User, c.Password, c.Host, c.Port, c.Database)
+	optionsStr := strings.Join(c.Options, "&")
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?%s",
+		c.User, c.Password, c.Host, c.Port, c.Database, optionsStr)
 }
 
 func GetConfigFromEnv(env appenv.Enviornment) Config {
