@@ -18,7 +18,7 @@ import (
 
 func TestAddressServerOperations(t *testing.T) {
 	config := pgconfig.GetConfigFromEnv(testEnv)
-	integrationutil.SetupDatabaseContainer(t, &config)
+	integrationutil.SetupDatabaseContainer(t, &config, "../sql-scripts/init.sql")
 
 	connStr := config.GetConnectionString()
 

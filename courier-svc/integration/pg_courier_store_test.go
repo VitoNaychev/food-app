@@ -17,7 +17,7 @@ import (
 
 func TestCustomerServerOperations(t *testing.T) {
 	config := pgconfig.GetConfigFromEnv(env)
-	integrationutil.SetupDatabaseContainer(t, &config)
+	integrationutil.SetupDatabaseContainer(t, &config, "../sql-scripts/init.sql")
 
 	courierStore, err := models.NewPgCourierStore(context.Background(), config.GetConnectionString())
 	if err != nil {

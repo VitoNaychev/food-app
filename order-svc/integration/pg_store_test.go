@@ -19,7 +19,7 @@ import (
 
 func TestOrderServerOperations(t *testing.T) {
 	config := pgconfig.GetConfigFromEnv(env)
-	integrationutil.SetupDatabaseContainer(t, &config)
+	integrationutil.SetupDatabaseContainer(t, &config, "../sql-scripts/init.sql")
 
 	connStr := config.GetConnectionString()
 

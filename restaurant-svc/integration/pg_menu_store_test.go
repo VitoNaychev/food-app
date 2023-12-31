@@ -26,7 +26,7 @@ func (s *FakePublisher) Publish(topic string, event events.Event) error {
 
 func TestMenuServerOperations(t *testing.T) {
 	config := pgconfig.GetConfigFromEnv(env)
-	integrationutil.SetupDatabaseContainer(t, &config)
+	integrationutil.SetupDatabaseContainer(t, &config, "../sql-scripts/init.sql")
 
 	connStr := config.GetConnectionString()
 

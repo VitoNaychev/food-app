@@ -2,7 +2,6 @@ package integrationutil
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,12 +11,12 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func SetupDatabaseContainer(t testing.TB, config *pgconfig.Config) {
+func SetupDatabaseContainer(t testing.TB, config *pgconfig.Config, initfile string) {
 	ctx := context.Background()
 
 	pgContainer, err := postgres.RunContainer(ctx,
 		testcontainers.WithImage("postgres:15.3-alpine"),
-		postgres.WithInitScripts(filepath.Join("..", "sql-scripts", "init.sql")),
+		postgres.WithInitScripts(initfile),
 		postgres.WithDatabase(config.Database),
 		postgres.WithUsername(config.User),
 		postgres.WithPassword(config.Password),
@@ -47,4 +46,5 @@ func SetupDatabaseContainer(t testing.TB, config *pgconfig.Config) {
 
 	config.Host = host
 	config.Port = port.Port()
+	config.Options = []string{"sslmode=disable"}
 }
