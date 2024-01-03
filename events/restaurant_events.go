@@ -4,8 +4,10 @@ import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 
 const RESTAURANT_EVENTS_TOPIC = "restaurant-events-topic"
 
+type EventID int
+
 const (
-	RESTAURANT_CREATED_EVENT_ID = iota
+	RESTAURANT_CREATED_EVENT_ID EventID = iota
 )
 
 type RestaurantCreatedEvent struct {
