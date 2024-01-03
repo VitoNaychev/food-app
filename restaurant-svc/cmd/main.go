@@ -61,7 +61,7 @@ func main() {
 	restaurantServer := handlers.NewRestaurantServer(secretKey, expiresAt, &restaurantStore)
 	addressServer := handlers.NewAddressServer(secretKey, &addressStore, &restaurantStore)
 	hoursServer := handlers.NewHoursServer(secretKey, &hoursStore, &restaurantStore)
-	menuServer := handlers.NewMenuServer(secretKey, &menuStore, &restaurantStore)
+	menuServer := handlers.NewMenuServer(secretKey, &menuStore, &restaurantStore, nil)
 
 	router := handlers.NewRouterServer(restaurantServer, addressServer, hoursServer, menuServer)
 

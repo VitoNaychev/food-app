@@ -4,9 +4,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/restaurant-svc/handlers"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
@@ -15,6 +17,18 @@ import (
 	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
 )
+
+type StubEventPublisher struct {
+	topic string
+	event events.Event
+}
+
+func (s *StubEventPublisher) Publish(topic string, event events.Event) error {
+	s.topic = topic
+	s.event = event
+
+	return nil
+}
 
 type StubRestaurantStore struct {
 	updatedRestaurant   models.Restaurant
@@ -63,7 +77,7 @@ func TestRestaurantRequestValidation(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
 	}
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, nil)
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := map[string]*http.Request{
@@ -79,7 +93,8 @@ func TestRestaurantResponseValidity(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
 	}
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	publisher := &StubEventPublisher{}
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
 	cases := []tabletests.ResponseValidationTestcase{
@@ -113,7 +128,7 @@ func TestRestaurantResponseValidity(t *testing.T) {
 }
 
 func TestRestaurantEnpointAuthentication(t *testing.T) {
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, nil)
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, nil, nil)
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
@@ -129,7 +144,7 @@ func TestLoginRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
 	}
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, nil)
 
 	t.Run("returns JWT on correct credentials", func(t *testing.T) {
 		request := handlers.NewLoginRestaurantRequest(testdata.ShackRestaurant)
@@ -176,7 +191,7 @@ func TestDeleteRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
 	}
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, nil)
 
 	t.Run("deletes restaurant on DELETE", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
@@ -196,7 +211,7 @@ func TestUpdateRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
 	}
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, nil)
 
 	t.Run("updates restaurant on PUT", func(t *testing.T) {
 		updatedRestaurant := testdata.DominosRestaurant
@@ -219,7 +234,7 @@ func TestGetRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant},
 	}
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, nil)
 
 	t.Run("resturns restaurant on GET", func(t *testing.T) {
 		shackJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.ShackRestaurant.ID)
@@ -243,7 +258,8 @@ func TestCreateRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.DominosRestaurant},
 	}
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	publisher := &StubEventPublisher{}
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	t.Run("creates restaurant on POST", func(t *testing.T) {
 		request := handlers.NewCreateRestaurantRequest(testdata.ShackRestaurant)
@@ -283,6 +299,24 @@ func TestCreateRestaurant(t *testing.T) {
 		testutil.AssertEqual(t, got.Restaurant, wantRestaurant)
 	})
 
+	t.Run("generates a RESTAURANT_CREATED_EVENT on POST", func(t *testing.T) {
+		request := handlers.NewCreateRestaurantRequest(testdata.ShackRestaurant)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertEqual(t, publisher.topic, events.RESTAURANT_EVENTS_TOPIC)
+
+		got := publisher.event
+		want := events.Event{
+			EventID:     events.RESTAURANT_CREATED_EVENT_ID,
+			AggregateID: testdata.ShackRestaurant.ID,
+			Payload:     events.RestaurantCreatedEvent{ID: testdata.ShackAddress.ID},
+		}
+
+		assertEvent(t, got, want)
+	})
+
 	t.Run("returns Bad Request on restaurant with same email", func(t *testing.T) {
 		request := handlers.NewCreateRestaurantRequest(testdata.DominosRestaurant)
 		response := httptest.NewRecorder()
@@ -292,4 +326,16 @@ func TestCreateRestaurant(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrExistingRestaurant)
 	})
+}
+
+func assertEvent(t testing.TB, got events.Event, want events.Event) {
+	t.Helper()
+
+	if reflect.DeepEqual(got, events.Event{}) {
+		t.Fatalf("didn't publish event")
+	}
+
+	testutil.AssertEqual(t, got.EventID, want.EventID)
+	testutil.AssertEqual(t, got.AggregateID, want.AggregateID)
+	testutil.AssertEqual(t, got.Payload, want.Payload)
 }

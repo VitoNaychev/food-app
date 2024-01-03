@@ -32,7 +32,7 @@ func TestAddressServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore)
+	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore, &DummyPublisher{})
 	addressServer := handlers.NewAddressServer(env.SecretKey, &addressStore, &restaurantStore)
 
 	server := handlers.NewRouterServer(restaurantServer, addressServer, DummyHandler, DummyHandler)

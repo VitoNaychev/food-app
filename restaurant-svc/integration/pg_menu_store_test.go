@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/pgconfig"
@@ -16,13 +15,6 @@ import (
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	"github.com/VitoNaychev/food-app/testutil"
 )
-
-type FakePublisher struct {
-}
-
-func (s *FakePublisher) Publish(topic string, event events.Event) error {
-	return nil
-}
 
 func TestMenuServerOperations(t *testing.T) {
 	config := pgconfig.GetConfigFromEnv(env)
@@ -50,10 +42,10 @@ func TestMenuServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore)
+	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore, &DummyPublisher{})
 	addressServer := handlers.NewAddressServer(env.SecretKey, &addressStore, &restaurantStore)
 	hoursServer := handlers.NewHoursServer(env.SecretKey, &hoursStore, &restaurantStore)
-	menuServer := handlers.NewMenuServer(env.SecretKey, &menuStore, &restaurantStore, &FakePublisher{})
+	menuServer := handlers.NewMenuServer(env.SecretKey, &menuStore, &restaurantStore, &DummyPublisher{})
 
 	server := handlers.NewRouterServer(restaurantServer, addressServer, hoursServer, menuServer)
 

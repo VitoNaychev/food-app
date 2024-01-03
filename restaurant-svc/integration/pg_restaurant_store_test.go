@@ -26,7 +26,7 @@ func TestCustomerServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore)
+	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore, &DummyPublisher{})
 
 	server := handlers.NewRouterServer(restaurantServer,
 		http.HandlerFunc(DummyHandler),

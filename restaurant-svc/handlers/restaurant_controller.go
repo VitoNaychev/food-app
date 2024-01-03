@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/storeerrors"
@@ -119,4 +120,8 @@ func (s *RestaurantServer) createRestaurant(w http.ResponseWriter, r *http.Reque
 		Restaurant: RestaurantToRestaurantResponse(restaurant),
 	}
 	json.NewEncoder(w).Encode(response)
+
+	payload := events.RestaurantCreatedEvent{ID: restaurant.ID}
+	event := events.NewEvent(events.RESTAURANT_CREATED_EVENT_ID, restaurant.ID, payload)
+	s.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, event)
 }
