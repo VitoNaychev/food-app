@@ -17,7 +17,7 @@ func NewEventEnvelope(eventID EventID, aggregateID int) EventEnvelope {
 	return EventEnvelope{
 		EventID:     eventID,
 		AggregateID: aggregateID,
-		Timestamp:   time.Now(),
+		Timestamp:   time.Now().Round(0),
 	}
 }
 
@@ -46,7 +46,7 @@ func NewEvent(eventID EventID, aggregateID int, payload interface{}) Event {
 	return Event{
 		EventID:     eventID,
 		AggregateID: aggregateID,
-		Timestamp:   time.Now(),
+		Timestamp:   time.Now().Round(0),
 		Payload:     payload,
 	}
 }
