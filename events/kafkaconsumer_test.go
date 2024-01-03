@@ -1,44 +1,73 @@
 package events_test
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
-type DummyHandlerSpy struct {
+var DummyError = errors.New("dummy error")
+
+type SpyHandler struct {
 	message string
+	err     error
 }
 
-func (d *DummyHandlerSpy) DummyHandler(event events.EventEnvelope, payload []byte) error {
+func (s *SpyHandler) EventHandler(event events.EventEnvelope, payload []byte) error {
 	var dummyEvent DummyEvent
 	json.Unmarshal(payload, &dummyEvent)
-	d.message = dummyEvent.Message
+	s.message = dummyEvent.Message
 
-	return nil
+	return s.err
 }
 
 func TestKafkaEventConsumer(t *testing.T) {
 	containerID, brokersAddrs := integrationutil.SetupKafkaContainer(t)
 
 	kafkaEventConsumer, err := events.NewKafkaEventConsumer(brokersAddrs, "test-group")
-	testutil.AssertNil(t, err)
+	testutil.AssertNoErr(t, err)
+	t.Cleanup(kafkaEventConsumer.Close)
 
-	spy := DummyHandlerSpy{}
+	spy := SpyHandler{}
 
 	topic := "test-topic"
-	kafkaEventConsumer.RegisterEventHandler(topic, spy.DummyHandler)
+	kafkaEventConsumer.RegisterEventHandler(topic, spy.EventHandler)
 
-	payload := DummyEvent{"Hello, World"}
-	event := events.NewEvent(1, 1, payload)
+	t.Run("receives a message", func(t *testing.T) {
+		payload := DummyEvent{"Hello, World"}
+		event := events.NewEvent(1, 1, payload)
 
-	message, _ := json.Marshal(event)
-	produceMessage(t, containerID, topic, string(message))
+		message, _ := json.Marshal(event)
+		produceMessage(t, containerID, topic, string(message))
 
-	testutil.AssertEqual(t, spy.message, payload.Message)
+		testutil.AssertEqual(t, spy.message, payload.Message)
+	})
 
-	kafkaEventConsumer.Close()
+	t.Run("writes error from event handler to ErrorsChan", func(t *testing.T) {
+		spy.err = DummyError
+
+		payload := DummyEvent{"Hello, World"}
+		event := events.NewEvent(1, 1, payload)
+
+		message, _ := json.Marshal(event)
+		produceMessage(t, containerID, topic, string(message))
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		t.Cleanup(cancel)
+
+		var err error
+		select {
+		case err = <-kafkaEventConsumer.ErrorsChan:
+			consumerError := err.(*events.ConsumerError)
+			testutil.AssertEqual(t, consumerError.Err, spy.err)
+		case <-ctx.Done():
+			t.Fatalf("didn't receive error before timeout")
+		}
+	})
 }
