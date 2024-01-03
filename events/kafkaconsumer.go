@@ -77,9 +77,11 @@ func (k *KafkaEventConsumer) Close() {
 	k.group.Close()
 }
 
-func (k *KafkaEventConsumer) RegisterEventHandler(topic string, consumerGroupHandler sarama.ConsumerGroupHandler) {
+func (k *KafkaEventConsumer) RegisterEventHandler(topic string, eventHandler EventHandlerFunc) {
+	consumerGroupHandler := NewKafkaEventHandler(eventHandler)
+
 	k.handlersWg.Add(1)
-	go k.handleEvents(topic, consumerGroupHandler)
+	go k.handleEvents(topic, &consumerGroupHandler)
 }
 
 func (k *KafkaEventConsumer) handleEvents(topic string, consumerGroupHandler sarama.ConsumerGroupHandler) {

@@ -28,10 +28,9 @@ func TestKafkaEventConsumer(t *testing.T) {
 	testutil.AssertNil(t, err)
 
 	spy := DummyHandlerSpy{}
-	kafkaEventHandler := events.NewKafkaEventHandler(spy.DummyHandler)
 
 	topic := "test-topic"
-	kafkaEventConsumer.RegisterEventHandler(topic, &kafkaEventHandler)
+	kafkaEventConsumer.RegisterEventHandler(topic, spy.DummyHandler)
 
 	payload := DummyEvent{"Hello, World"}
 	event := events.NewEvent(1, 1, payload)
