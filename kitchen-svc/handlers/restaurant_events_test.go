@@ -1,8 +1,8 @@
 package handlers_test
 
 import (
-	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/kitchen-svc/handlers"
@@ -35,10 +35,15 @@ func TestRestaurantEventHandler(t *testing.T) {
 
 	t.Run("creates restaurant on RESTAURANT_CREATED_EVENT", func(t *testing.T) {
 		payload := events.RestaurantCreatedEvent{ID: testdata.ShackRestaurant.ID}
-		payloadJSON, _ := json.Marshal(payload)
-		envelope := events.NewEventEnvelope(events.RESTAURANT_CREATED_EVENT_ID, testdata.ShackRestaurant.ID)
+		event := events.Event[events.RestaurantCreatedEvent]{
+			EventID:     events.RESTAURANT_CREATED_EVENT_ID,
+			AggregateID: testdata.ShackRestaurant.ID,
+			Timestamp:   time.Now().Round(0),
+			Payload:     payload,
+		}
 
-		restaurantEventHandler.HandleRestaurantEvent(envelope, payloadJSON)
+		err := restaurantEventHandler.HandleRestaurantCreatedEvent(event)
+		testutil.AssertNoErr(t, err)
 
 		got := restaurantStore.createdRestaurant
 		testutil.AssertEqual(t, got, testdata.ShackRestaurant)

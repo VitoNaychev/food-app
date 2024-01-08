@@ -18,10 +18,10 @@ import (
 
 type StubPublisher struct {
 	topic string
-	event events.Event
+	event events.InterfaceEvent
 }
 
-func (s *StubPublisher) Publish(topic string, event events.Event) error {
+func (s *StubPublisher) Publish(topic string, event events.InterfaceEvent) error {
 	s.topic = topic
 	s.event = event
 	return nil

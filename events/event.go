@@ -21,29 +21,29 @@ func NewEventEnvelope(eventID EventID, aggregateID int) EventEnvelope {
 	}
 }
 
-type Event struct {
-	EventID     EventID
-	AggregateID int
-	Timestamp   time.Time
-	Payload     interface{}
-}
-
-type UnmarshalEvent struct {
-	EventID     EventID
-	AggregateID int
-	Timestamp   time.Time
-	Payload     json.RawMessage
-}
-
-type GenericEvent[T any] struct {
+type Event[T any] struct {
 	EventID     EventID
 	AggregateID int
 	Timestamp   time.Time
 	Payload     T
 }
 
-func NewEvent(eventID EventID, aggregateID int, payload interface{}) Event {
-	return Event{
+type RawPayloadEvent struct {
+	EventID     EventID
+	AggregateID int
+	Timestamp   time.Time
+	Payload     json.RawMessage
+}
+
+type InterfaceEvent struct {
+	EventID     EventID
+	AggregateID int
+	Timestamp   time.Time
+	Payload     interface{}
+}
+
+func NewEvent(eventID EventID, aggregateID int, payload any) InterfaceEvent {
+	return InterfaceEvent{
 		EventID:     eventID,
 		AggregateID: aggregateID,
 		Timestamp:   time.Now().Round(0),

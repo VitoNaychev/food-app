@@ -28,7 +28,7 @@ func (k *KafkaEventPublisher) Close() {
 	k.producer.Close()
 }
 
-func (k *KafkaEventPublisher) Publish(topic string, event Event) error {
+func (k *KafkaEventPublisher) Publish(topic string, event InterfaceEvent) error {
 	eventJSON, _ := json.Marshal(event)
 
 	key := sarama.StringEncoder(strconv.Itoa(event.AggregateID))

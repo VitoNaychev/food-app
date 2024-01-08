@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
-
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 )
@@ -19,20 +17,8 @@ func NewRestaurantEventHandler(restaurantStore models.RestaurantStore) *Restaura
 	return &endpoint
 }
 
-func (r *RestaurantEventHandler) HandleRestaurantEvent(envelope events.EventEnvelope, payload []byte) error {
-	switch envelope.EventID {
-	case events.RESTAURANT_CREATED_EVENT_ID:
-		var event events.RestaurantCreatedEvent
-		json.Unmarshal(payload, &event)
-
-		return r.HandleRestaurantCreatedEvent(envelope, event)
-	}
-
-	return nil
-}
-
-func (r *RestaurantEventHandler) HandleRestaurantCreatedEvent(envelope events.EventEnvelope, event events.RestaurantCreatedEvent) error {
-	restaurant := models.Restaurant{ID: event.ID}
+func (r *RestaurantEventHandler) HandleRestaurantCreatedEvent(event events.Event[events.RestaurantCreatedEvent]) error {
+	restaurant := models.Restaurant{ID: event.Payload.ID}
 	r.restaurantStore.CreateRestaurant(&restaurant)
 	return nil
 }

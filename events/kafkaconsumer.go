@@ -2,78 +2,17 @@ package events
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"sync"
+	"errors"
+	"reflect"
 
 	"github.com/IBM/sarama"
 )
 
-type ConsumerError struct {
-	Topic     string
-	Partition int32
-	Err       error
-}
-
-func (c *ConsumerError) Error() string {
-	return fmt.Sprintf("error while consuming %s/%d: %v", c.Topic, c.Partition, c.Err)
-}
-
-func (c *ConsumerError) Unwrap() error {
-	return c.Err
-}
-
-func SaramaConsumerErrorToEventsConsumerError(saramaErr sarama.ConsumerError) ConsumerError {
-	err := ConsumerError{
-		Topic:     saramaErr.Topic,
-		Partition: saramaErr.Partition,
-		Err:       saramaErr.Err,
-	}
-
-	return err
-}
-
-type BaseKafkaEventHandler struct {
-	EventHandler EventHandlerFunc
-}
-
-func NewKafkaEventHandler(eventHandler EventHandlerFunc) BaseKafkaEventHandler {
-	kafkeEventHandler := BaseKafkaEventHandler{}
-	kafkeEventHandler.EventHandler = eventHandler
-
-	return kafkeEventHandler
-}
-
-func (b *BaseKafkaEventHandler) Setup(sarama.ConsumerGroupSession) error { return nil }
-
-func (b *BaseKafkaEventHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claims sarama.ConsumerGroupClaim) error {
-	for message := range claims.Messages() {
-		var unmarshalEvent UnmarshalEvent
-		json.Unmarshal(message.Value, &unmarshalEvent)
-
-		envelope := EventEnvelope{
-			EventID:     unmarshalEvent.EventID,
-			AggregateID: unmarshalEvent.AggregateID,
-			Timestamp:   unmarshalEvent.Timestamp,
-		}
-
-		err := b.EventHandler(envelope, unmarshalEvent.Payload)
-		sess.MarkMessage(message, "")
-
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (b *BaseKafkaEventHandler) Cleanup(sarama.ConsumerGroupSession) error { return nil }
-
 type KafkaEventConsumer struct {
-	ctx        context.Context
-	cancel     context.CancelFunc
-	group      sarama.ConsumerGroup
-	handlersWg sync.WaitGroup
+	group                sarama.ConsumerGroup
+	groupHandler         KafkaConsumerGroupHandler
+	topicRegistry        TopicRegistry
+	eventHandlerRegistry map[RegistryKey]RegistryEntry
 
 	ErrorsChan chan error
 }
@@ -88,13 +27,13 @@ func NewKafkaEventConsumer(brokersAddrs []string, groupID string) (*KafkaEventCo
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	kafkaEventConsumer := KafkaEventConsumer{
-		ctx:        ctx,
-		cancel:     cancel,
-		group:      group,
-		handlersWg: sync.WaitGroup{},
+		group: group,
+		groupHandler: KafkaConsumerGroupHandler{
+			eventHandlerRegistry: map[RegistryKey]RegistryEntry{},
+		},
+		topicRegistry:        TopicRegistry{},
+		eventHandlerRegistry: map[RegistryKey]RegistryEntry{},
 
 		ErrorsChan: make(chan error),
 	}
@@ -102,35 +41,49 @@ func NewKafkaEventConsumer(brokersAddrs []string, groupID string) (*KafkaEventCo
 	return &kafkaEventConsumer, nil
 }
 
+func (k *KafkaEventConsumer) RegisterEventHandler(topic string, eventID EventID, eventHandler InterfaceEventHandler, eventType reflect.Type) error {
+	k.topicRegistry[topic] = true
+
+	entry := RegistryEntry{
+		eventHandler: eventHandler,
+		eventType:    eventType,
+	}
+	k.eventHandlerRegistry[GetRegistryKey(topic, eventID)] = entry
+
+	return nil
+}
+
+func (k *KafkaEventConsumer) Run(ctx context.Context) {
+	topics := k.topicRegistry.GetTopics()
+	k.groupHandler.eventHandlerRegistry = k.eventHandlerRegistry
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case err := <-k.group.Errors():
+			if err != nil {
+				k.handleConsumerError(err)
+			}
+		default:
+			err := k.group.Consume(ctx, topics, &k.groupHandler)
+			if err != nil {
+				// figure out what to do when group.Consume returns an error
+			}
+		}
+	}
+}
+
 func (k *KafkaEventConsumer) Close() {
-	k.cancel()
-	k.handlersWg.Wait()
 	k.group.Close()
 }
 
-func (k *KafkaEventConsumer) RegisterEventHandler(topic string, eventHandler EventHandlerFunc) {
-	consumerGroupHandler := NewKafkaEventHandler(eventHandler)
-
-	k.handlersWg.Add(1)
-	go k.handleEvents(topic, &consumerGroupHandler)
-}
-
-func (k *KafkaEventConsumer) handleEvents(topic string, consumerGroupHandler sarama.ConsumerGroupHandler) {
-	for {
-		select {
-		case <-k.ctx.Done():
-			k.handlersWg.Done()
-			return
-		case err := <-k.group.Errors():
-			saramaErr := *err.(*sarama.ConsumerError)
-			eventsErr := SaramaConsumerErrorToEventsConsumerError(saramaErr)
-
-			k.ErrorsChan <- &eventsErr
-		default:
-			err := k.group.Consume(k.ctx, []string{topic}, consumerGroupHandler)
-			if err != nil {
-
-			}
-		}
+func (k *KafkaEventConsumer) handleConsumerError(err error) {
+	saramaErr := &sarama.ConsumerError{}
+	if errors.As(err, &saramaErr) {
+		eventsErr := SaramaConsumerErrorToEventsConsumerError(*saramaErr)
+		k.ErrorsChan <- &eventsErr
+	} else {
+		k.ErrorsChan <- err
 	}
 }

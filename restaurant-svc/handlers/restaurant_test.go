@@ -20,10 +20,10 @@ import (
 
 type StubEventPublisher struct {
 	topic string
-	event events.Event
+	event events.InterfaceEvent
 }
 
-func (s *StubEventPublisher) Publish(topic string, event events.Event) error {
+func (s *StubEventPublisher) Publish(topic string, event events.InterfaceEvent) error {
 	s.topic = topic
 	s.event = event
 
@@ -308,7 +308,7 @@ func TestCreateRestaurant(t *testing.T) {
 		testutil.AssertEqual(t, publisher.topic, events.RESTAURANT_EVENTS_TOPIC)
 
 		got := publisher.event
-		want := events.Event{
+		want := events.InterfaceEvent{
 			EventID:     events.RESTAURANT_CREATED_EVENT_ID,
 			AggregateID: testdata.ShackRestaurant.ID,
 			Payload:     events.RestaurantCreatedEvent{ID: testdata.ShackAddress.ID},
@@ -328,10 +328,10 @@ func TestCreateRestaurant(t *testing.T) {
 	})
 }
 
-func assertEvent(t testing.TB, got events.Event, want events.Event) {
+func assertEvent(t testing.TB, got events.InterfaceEvent, want events.InterfaceEvent) {
 	t.Helper()
 
-	if reflect.DeepEqual(got, events.Event{}) {
+	if reflect.DeepEqual(got, events.InterfaceEvent{}) {
 		t.Fatalf("didn't publish event")
 	}
 
