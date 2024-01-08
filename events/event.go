@@ -28,6 +28,15 @@ type Event[T any] struct {
 	Payload     T
 }
 
+func NewTypedEvent[T any](eventID EventID, aggregateID int, payload T) Event[T] {
+	return Event[T]{
+		EventID:     eventID,
+		AggregateID: aggregateID,
+		Timestamp:   time.Now().Round(0),
+		Payload:     payload,
+	}
+}
+
 type RawPayloadEvent struct {
 	EventID     EventID
 	AggregateID int

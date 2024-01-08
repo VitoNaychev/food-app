@@ -2,7 +2,6 @@ package handlers_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/kitchen-svc/handlers"
@@ -11,12 +10,41 @@ import (
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
-type StubRestaurantStore struct {
-	createdRestaurant models.Restaurant
+type StubMenuItemStore struct {
+	createdMenuItem          models.MenuItem
+	deletedMenuItemID        int
+	updatedMenuItem          models.MenuItem
+	deletedItemsRestaurantID int
 }
 
-func (*StubRestaurantStore) DeleteRestaurant(int) error {
-	panic("unimplemented")
+func (s *StubMenuItemStore) DeleteMenuItemWhereRestaurantID(id int) error {
+	s.deletedItemsRestaurantID = id
+	return nil
+}
+
+func (s *StubMenuItemStore) CreateMenuItem(menuItem *models.MenuItem) error {
+	s.createdMenuItem = *menuItem
+	return nil
+}
+
+func (s *StubMenuItemStore) DeleteMenuItem(id int) error {
+	s.deletedMenuItemID = id
+	return nil
+}
+
+func (s *StubMenuItemStore) UpdateMenuItem(menuItem *models.MenuItem) error {
+	s.updatedMenuItem = *menuItem
+	return nil
+}
+
+type StubRestaurantStore struct {
+	createdRestaurant   models.Restaurant
+	deletedRestaurantID int
+}
+
+func (s *StubRestaurantStore) DeleteRestaurant(id int) error {
+	s.deletedRestaurantID = id
+	return nil
 }
 
 func (*StubRestaurantStore) GetRestaurantByID(int) (models.Restaurant, error) {
@@ -31,21 +59,76 @@ func (s *StubRestaurantStore) CreateRestaurant(restaurant *models.Restaurant) er
 
 func TestRestaurantEventHandler(t *testing.T) {
 	restaurantStore := &StubRestaurantStore{}
-	restaurantEventHandler := handlers.NewRestaurantEventHandler(restaurantStore)
+	menuItemStore := &StubMenuItemStore{}
+	restaurantEventHandler := handlers.NewRestaurantEventHandler(restaurantStore, menuItemStore)
 
 	t.Run("creates restaurant on RESTAURANT_CREATED_EVENT", func(t *testing.T) {
 		payload := events.RestaurantCreatedEvent{ID: testdata.ShackRestaurant.ID}
-		event := events.Event[events.RestaurantCreatedEvent]{
-			EventID:     events.RESTAURANT_CREATED_EVENT_ID,
-			AggregateID: testdata.ShackRestaurant.ID,
-			Timestamp:   time.Now().Round(0),
-			Payload:     payload,
-		}
+		event := events.NewTypedEvent(events.RESTAURANT_CREATED_EVENT_ID, testdata.ShackRestaurant.ID, payload)
 
 		err := restaurantEventHandler.HandleRestaurantCreatedEvent(event)
 		testutil.AssertNoErr(t, err)
 
 		got := restaurantStore.createdRestaurant
 		testutil.AssertEqual(t, got, testdata.ShackRestaurant)
+	})
+
+	t.Run("deletes restaurant on RESTAURANT_DELETED_EVENT and all related menu items", func(t *testing.T) {
+		payload := events.RestaurantDeletedEvent{ID: testdata.ShackRestaurant.ID}
+		event := events.NewTypedEvent(events.RESTAURANT_DELETED_EVENT_ID, testdata.ShackRestaurant.ID, payload)
+
+		err := restaurantEventHandler.HandleRestaurantDeletedEvent(event)
+		testutil.AssertNoErr(t, err)
+
+		testutil.AssertEqual(t, restaurantStore.deletedRestaurantID, testdata.ShackRestaurant.ID)
+		testutil.AssertEqual(t, menuItemStore.deletedItemsRestaurantID, testdata.ShackRestaurant.ID)
+	})
+}
+
+func TestRestaurantMenuEventHandler(t *testing.T) {
+	menuItemStore := &StubMenuItemStore{}
+	restaurantEventHandler := handlers.NewRestaurantEventHandler(nil, menuItemStore)
+
+	t.Run("creates menu item on MENU_ITEM_CREATED_EVENT", func(t *testing.T) {
+		payload := events.MenuItemCreatedEvent{
+			ID:           testdata.ShackMenuItem.ID,
+			RestaurantID: testdata.ShackMenuItem.RestaurantID,
+			Name:         testdata.ShackMenuItem.Name,
+			Price:        testdata.ShackMenuItem.Price,
+		}
+		event := events.NewTypedEvent(events.MENU_ITEM_CREATED_EVENT_ID, testdata.ShackRestaurant.ID, payload)
+
+		err := restaurantEventHandler.HandleMenuItemCreatedEvent(event)
+		testutil.AssertNoErr(t, err)
+
+		got := menuItemStore.createdMenuItem
+		testutil.AssertEqual(t, got, testdata.ShackMenuItem)
+	})
+
+	t.Run("deletes menu item on MENU_ITEM_DELETED_EVENT", func(t *testing.T) {
+		payload := events.MenuItemDeletedEvent{ID: testdata.ShackMenuItem.ID}
+		event := events.NewTypedEvent(events.MENU_ITEM_DELETED_EVENT_ID, testdata.ShackRestaurant.ID, payload)
+
+		err := restaurantEventHandler.HandleMenuItemDeletedEvent(event)
+		testutil.AssertNoErr(t, err)
+
+		got := menuItemStore.deletedMenuItemID
+		testutil.AssertEqual(t, got, testdata.ShackMenuItem.ID)
+	})
+
+	t.Run("updates menu item on MENU_ITEM_UPDATED_EVENT", func(t *testing.T) {
+		payload := events.MenuItemUpdatedEvent{
+			ID:           testdata.ShackMenuItem.ID,
+			RestaurantID: testdata.ShackMenuItem.RestaurantID,
+			Name:         testdata.ShackMenuItem.Name,
+			Price:        testdata.ShackMenuItem.Price,
+		}
+		event := events.NewTypedEvent(events.MENU_ITEM_UPDATED_EVENT_ID, testdata.ShackRestaurant.ID, payload)
+
+		err := restaurantEventHandler.HandleMenuItemUpdatedEvent(event)
+		testutil.AssertNoErr(t, err)
+
+		got := menuItemStore.updatedMenuItem
+		testutil.AssertEqual(t, got, testdata.ShackMenuItem)
 	})
 }
