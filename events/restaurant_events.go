@@ -27,6 +27,17 @@ type MenuItemUpdatedEvent struct {
 	Price        float32 `validate:"required,max=1000" json:"price"`
 }
 
+func NewMenuItemUpdatedEvent(menuItem models.MenuItem) MenuItemUpdatedEvent {
+	event := MenuItemUpdatedEvent{
+		ID:           menuItem.ID,
+		RestaurantID: menuItem.RestaurantID,
+		Name:         menuItem.Name,
+		Price:        menuItem.Price,
+	}
+
+	return event
+}
+
 type MenuItemDeletedEvent struct {
 	ID int `validate:"min=1"             json:"id"`
 }
@@ -38,10 +49,10 @@ type MenuItemCreatedEvent struct {
 	Price        float32 `validate:"required,max=1000" json:"price"`
 }
 
-func NewMenuItemCreatedEvent(menuItem models.MenuItem, restaurantID int) MenuItemCreatedEvent {
+func NewMenuItemCreatedEvent(menuItem models.MenuItem) MenuItemCreatedEvent {
 	event := MenuItemCreatedEvent{
 		ID:           menuItem.ID,
-		RestaurantID: restaurantID,
+		RestaurantID: menuItem.RestaurantID,
 		Name:         menuItem.Name,
 		Price:        menuItem.Price,
 	}

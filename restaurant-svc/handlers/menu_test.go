@@ -118,7 +118,9 @@ func TestDeleteMenuItem(t *testing.T) {
 		menus: append(td.DominosMenu, td.ForeignMenuItem),
 	}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, nil)
+	publisher := &StubEventPublisher{}
+
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, publisher)
 
 	t.Run("deletes menu item on DELETE", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
@@ -131,6 +133,25 @@ func TestDeleteMenuItem(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 		testutil.AssertEqual(t, menuStore.deleteMenuItemID, deleteMenuItemID)
+	})
+
+	t.Run("sends MENU_ITEM_DELETED_EVENT on DELETE", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		deleteMenuItemID := td.DominosMenu[1].ID
+
+		request := handlers.NewDeleteMenuItemRequest(dominosJWT, handlers.DeleteMenuItemRequest{deleteMenuItemID})
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := publisher.event
+		want := events.InterfaceEvent{
+			EventID:     events.MENU_ITEM_DELETED_EVENT_ID,
+			AggregateID: td.DominosRestaurant.ID,
+			Payload:     events.MenuItemDeletedEvent{ID: td.DominosMenu[1].ID},
+		}
+
+		testutil.AssertEvent(t, got, want)
 	})
 
 	t.Run("returns Not Found on attempt to delete menu item that doesn't exist", func(t *testing.T) {
@@ -180,7 +201,9 @@ func TestUpdateMenuItem(t *testing.T) {
 		menus: append(td.DominosMenu, td.ForeignMenuItem),
 	}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, nil)
+	publisher := &StubEventPublisher{}
+
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, publisher)
 
 	t.Run("updates menu item on PUT", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
@@ -200,6 +223,26 @@ func TestUpdateMenuItem(t *testing.T) {
 		testutil.AssertValidResponse(t, err)
 
 		testutil.AssertEqual(t, got, menuItem)
+	})
+
+	t.Run("sends MENU_ITEM_UPDATED_EVENT on PUT", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		menuItem := td.DominosMenu[0]
+		menuItem.Name = "Master Burger Pizza"
+
+		request := handlers.NewUpdateMenuItemRequest(dominosJWT, menuItem)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := publisher.event
+		want := events.InterfaceEvent{
+			EventID:     events.MENU_ITEM_UPDATED_EVENT_ID,
+			AggregateID: td.DominosRestaurant.ID,
+			Payload:     events.NewMenuItemUpdatedEvent(menuItem),
+		}
+
+		testutil.AssertEvent(t, got, want)
 	})
 
 	t.Run("returns Not Found on attempt to update menu item that doesn't exist", func(t *testing.T) {
@@ -248,7 +291,7 @@ func TestUpdateMenuItem(t *testing.T) {
 }
 
 func TestCreateMenuItem(t *testing.T) {
-	EventPublisher := &StubPublisher{}
+	publisher := &StubPublisher{}
 
 	restaurantStore := &StubRestaurantStore{
 		restaurants: []models.Restaurant{td.ShackRestaurant, td.DominosRestaurant},
@@ -258,7 +301,7 @@ func TestCreateMenuItem(t *testing.T) {
 		menus: td.DominosMenu,
 	}
 
-	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, EventPublisher)
+	server := handlers.NewMenuServer(testEnv.SecretKey, menuStore, restaurantStore, publisher)
 
 	t.Run("creates menu item on POST", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
@@ -285,11 +328,32 @@ func TestCreateMenuItem(t *testing.T) {
 		testutil.AssertValidResponse(t, err)
 
 		testutil.AssertEqual(t, got, want)
+	})
 
-		wantEvent := events.MenuItemCreatedEvent{ID: want.ID, RestaurantID: td.DominosRestaurant.ID, Name: want.Name, Price: want.Price}
-		testutil.AssertEqual(t, EventPublisher.topic, events.RESTAURANT_EVENTS_TOPIC)
-		testutil.AssertEqual(t, EventPublisher.event.Payload, interface{}(wantEvent))
+	t.Run("sends MENU_ITEM_CREATED_EVENT in POST", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, td.DominosRestaurant.ID)
+		menuItem := models.MenuItem{
+			Name:    "New Pizza",
+			Price:   19.99,
+			Details: "The new-newcomer bruh",
+		}
 
+		request := handlers.NewCreateMenuItemRequest(dominosJWT, menuItem)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		menuItem.ID = 1
+		menuItem.RestaurantID = td.DominosRestaurant.ID
+
+		got := publisher.event
+		want := events.InterfaceEvent{
+			EventID:     events.MENU_ITEM_CREATED_EVENT_ID,
+			AggregateID: td.DominosRestaurant.ID,
+			Payload:     events.NewMenuItemCreatedEvent(menuItem),
+		}
+
+		testutil.AssertEvent(t, got, want)
 	})
 
 	t.Run("returns Bad Request on restaurant with not VALID state", func(t *testing.T) {

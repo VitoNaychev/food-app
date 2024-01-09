@@ -7,12 +7,33 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/validation"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type GenericTypeToResponseFunction func(interface{}) interface{}
+
+func AssertEvent(t testing.TB, got events.InterfaceEvent, want events.InterfaceEvent) {
+	t.Helper()
+
+	if reflect.DeepEqual(got, events.InterfaceEvent{}) {
+		t.Fatalf("didn't publish event")
+	}
+
+	if got.EventID != want.EventID {
+		t.Errorf("got Event ID %v want %v", got.EventID, want.EventID)
+	}
+
+	if got.AggregateID != want.AggregateID {
+		t.Errorf("got Aggregate ID %v want %v", got.AggregateID, want.AggregateID)
+	}
+
+	if !reflect.DeepEqual(got.Payload, want.Payload) {
+		t.Errorf("got payload %v want %v", got.Payload, want.Payload)
+	}
+}
 
 func AssertResponseBody[T, V any](t testing.TB, body io.Reader, data T, ConversionFunction GenericTypeToResponseFunction) {
 	t.Helper()

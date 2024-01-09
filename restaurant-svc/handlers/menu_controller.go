@@ -47,6 +47,10 @@ func (m *MenuServer) deleteMenuItem(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		httperrors.HandleInternalServerError(w, err)
 	}
+
+	payload := events.MenuItemDeletedEvent{ID: deleteMenuItemRequest.ID}
+	event := events.NewEvent(events.MENU_ITEM_DELETED_EVENT_ID, restaurantID, payload)
+	m.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, event)
 }
 
 func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
@@ -81,8 +85,15 @@ func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 
 	updateMenuItem := UpdateMenuItemRequestToMenuItem(updateMenuItemRequest, restaurantID)
 	err = m.menuStore.UpdateMenuItem(&updateMenuItem)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+	}
 
 	json.NewEncoder(w).Encode(updateMenuItem)
+
+	payload := events.NewMenuItemUpdatedEvent(updateMenuItem)
+	event := events.NewEvent(events.MENU_ITEM_UPDATED_EVENT_ID, restaurantID, payload)
+	m.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, event)
 }
 
 func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +121,7 @@ func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(menuItem)
 
-	event := events.NewEvent(events.RESTAURANT_CREATED_EVENT_ID, restaurantID, events.NewMenuItemCreatedEvent(menuItem, restaurantID))
+	event := events.NewEvent(events.MENU_ITEM_CREATED_EVENT_ID, restaurantID, events.NewMenuItemCreatedEvent(menuItem))
 	m.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, event)
 }
 
