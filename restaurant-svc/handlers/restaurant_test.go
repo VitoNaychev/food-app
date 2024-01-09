@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"github.com/VitoNaychev/food-app/auth"
@@ -191,7 +190,8 @@ func TestDeleteRestaurant(t *testing.T) {
 	store := &StubRestaurantStore{
 		restaurants: []models.Restaurant{testdata.ShackRestaurant, testdata.DominosRestaurant},
 	}
-	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, nil)
+	publisher := &StubEventPublisher{}
+	server := handlers.NewRestaurantServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	t.Run("deletes restaurant on DELETE", func(t *testing.T) {
 		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
@@ -204,6 +204,26 @@ func TestDeleteRestaurant(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		testutil.AssertEqual(t, store.deletedRestaurantID, testdata.DominosRestaurant.ID)
+	})
+
+	t.Run("generates a RESTAURANT_DELETED_EVENT on DELETE", func(t *testing.T) {
+		dominosJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.DominosRestaurant.ID)
+
+		request := handlers.NewDeleteRestaurantRequest(dominosJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertEqual(t, publisher.topic, events.RESTAURANT_EVENTS_TOPIC)
+
+		got := publisher.event
+		want := events.InterfaceEvent{
+			EventID:     events.RESTAURANT_DELETED_EVENT_ID,
+			AggregateID: testdata.DominosAddress.ID,
+			Payload:     events.RestaurantDeletedEvent{ID: testdata.DominosRestaurant.ID},
+		}
+
+		testutil.AssertEvent(t, got, want)
 	})
 }
 
@@ -314,7 +334,7 @@ func TestCreateRestaurant(t *testing.T) {
 			Payload:     events.RestaurantCreatedEvent{ID: testdata.ShackAddress.ID},
 		}
 
-		assertEvent(t, got, want)
+		testutil.AssertEvent(t, got, want)
 	})
 
 	t.Run("returns Bad Request on restaurant with same email", func(t *testing.T) {
@@ -326,16 +346,4 @@ func TestCreateRestaurant(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrExistingRestaurant)
 	})
-}
-
-func assertEvent(t testing.TB, got events.InterfaceEvent, want events.InterfaceEvent) {
-	t.Helper()
-
-	if reflect.DeepEqual(got, events.InterfaceEvent{}) {
-		t.Fatalf("didn't publish event")
-	}
-
-	testutil.AssertEqual(t, got.EventID, want.EventID)
-	testutil.AssertEqual(t, got.AggregateID, want.AggregateID)
-	testutil.AssertEqual(t, got.Payload, want.Payload)
 }

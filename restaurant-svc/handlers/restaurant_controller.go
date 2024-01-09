@@ -50,6 +50,10 @@ func (s *RestaurantServer) deleteRestaurant(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		httperrors.HandleInternalServerError(w, err)
 	}
+
+	payload := events.RestaurantDeletedEvent{ID: restaurantID}
+	event := events.NewEvent(events.RESTAURANT_DELETED_EVENT_ID, restaurantID, payload)
+	s.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, event)
 }
 
 func (s *RestaurantServer) updateRestaurant(w http.ResponseWriter, r *http.Request) {
