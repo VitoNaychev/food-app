@@ -13,6 +13,7 @@ import (
 
 type KitchenService struct {
 	restaurantStore models.RestaurantStore
+	menuItemStore   models.MenuItemStore
 
 	restaurantEventHandler *handlers.RestaurantEventHandler
 
@@ -28,7 +29,8 @@ func SetupKitchenService(t testing.TB, env appenv.Enviornment, port string) Kitc
 	}
 
 	restaurantStore := models.NewInMemoryRestaurantStore()
-	restaurantEventHandler := handlers.NewRestaurantEventHandler(restaurantStore)
+	menuItemStore := models.NewInMemoryMenuItemStore()
+	restaurantEventHandler := handlers.NewRestaurantEventHandler(restaurantStore, menuItemStore)
 
 	eventConsumerCtx, eventConsumerCancel := context.WithCancel(context.Background())
 
@@ -36,6 +38,7 @@ func SetupKitchenService(t testing.TB, env appenv.Enviornment, port string) Kitc
 		restaurantStore: restaurantStore,
 
 		restaurantEventHandler: restaurantEventHandler,
+		menuItemStore:          menuItemStore,
 
 		eventConsumer:       eventConsumer,
 		eventConsumerCtx:    eventConsumerCtx,
@@ -50,7 +53,22 @@ func (k *KitchenService) Run() {
 		events.RESTAURANT_CREATED_EVENT_ID,
 		events.EventHandlerWrapper(k.restaurantEventHandler.HandleRestaurantCreatedEvent),
 		reflect.TypeOf(events.RestaurantCreatedEvent{}))
-
+	k.eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.RESTAURANT_DELETED_EVENT_ID,
+		events.EventHandlerWrapper(k.restaurantEventHandler.HandleRestaurantDeletedEvent),
+		reflect.TypeOf(events.RestaurantDeletedEvent{}))
+	k.eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.MENU_ITEM_CREATED_EVENT_ID,
+		events.EventHandlerWrapper(k.restaurantEventHandler.HandleMenuItemCreatedEvent),
+		reflect.TypeOf(events.MenuItemCreatedEvent{}))
+	k.eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.MENU_ITEM_UPDATED_EVENT_ID,
+		events.EventHandlerWrapper(k.restaurantEventHandler.HandleMenuItemUpdatedEvent),
+		reflect.TypeOf(events.MenuItemUpdatedEvent{}))
+	k.eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.MENU_ITEM_DELETED_EVENT_ID,
+		events.EventHandlerWrapper(k.restaurantEventHandler.HandleMenuItemDeletedEvent),
+		reflect.TypeOf(events.MenuItemDeletedEvent{}))
 	go k.eventConsumer.Run(context.Background())
 }
 

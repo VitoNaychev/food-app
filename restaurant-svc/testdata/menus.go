@@ -3,6 +3,16 @@ package testdata
 import "github.com/VitoNaychev/food-app/restaurant-svc/models"
 
 var (
+	ShackMenu = []models.MenuItem{
+		{
+			ID:           1,
+			Name:         "XXL Duner",
+			Price:        8.99,
+			Details:      "The only thing you'll ever need",
+			RestaurantID: 1,
+		},
+	}
+
 	DominosMenu = []models.MenuItem{
 		{
 			ID:           1,

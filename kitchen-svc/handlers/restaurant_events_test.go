@@ -17,6 +17,10 @@ type StubMenuItemStore struct {
 	deletedItemsRestaurantID int
 }
 
+func (s *StubMenuItemStore) GetMenuItemByID(id int) (models.MenuItem, error) {
+	panic("unimplemented")
+}
+
 func (s *StubMenuItemStore) DeleteMenuItemWhereRestaurantID(id int) error {
 	s.deletedItemsRestaurantID = id
 	return nil

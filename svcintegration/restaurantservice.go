@@ -2,6 +2,8 @@ package svcintegration
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"testing"
@@ -96,4 +98,11 @@ func (r *RestaurantService) Stop() {
 	if err != nil {
 		log.Fatalf("Shutdown error: %v\n", err)
 	}
+}
+
+func getJWTFromResponseBody(body io.Reader) string {
+	var createRestaurantResponse handlers.CreateRestaurantResponse
+	json.NewDecoder(body).Decode(&createRestaurantResponse)
+
+	return createRestaurantResponse.JWT.Token
 }
