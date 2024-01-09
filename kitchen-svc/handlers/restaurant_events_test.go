@@ -7,10 +7,12 @@ import (
 	"github.com/VitoNaychev/food-app/kitchen-svc/handlers"
 	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 	"github.com/VitoNaychev/food-app/kitchen-svc/testdata"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
 type StubMenuItemStore struct {
+	menuItems                []models.MenuItem
 	createdMenuItem          models.MenuItem
 	deletedMenuItemID        int
 	updatedMenuItem          models.MenuItem
@@ -18,7 +20,12 @@ type StubMenuItemStore struct {
 }
 
 func (s *StubMenuItemStore) GetMenuItemByID(id int) (models.MenuItem, error) {
-	panic("unimplemented")
+	for _, menuItem := range s.menuItems {
+		if menuItem.ID == id {
+			return menuItem, nil
+		}
+	}
+	return models.MenuItem{}, storeerrors.ErrNotFound
 }
 
 func (s *StubMenuItemStore) DeleteMenuItemWhereRestaurantID(id int) error {

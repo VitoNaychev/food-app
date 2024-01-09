@@ -1,0 +1,15 @@
+package models
+
+type TicketState int
+
+const (
+	CREATE_PENDING TicketState = iota
+	REJECTED
+	CREATED
+	CANCELED
+	ACCEPTED
+	PREPARING
+	READY_FOR_PICKUP
+	COMPLETE_PENDING
+	COMPLETED
+)
