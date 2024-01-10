@@ -33,6 +33,7 @@ func NewTicketServer(ticketStore models.TicketStore, ticketItemStore models.Tick
 	router.Handle("/tickets/open/", http.HandlerFunc(s.getOpenTickets))
 	router.Handle("/tickets/in_progress/", http.HandlerFunc(s.getInProgressTickets))
 	router.Handle("/tickets/ready_for_pickup/", http.HandlerFunc(s.getReadyForPickupTickets))
+	router.Handle("/tickets/completed/", http.HandlerFunc(s.getCompletedTickets))
 
 	s.Handler = router
 
@@ -96,6 +97,14 @@ func (t *TicketServer) getReadyForPickupTickets(w http.ResponseWriter, r *http.R
 	json.NewEncoder(w).Encode(getTicketResponseArr)
 }
 
+func (t *TicketServer) getCompletedTickets(w http.ResponseWriter, r *http.Request) {
+	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
+
+	getTicketResponseArr, _ := t.getFilteredTickets(restaurantID, models.COMPLETED)
+
+	json.NewEncoder(w).Encode(getTicketResponseArr)
+}
+
 func (t *TicketServer) getFilteredTickets(restaurantID int, state models.TicketState) ([]GetTicketResponse, error) {
 	tickets, _ := t.ticketStore.GetTicketsByRestaurantIDWhereState(restaurantID, state)
 
@@ -131,6 +140,7 @@ func NewTicketItemResponse(ticketItem models.TicketItem, menuItem models.MenuIte
 func NewTicketResponse(ticket models.Ticket, getTicketItemResponseArr []GetTicketItemResponse) GetTicketResponse {
 	getTicketResponse := GetTicketResponse{
 		ID:    ticket.ID,
+		Total: ticket.Total,
 		Items: getTicketItemResponseArr,
 	}
 

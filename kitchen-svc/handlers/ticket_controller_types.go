@@ -6,6 +6,7 @@ type StateTransitionTicketRequest struct {
 
 type GetTicketResponse struct {
 	ID    int
+	Total float32
 	Items []GetTicketItemResponse
 }
 

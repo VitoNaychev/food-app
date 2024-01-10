@@ -157,12 +157,12 @@ func TestTicketStateTransisions(t *testing.T) {
 func TestTicketGetters(t *testing.T) {
 	ticketStore := &StubTicketStore{
 		tickets: []models.Ticket{
-			testdata.OpenShackTicket, testdata.InProgressShackTicket, testdata.ReadyForPickupShackTicket,
+			testdata.OpenShackTicket, testdata.InProgressShackTicket, testdata.ReadyForPickupShackTicket, testdata.CompletedShackTicket,
 		},
 	}
 	ticketItemStore := &StubTicketItemStore{
 		ticketItems: []models.TicketItem{
-			testdata.OpenShackTicketItems, testdata.InProgressShackTicketItems, testdata.ReadyForPickupShackTicketItems,
+			testdata.OpenShackTicketItems, testdata.InProgressShackTicketItems, testdata.ReadyForPickupShackTicketItems, testdata.CompletedShackTicketItems,
 		},
 	}
 	menuItemStore := &StubMenuItemStore{
@@ -174,7 +174,8 @@ func TestTicketGetters(t *testing.T) {
 	t.Run("returns open tickets on GET to /tickets/open/", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
 			{
-				ID: 1,
+				ID:    1,
+				Total: 12.50,
 				Items: []handlers.GetTicketItemResponse{
 					{
 						Quantity: 2,
@@ -202,7 +203,8 @@ func TestTicketGetters(t *testing.T) {
 	t.Run("returns tickets in progress on GET to /tickets/in_progress/", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
 			{
-				ID: 2,
+				ID:    2,
+				Total: 25.00,
 				Items: []handlers.GetTicketItemResponse{
 					{
 						Quantity: 4,
@@ -230,7 +232,8 @@ func TestTicketGetters(t *testing.T) {
 	t.Run("returns tickets ready for pickup on /tickets/ready_for_pickup/", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
 			{
-				ID: 3,
+				ID:    3,
+				Total: 37.50,
 				Items: []handlers.GetTicketItemResponse{
 					{
 						Quantity: 6,
@@ -241,6 +244,35 @@ func TestTicketGetters(t *testing.T) {
 		}
 
 		request, _ := http.NewRequest(http.MethodGet, "/tickets/ready_for_pickup/", nil)
+		response := httptest.NewRecorder()
+
+		request.Header.Add("Subject", "1")
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		got, err := validation.ValidateBody[[]handlers.GetTicketResponse](response.Body)
+		testutil.AssertValidResponse(t, err)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("returns completed tickets on /tickets/completed/", func(t *testing.T) {
+		want := []handlers.GetTicketResponse{
+			{
+				ID:    4,
+				Total: 6.25,
+				Items: []handlers.GetTicketItemResponse{
+					{
+						Quantity: 1,
+						Name:     "Duner",
+					},
+				},
+			},
+		}
+
+		request, _ := http.NewRequest(http.MethodGet, "/tickets/completed/", nil)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
