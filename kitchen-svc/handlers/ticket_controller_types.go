@@ -6,7 +6,6 @@ type GetTicketResponse struct {
 }
 
 type GetTicketItemResponse struct {
-	ID       int
 	Quantity int
 	Name     string
 }

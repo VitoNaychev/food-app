@@ -5,7 +5,7 @@ import "github.com/VitoNaychev/food-app/kitchen-svc/models"
 var (
 	OpenShackTicket = models.Ticket{
 		ID:           1,
-		State:        models.CREATED,
+		State:        models.ACCEPTED,
 		RestaurantID: 1,
 	}
 
@@ -18,6 +18,12 @@ var (
 	ReadyForPickupShackTicket = models.Ticket{
 		ID:           3,
 		State:        models.READY_FOR_PICKUP,
+		RestaurantID: 1,
+	}
+
+	PendingShackTicket = models.Ticket{
+		ID:           4,
+		State:        models.CREATED,
 		RestaurantID: 1,
 	}
 )

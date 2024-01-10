@@ -66,12 +66,12 @@ func TestKitchenEndpointAuthentication(t *testing.T) {
 func TestTicketGetters(t *testing.T) {
 	ticketStore := &StubTicketStore{
 		tickets: []models.Ticket{
-			testdata.OpenShackTicket, testdata.InProgressShackTicket, testdata.ReadyForPickupShackTicket,
+			testdata.OpenShackTicket, testdata.InProgressShackTicket, testdata.ReadyForPickupShackTicket, testdata.PendingShackTicket,
 		},
 	}
 	ticketItemStore := &StubTicketItemStore{
 		ticketItems: []models.TicketItem{
-			testdata.OpenShackTicketItems, testdata.InProgressShackTicketItems, testdata.ReadyForPickupShackTicketItems,
+			testdata.OpenShackTicketItems, testdata.InProgressShackTicketItems, testdata.ReadyForPickupShackTicketItems, testdata.PendingShackTicketItems,
 		},
 	}
 	menuItemStore := &StubMenuItemStore{
@@ -80,13 +80,40 @@ func TestTicketGetters(t *testing.T) {
 
 	server := handlers.NewTicketServer(ticketStore, ticketItemStore, menuItemStore)
 
+	t.Run("returns pending tickets on GET to /tickets/pending/", func(t *testing.T) {
+		want := []handlers.GetTicketResponse{
+			{
+				ID: 4,
+				Items: []handlers.GetTicketItemResponse{
+					{
+						Quantity: 1,
+						Name:     "Duner",
+					},
+				},
+			},
+		}
+
+		request, _ := http.NewRequest(http.MethodGet, "/tickets/pending/", nil)
+		response := httptest.NewRecorder()
+
+		request.Header.Add("Subject", "1")
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		got, err := validation.ValidateBody[[]handlers.GetTicketResponse](response.Body)
+		testutil.AssertValidResponse(t, err)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
 	t.Run("returns open tickets on GET to /tickets/open/", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
 			{
 				ID: 1,
 				Items: []handlers.GetTicketItemResponse{
 					{
-						ID:       1,
 						Quantity: 2,
 						Name:     "Duner",
 					},
@@ -115,7 +142,6 @@ func TestTicketGetters(t *testing.T) {
 				ID: 2,
 				Items: []handlers.GetTicketItemResponse{
 					{
-						ID:       2,
 						Quantity: 4,
 						Name:     "Duner",
 					},
@@ -144,7 +170,6 @@ func TestTicketGetters(t *testing.T) {
 				ID: 3,
 				Items: []handlers.GetTicketItemResponse{
 					{
-						ID:       3,
 						Quantity: 6,
 						Name:     "Duner",
 					},

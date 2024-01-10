@@ -21,4 +21,10 @@ var (
 		MenuItemID: 1,
 		Quantity:   6,
 	}
+	PendingShackTicketItems = models.TicketItem{
+		ID:         4,
+		TicketID:   4,
+		MenuItemID: 1,
+		Quantity:   1,
+	}
 )
