@@ -108,6 +108,17 @@ func TestCancelOrder(t *testing.T) {
 	}
 	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
 
+	t.Run("return Unauthorized on attemp to cancel another user's order", func(t *testing.T) {
+		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 1}
+		request := handlers.NewCancelOrderRequest(strconv.Itoa(testdata.AliceCustomerID), cancelOrderRequestBody)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrUnathorizedAction)
+	})
+
 	t.Run("returns Status true when order is cancelable", func(t *testing.T) {
 		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 1}
 		request := handlers.NewCancelOrderRequest(strconv.Itoa(testdata.PeterCustomerID), cancelOrderRequestBody)

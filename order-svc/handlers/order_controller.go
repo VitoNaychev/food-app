@@ -46,6 +46,13 @@ func (o *OrderServer) cancelOrder(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	customerID, _ := strconv.Atoi(r.Header["Subject"][0])
+	if order.CustomerID != customerID {
+		httperrors.HandleUnauthorized(w, ErrUnathorizedAction)
+		return
+	}
+
 	if order.Status != models.APPROVAL_PENDING && order.Status != models.APPROVED {
 		cancelOrderResponse := CancelOrderResponse{Status: false}
 		json.NewEncoder(w).Encode(cancelOrderResponse)
