@@ -3,16 +3,35 @@ package handlers_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/appenv"
+	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/kitchen-svc/handlers"
 	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 	"github.com/VitoNaychev/food-app/kitchen-svc/testdata"
-	"github.com/VitoNaychev/food-app/reqbuilder"
 	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
+	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
 )
+
+var env appenv.Enviornment
+
+func TestMain(m *testing.M) {
+	keys := []string{"SECRET", "EXPIRES_AT"}
+
+	var err error
+	env, err = appenv.LoadEnviornment("../test.env", keys)
+	if err != nil {
+		testutil.HandleLoadEnviornmentError(err)
+		os.Exit(1)
+	}
+
+	code := m.Run()
+	os.Exit(code)
+}
 
 type StubTicketStore struct {
 	tickets []models.Ticket
@@ -78,41 +97,35 @@ func (s *StubTicketItemStore) GetTicketItemsByTicketID(ticketID int) ([]models.T
 	return ticketItems, nil
 }
 
-// func TestTicketEndpointAuthentication(t *testing.T) {
-// 	server := handlers.NewTicketServer(testEnv.SecretKey, testEnv.ExpiresAt, nil)
+func TestTicketEndpointAuthentication(t *testing.T) {
+	server := handlers.NewTicketServer(env.SecretKey, &StubTicketStore{}, &StubTicketItemStore{}, &StubMenuItemStore{}, &StubRestaurantStore{})
 
-// 	invalidJWT := "invalidJWT"
-// 	cases := map[string]*http.Request{
-// 		"get open tickets":    ,
-// 		"get tickets in progress": ,
-// 		"get tickets ready for pickup": ,
-// 		"get completed tickets": ,
+	invalidJWT := "invalidJWT"
+	cases := map[string]*http.Request{
+		"get tickets":         handlers.NewGetTicketsRequest(invalidJWT, ""),
+		"change ticket state": handlers.NewChangeTicketStateRequest(invalidJWT, 1, models.APPROVE_TICKET),
+	}
 
-// 		"accept ticket": ,
-// 		"decline ticket": ,
-// 		"finish preparing ticket": ,
-// 		"complete ticket": ,
-// 	}
-
-// 	tabletests.RunAuthenticationTests(t, server, cases)
-// }
+	tabletests.RunAuthenticationTests(t, server, cases)
+}
 
 func TestTicketStateTransisions(t *testing.T) {
 	ticketStore := &StubTicketStore{}
+	restaurantStore := &StubRestaurantStore{
+		restaurants: []models.Restaurant{
+			testdata.ShackRestaurant,
+		},
+	}
 
-	server := handlers.NewTicketServer(ticketStore, nil, nil)
+	shackJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.ShackRestaurant.ID)
+
+	server := handlers.NewTicketServer(env.SecretKey, ticketStore, nil, nil, restaurantStore)
 
 	t.Run("changes ticket state to IN_PROGRESS on event BEGIN_PREPARING", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.OpenShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{
-			ID:    testdata.OpenShackTicket.ID,
-			Event: models.BEGIN_PREPARING,
-		}
 
-		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
+		request := handlers.NewChangeTicketStateRequest(shackJWT, testdata.OpenShackTicket.ID, models.BEGIN_PREPARING)
 		response := httptest.NewRecorder()
-
-		request.Header.Add("Subject", "1")
 
 		server.ServeHTTP(response, request)
 
@@ -122,16 +135,10 @@ func TestTicketStateTransisions(t *testing.T) {
 	})
 
 	t.Run("returns Unauthorized on restaurant trying to change ticket that it doesn't own", func(t *testing.T) {
-		ticketStore.spyTicket = testdata.OpenShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{
-			ID:    testdata.OpenShackTicket.ID,
-			Event: models.BEGIN_PREPARING,
-		}
+		ticketStore.spyTicket = testdata.ForeginRestaurantTicket
 
-		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
+		request := handlers.NewChangeTicketStateRequest(shackJWT, testdata.ForeginRestaurantTicket.ID, models.BEGIN_PREPARING)
 		response := httptest.NewRecorder()
-
-		request.Header.Add("Subject", "5")
 
 		server.ServeHTTP(response, request)
 
@@ -141,12 +148,8 @@ func TestTicketStateTransisions(t *testing.T) {
 
 	t.Run("returns Bad Request attempt to transition to an unsupported state ", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.InProgressShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{
-			ID:    testdata.InProgressShackTicket.ID,
-			Event: models.BEGIN_PREPARING,
-		}
 
-		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
+		request := handlers.NewChangeTicketStateRequest(shackJWT, testdata.InProgressShackTicket.ID, models.BEGIN_PREPARING)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -159,12 +162,8 @@ func TestTicketStateTransisions(t *testing.T) {
 
 	t.Run("changes ticket state to DECLINED on event DECLINE", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.OpenShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{
-			ID:    testdata.OpenShackTicket.ID,
-			Event: models.DECLINE_TICKET,
-		}
 
-		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/", ticketRequest)
+		request := handlers.NewChangeTicketStateRequest(shackJWT, testdata.OpenShackTicket.ID, models.DECLINE_TICKET)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -178,12 +177,8 @@ func TestTicketStateTransisions(t *testing.T) {
 
 	t.Run("changes ticket state to READY_FOR_PICKUP on event FINISH_PREPARING", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.InProgressShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{
-			ID:    testdata.InProgressShackTicket.ID,
-			Event: models.FINISH_PREPARING,
-		}
 
-		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/", ticketRequest)
+		request := handlers.NewChangeTicketStateRequest(shackJWT, testdata.InProgressShackTicket.ID, models.FINISH_PREPARING)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -199,19 +194,28 @@ func TestTicketStateTransisions(t *testing.T) {
 func TestTicketGetters(t *testing.T) {
 	ticketStore := &StubTicketStore{
 		tickets: []models.Ticket{
-			testdata.OpenShackTicket, testdata.InProgressShackTicket, testdata.ReadyForPickupShackTicket, testdata.CompletedShackTicket,
+			testdata.OpenShackTicket, testdata.InProgressShackTicket,
+			testdata.ReadyForPickupShackTicket, testdata.CompletedShackTicket,
 		},
 	}
 	ticketItemStore := &StubTicketItemStore{
 		ticketItems: []models.TicketItem{
-			testdata.OpenShackTicketItems, testdata.InProgressShackTicketItems, testdata.ReadyForPickupShackTicketItems, testdata.CompletedShackTicketItems,
+			testdata.OpenShackTicketItems, testdata.InProgressShackTicketItems,
+			testdata.ReadyForPickupShackTicketItems, testdata.CompletedShackTicketItems,
 		},
 	}
 	menuItemStore := &StubMenuItemStore{
 		menuItems: []models.MenuItem{testdata.ShackMenuItem},
 	}
+	restaurantStore := &StubRestaurantStore{
+		restaurants: []models.Restaurant{
+			testdata.ShackRestaurant,
+		},
+	}
 
-	server := handlers.NewTicketServer(ticketStore, ticketItemStore, menuItemStore)
+	shackJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.ShackRestaurant.ID)
+
+	server := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore)
 
 	t.Run("returns open tickets on GET to /tickets?state=open", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
@@ -227,10 +231,8 @@ func TestTicketGetters(t *testing.T) {
 			},
 		}
 
-		request, _ := http.NewRequest(http.MethodGet, "/tickets?state=open", nil)
+		request := handlers.NewGetTicketsRequest(shackJWT, "?state=open")
 		response := httptest.NewRecorder()
-
-		request.Header.Add("Subject", "1")
 
 		server.ServeHTTP(response, request)
 
@@ -256,10 +258,8 @@ func TestTicketGetters(t *testing.T) {
 			},
 		}
 
-		request, _ := http.NewRequest(http.MethodGet, "/tickets?state=in_progress", nil)
+		request := handlers.NewGetTicketsRequest(shackJWT, "?state=in_progress")
 		response := httptest.NewRecorder()
-
-		request.Header.Add("Subject", "1")
 
 		server.ServeHTTP(response, request)
 
@@ -285,10 +285,8 @@ func TestTicketGetters(t *testing.T) {
 			},
 		}
 
-		request, _ := http.NewRequest(http.MethodGet, "/tickets?state=ready_for_pickup", nil)
+		request := handlers.NewGetTicketsRequest(shackJWT, "?state=ready_for_pickup")
 		response := httptest.NewRecorder()
-
-		request.Header.Add("Subject", "1")
 
 		server.ServeHTTP(response, request)
 
@@ -314,10 +312,8 @@ func TestTicketGetters(t *testing.T) {
 			},
 		}
 
-		request, _ := http.NewRequest(http.MethodGet, "/tickets?state=completed", nil)
+		request := handlers.NewGetTicketsRequest(shackJWT, "?state=completed")
 		response := httptest.NewRecorder()
-
-		request.Header.Add("Subject", "1")
 
 		server.ServeHTTP(response, request)
 

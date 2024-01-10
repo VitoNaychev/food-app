@@ -30,4 +30,11 @@ var (
 		State:        models.COMPLETED,
 		RestaurantID: 1,
 	}
+
+	ForeginRestaurantTicket = models.Ticket{
+		ID:           5,
+		Total:        10.00,
+		State:        models.CREATED,
+		RestaurantID: 5,
+	}
 )

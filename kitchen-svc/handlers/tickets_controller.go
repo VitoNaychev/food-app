@@ -5,24 +5,38 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
 type TicketServer struct {
+	secretKey []byte
+
 	ticketStore     models.TicketStore
 	ticketItemStore models.TicketItemStore
 	menuItemStore   models.MenuItemStore
+	restaurantStore models.RestaurantStore
 
-	http.Handler
+	verifier auth.Verifier
 }
 
-func NewTicketServer(ticketStore models.TicketStore, ticketItemStore models.TicketItemStore, menuItemStore models.MenuItemStore) *TicketServer {
+func NewTicketServer(secretKey []byte,
+	ticketStore models.TicketStore,
+	ticketItemStore models.TicketItemStore,
+	menuItemStore models.MenuItemStore,
+	restaurantStore models.RestaurantStore) *TicketServer {
+
 	s := TicketServer{
+		secretKey: secretKey,
+
 		ticketStore:     ticketStore,
 		ticketItemStore: ticketItemStore,
 		menuItemStore:   menuItemStore,
+		restaurantStore: restaurantStore,
+
+		verifier: NewRestaurantVerifier(restaurantStore),
 	}
 
 	return &s
@@ -31,9 +45,9 @@ func NewTicketServer(ticketStore models.TicketStore, ticketItemStore models.Tick
 func (t *TicketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		t.getFilteredTickets(w, r)
+		auth.AuthenticationMW(t.getFilteredTickets, t.verifier, t.secretKey)(w, r)
 	case http.MethodPost:
-		t.stateTransitionHandler(w, r)
+		auth.AuthenticationMW(t.stateTransitionHandler, t.verifier, t.secretKey)(w, r)
 	}
 }
 

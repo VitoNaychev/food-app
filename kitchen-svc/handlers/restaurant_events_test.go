@@ -49,6 +49,7 @@ func (s *StubMenuItemStore) UpdateMenuItem(menuItem *models.MenuItem) error {
 }
 
 type StubRestaurantStore struct {
+	restaurants         []models.Restaurant
 	createdRestaurant   models.Restaurant
 	deletedRestaurantID int
 }
@@ -58,8 +59,14 @@ func (s *StubRestaurantStore) DeleteRestaurant(id int) error {
 	return nil
 }
 
-func (*StubRestaurantStore) GetRestaurantByID(int) (models.Restaurant, error) {
-	panic("unimplemented")
+func (s *StubRestaurantStore) GetRestaurantByID(id int) (models.Restaurant, error) {
+	for _, restaurant := range s.restaurants {
+		if restaurant.ID == id {
+			return restaurant, nil
+		}
+	}
+
+	return models.Restaurant{}, nil
 }
 
 func (s *StubRestaurantStore) CreateRestaurant(restaurant *models.Restaurant) error {
