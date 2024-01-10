@@ -25,34 +25,19 @@ func NewTicketServer(ticketStore models.TicketStore, ticketItemStore models.Tick
 		menuItemStore:   menuItemStore,
 	}
 
-	router := http.NewServeMux()
-	router.Handle("/tickets/accept/", http.HandlerFunc(s.acceptTicket))
-	router.Handle("/tickets/decline/", http.HandlerFunc(s.declineTicket))
-	router.Handle("/tickets/prepared/", http.HandlerFunc(s.preparedTicket))
-
-	router.Handle("/tickets/open/", http.HandlerFunc(s.getOpenTickets))
-	router.Handle("/tickets/in_progress/", http.HandlerFunc(s.getInProgressTickets))
-	router.Handle("/tickets/ready_for_pickup/", http.HandlerFunc(s.getReadyForPickupTickets))
-	router.Handle("/tickets/completed/", http.HandlerFunc(s.getCompletedTickets))
-
-	s.Handler = router
-
 	return &s
 }
 
-func (t *TicketServer) preparedTicket(w http.ResponseWriter, r *http.Request) {
-	t.stateTransitionHandler(w, r, models.FINISH_PREPARING)
+func (t *TicketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		t.getFilteredTickets(w, r)
+	case http.MethodPost:
+		t.stateTransitionHandler(w, r)
+	}
 }
 
-func (t *TicketServer) declineTicket(w http.ResponseWriter, r *http.Request) {
-	t.stateTransitionHandler(w, r, models.DECLINE_TICKET)
-}
-
-func (t *TicketServer) acceptTicket(w http.ResponseWriter, r *http.Request) {
-	t.stateTransitionHandler(w, r, models.START_PREPARING)
-}
-
-func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Request, event models.TicketEvent) {
+func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Request) {
 	ticketRequest, _ := validation.ValidateBody[StateTransitionTicketRequest](r.Body)
 
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
@@ -64,7 +49,7 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	ticketSM := models.NewTicketSM(ticket.State)
-	err := ticketSM.Exec(event)
+	err := ticketSM.Exec(ticketRequest.Event)
 	if err != nil {
 		httperrors.HandleBadRequest(w, ErrUnsuportedStateTransition)
 		return
@@ -73,40 +58,22 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 	_ = t.ticketStore.UpdateTicketState(ticketRequest.ID, ticketSM.Current())
 }
 
-func (t *TicketServer) getOpenTickets(w http.ResponseWriter, r *http.Request) {
+func (t *TicketServer) getFilteredTickets(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
-	getTicketResponseArr, _ := t.getFilteredTickets(restaurantID, models.CREATED)
+	var tickets []models.Ticket
+	stateName := r.URL.Query().Get("state")
 
-	json.NewEncoder(w).Encode(getTicketResponseArr)
-}
-
-func (t *TicketServer) getInProgressTickets(w http.ResponseWriter, r *http.Request) {
-	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
-
-	getTicketResponseArr, _ := t.getFilteredTickets(restaurantID, models.PREPARING)
-
-	json.NewEncoder(w).Encode(getTicketResponseArr)
-}
-
-func (t *TicketServer) getReadyForPickupTickets(w http.ResponseWriter, r *http.Request) {
-	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
-
-	getTicketResponseArr, _ := t.getFilteredTickets(restaurantID, models.READY_FOR_PICKUP)
-
-	json.NewEncoder(w).Encode(getTicketResponseArr)
-}
-
-func (t *TicketServer) getCompletedTickets(w http.ResponseWriter, r *http.Request) {
-	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
-
-	getTicketResponseArr, _ := t.getFilteredTickets(restaurantID, models.COMPLETED)
-
-	json.NewEncoder(w).Encode(getTicketResponseArr)
-}
-
-func (t *TicketServer) getFilteredTickets(restaurantID int, state models.TicketState) ([]GetTicketResponse, error) {
-	tickets, _ := t.ticketStore.GetTicketsByRestaurantIDWhereState(restaurantID, state)
+	if stateName == "" {
+		tickets, _ = t.ticketStore.GetTicketsByRestaurantID(restaurantID)
+	} else {
+		state, err := stateNameToStateValue(stateName)
+		if err != nil {
+			httperrors.HandleBadRequest(w, ErrNonexistentState)
+			return
+		}
+		tickets, _ = t.ticketStore.GetTicketsByRestaurantIDWhereState(restaurantID, state)
+	}
 
 	getTicketResponseArr := []GetTicketResponse{}
 
@@ -125,7 +92,30 @@ func (t *TicketServer) getFilteredTickets(restaurantID int, state models.TicketS
 		getTicketResponseArr = append(getTicketResponseArr, getTicketResponse)
 	}
 
-	return getTicketResponseArr, nil
+	json.NewEncoder(w).Encode(getTicketResponseArr)
+}
+
+func stateNameToStateValue(stateName string) (models.TicketState, error) {
+	var stateValue models.TicketState
+
+	switch stateName {
+	case "open":
+		stateValue = models.CREATED
+	case "in_progress":
+		stateValue = models.IN_PROGRESS
+	case "ready_for_pickup":
+		stateValue = models.READY_FOR_PICKUP
+	case "completed":
+		stateValue = models.COMPLETED
+	case "declined":
+		stateValue = models.DECLINED
+	case "canceled":
+		stateValue = models.CANCELED
+	default:
+		return models.TicketState(-1), ErrNonexistentState
+	}
+
+	return stateValue, nil
 }
 
 func NewTicketItemResponse(ticketItem models.TicketItem, menuItem models.MenuItem) GetTicketItemResponse {

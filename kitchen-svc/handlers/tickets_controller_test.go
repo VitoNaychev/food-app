@@ -37,6 +37,18 @@ func (s *StubTicketStore) UpdateTicketState(id int, state models.TicketState) er
 	return nil
 }
 
+func (s *StubTicketStore) GetTicketsByRestaurantID(restaurantID int) ([]models.Ticket, error) {
+	restaruantTickets := []models.Ticket{}
+
+	for _, ticket := range s.tickets {
+		if ticket.RestaurantID == restaurantID {
+			restaruantTickets = append(restaruantTickets, ticket)
+		}
+	}
+
+	return restaruantTickets, nil
+}
+
 func (s *StubTicketStore) GetTicketsByRestaurantIDWhereState(restaurantID int, state models.TicketState) ([]models.Ticket, error) {
 	restaruantTickets := []models.Ticket{}
 
@@ -66,18 +78,36 @@ func (s *StubTicketItemStore) GetTicketItemsByTicketID(ticketID int) ([]models.T
 	return ticketItems, nil
 }
 
-func TestKitchenEndpointAuthentication(t *testing.T) {
+// func TestTicketEndpointAuthentication(t *testing.T) {
+// 	server := handlers.NewTicketServer(testEnv.SecretKey, testEnv.ExpiresAt, nil)
 
-}
+// 	invalidJWT := "invalidJWT"
+// 	cases := map[string]*http.Request{
+// 		"get open tickets":    ,
+// 		"get tickets in progress": ,
+// 		"get tickets ready for pickup": ,
+// 		"get completed tickets": ,
+
+// 		"accept ticket": ,
+// 		"decline ticket": ,
+// 		"finish preparing ticket": ,
+// 		"complete ticket": ,
+// 	}
+
+// 	tabletests.RunAuthenticationTests(t, server, cases)
+// }
 
 func TestTicketStateTransisions(t *testing.T) {
 	ticketStore := &StubTicketStore{}
 
 	server := handlers.NewTicketServer(ticketStore, nil, nil)
 
-	t.Run("changes ticket state to PREPARING on POST to /tickets/accept/", func(t *testing.T) {
+	t.Run("changes ticket state to IN_PROGRESS on event BEGIN_PREPARING", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.OpenShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.OpenShackTicket.ID}
+		ticketRequest := handlers.StateTransitionTicketRequest{
+			ID:    testdata.OpenShackTicket.ID,
+			Event: models.BEGIN_PREPARING,
+		}
 
 		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
 		response := httptest.NewRecorder()
@@ -88,12 +118,15 @@ func TestTicketStateTransisions(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.PREPARING)
+		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.IN_PROGRESS)
 	})
 
 	t.Run("returns Unauthorized on restaurant trying to change ticket that it doesn't own", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.OpenShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.OpenShackTicket.ID}
+		ticketRequest := handlers.StateTransitionTicketRequest{
+			ID:    testdata.OpenShackTicket.ID,
+			Event: models.BEGIN_PREPARING,
+		}
 
 		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
 		response := httptest.NewRecorder()
@@ -108,7 +141,10 @@ func TestTicketStateTransisions(t *testing.T) {
 
 	t.Run("returns Bad Request attempt to transition to an unsupported state ", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.InProgressShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.InProgressShackTicket.ID}
+		ticketRequest := handlers.StateTransitionTicketRequest{
+			ID:    testdata.InProgressShackTicket.ID,
+			Event: models.BEGIN_PREPARING,
+		}
 
 		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
 		response := httptest.NewRecorder()
@@ -121,11 +157,14 @@ func TestTicketStateTransisions(t *testing.T) {
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrUnsuportedStateTransition)
 	})
 
-	t.Run("changes ticket state to DECLINED on POST to /tickets/decline/", func(t *testing.T) {
+	t.Run("changes ticket state to DECLINED on event DECLINE", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.OpenShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.OpenShackTicket.ID}
+		ticketRequest := handlers.StateTransitionTicketRequest{
+			ID:    testdata.OpenShackTicket.ID,
+			Event: models.DECLINE_TICKET,
+		}
 
-		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/decline/", ticketRequest)
+		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/", ticketRequest)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -137,11 +176,14 @@ func TestTicketStateTransisions(t *testing.T) {
 		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.DECLINED)
 	})
 
-	t.Run("changes ticket state to READY_FOR_PICKUP on POST to /tickets/prepared/", func(t *testing.T) {
+	t.Run("changes ticket state to READY_FOR_PICKUP on event FINISH_PREPARING", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.InProgressShackTicket
-		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.InProgressShackTicket.ID}
+		ticketRequest := handlers.StateTransitionTicketRequest{
+			ID:    testdata.InProgressShackTicket.ID,
+			Event: models.FINISH_PREPARING,
+		}
 
-		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/prepared/", ticketRequest)
+		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/", ticketRequest)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -171,7 +213,7 @@ func TestTicketGetters(t *testing.T) {
 
 	server := handlers.NewTicketServer(ticketStore, ticketItemStore, menuItemStore)
 
-	t.Run("returns open tickets on GET to /tickets/open/", func(t *testing.T) {
+	t.Run("returns open tickets on GET to /tickets?state=open", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
 			{
 				ID:    1,
@@ -185,7 +227,7 @@ func TestTicketGetters(t *testing.T) {
 			},
 		}
 
-		request, _ := http.NewRequest(http.MethodGet, "/tickets/open/", nil)
+		request, _ := http.NewRequest(http.MethodGet, "/tickets?state=open", nil)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -200,7 +242,7 @@ func TestTicketGetters(t *testing.T) {
 		testutil.AssertEqual(t, got, want)
 	})
 
-	t.Run("returns tickets in progress on GET to /tickets/in_progress/", func(t *testing.T) {
+	t.Run("returns tickets in progress on GET to /tickets?state=in_progress", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
 			{
 				ID:    2,
@@ -214,7 +256,7 @@ func TestTicketGetters(t *testing.T) {
 			},
 		}
 
-		request, _ := http.NewRequest(http.MethodGet, "/tickets/in_progress/", nil)
+		request, _ := http.NewRequest(http.MethodGet, "/tickets?state=in_progress", nil)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -229,7 +271,7 @@ func TestTicketGetters(t *testing.T) {
 		testutil.AssertEqual(t, got, want)
 	})
 
-	t.Run("returns tickets ready for pickup on /tickets/ready_for_pickup/", func(t *testing.T) {
+	t.Run("returns tickets ready for pickup on /tickets?state=ready_for_pickup", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
 			{
 				ID:    3,
@@ -243,7 +285,7 @@ func TestTicketGetters(t *testing.T) {
 			},
 		}
 
-		request, _ := http.NewRequest(http.MethodGet, "/tickets/ready_for_pickup/", nil)
+		request, _ := http.NewRequest(http.MethodGet, "/tickets?state=ready_for_pickup", nil)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -258,7 +300,7 @@ func TestTicketGetters(t *testing.T) {
 		testutil.AssertEqual(t, got, want)
 	})
 
-	t.Run("returns completed tickets on /tickets/completed/", func(t *testing.T) {
+	t.Run("returns completed tickets on /tickets?state=completed", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
 			{
 				ID:    4,
@@ -272,7 +314,7 @@ func TestTicketGetters(t *testing.T) {
 			},
 		}
 
-		request, _ := http.NewRequest(http.MethodGet, "/tickets/completed/", nil)
+		request, _ := http.NewRequest(http.MethodGet, "/tickets?state=completed", nil)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")

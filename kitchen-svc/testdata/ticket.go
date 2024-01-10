@@ -13,7 +13,7 @@ var (
 	InProgressShackTicket = models.Ticket{
 		ID:           2,
 		Total:        25.00,
-		State:        models.PREPARING,
+		State:        models.IN_PROGRESS,
 		RestaurantID: 1,
 	}
 
