@@ -122,7 +122,7 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		time.Sleep(time.Second)
 
 		_, err := kitchenService.menuItemStore.GetMenuItemByID(wantID)
-		AssertError(t, err, storeerrors.ErrNotFound)
+		testutil.AssertError(t, err, storeerrors.ErrNotFound)
 	})
 
 	{
@@ -143,23 +143,11 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		time.Sleep(time.Second)
 
 		_, err := kitchenService.restaurantStore.GetRestaurantByID(testdata.ShackRestaurant.ID)
-		AssertError(t, err, storeerrors.ErrNotFound)
+		testutil.AssertError(t, err, storeerrors.ErrNotFound)
 
 		_, err = kitchenService.menuItemStore.GetMenuItemByID(testdata.ShackMenu[0].ID)
-		AssertError(t, err, storeerrors.ErrNotFound)
+		testutil.AssertError(t, err, storeerrors.ErrNotFound)
 	})
-}
-
-func AssertError(t testing.TB, got error, want error) {
-	t.Helper()
-
-	if got == nil {
-		t.Fatalf("expected error but didn't get one")
-	}
-
-	if got != want {
-		t.Errorf("got error %v, want %v", got, want)
-	}
 }
 
 func AssertMenuItem(t testing.TB, got kitchenmodels.MenuItem, want restaurantmodels.MenuItem) {

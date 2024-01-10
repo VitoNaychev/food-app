@@ -15,6 +15,18 @@ import (
 
 type GenericTypeToResponseFunction func(interface{}) interface{}
 
+func AssertError(t testing.TB, got error, want error) {
+	t.Helper()
+
+	if got == nil {
+		t.Fatalf("expected error but didn't get one")
+	}
+
+	if got != want {
+		t.Errorf("got error %v, want %v", got, want)
+	}
+}
+
 func AssertEvent(t testing.TB, got events.InterfaceEvent, want events.InterfaceEvent) {
 	t.Helper()
 

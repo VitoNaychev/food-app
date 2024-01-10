@@ -12,20 +12,28 @@ type PgRestaurantStore struct {
 	conn *pgx.Conn
 }
 
-func NewPgRestaurantStore(ctx context.Context, connString string) (PgRestaurantStore, error) {
+func NewPgRestaurantStore(ctx context.Context, connString string) (*PgRestaurantStore, error) {
 	conn, err := pgx.Connect(ctx, connString)
 
 	if err != nil {
-		return PgRestaurantStore{}, fmt.Errorf("unable to connect to database: %w", err)
+		return nil, fmt.Errorf("unable to connect to database: %w", err)
 	}
 
 	pgRestaurantStore := PgRestaurantStore{conn}
 
-	return pgRestaurantStore, nil
+	return &pgRestaurantStore, nil
 }
 
-func (p *PgRestaurantStore) DeleteRestaurant(restaurant Restaurant) error {
-	panic("unimplemented")
+func (p *PgRestaurantStore) DeleteRestaurant(id int) error {
+	query := `DELETE FROM restaurants WHERE id = @id`
+	args := pgx.NamedArgs{"id": id}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	if err != nil {
+		return storeerrors.FromPgxError(err)
+	}
+
+	return nil
 }
 
 func (p *PgRestaurantStore) CreateRestaurant(restaurant *Restaurant) error {
