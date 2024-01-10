@@ -1,5 +1,9 @@
 package handlers
 
+type StateTransitionTicketRequest struct {
+	ID int
+}
+
 type GetTicketResponse struct {
 	ID    int
 	Items []GetTicketItemResponse

@@ -8,12 +8,33 @@ import (
 	"github.com/VitoNaychev/food-app/kitchen-svc/handlers"
 	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 	"github.com/VitoNaychev/food-app/kitchen-svc/testdata"
+	"github.com/VitoNaychev/food-app/reqbuilder"
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
 type StubTicketStore struct {
 	tickets []models.Ticket
+
+	spyTicket models.Ticket
+}
+
+func (s *StubTicketStore) GetTicketByID(id int) (models.Ticket, error) {
+	if id != s.spyTicket.ID {
+		return models.Ticket{}, storeerrors.ErrNotFound
+	}
+
+	return s.spyTicket, nil
+}
+
+func (s *StubTicketStore) UpdateTicketState(id int, state models.TicketState) error {
+	if id != s.spyTicket.ID {
+		return storeerrors.ErrNotFound
+	}
+
+	s.spyTicket.State = state
+	return nil
 }
 
 func (s *StubTicketStore) GetTicketsByRestaurantIDWhereState(restaurantID int, state models.TicketState) ([]models.Ticket, error) {
@@ -49,51 +70,16 @@ func TestKitchenEndpointAuthentication(t *testing.T) {
 
 }
 
-// func TestTicketStateTransisions(t *testing.T) {
+func TestTicketStateTransisions(t *testing.T) {
+	ticketStore := &StubTicketStore{}
 
-// 	server := &handlers.TicketServer{}
+	server := handlers.NewTicketServer(ticketStore, nil, nil)
 
-// 	t.Run("accepts ticket on POST to /tickets/accept/", func(t *testing.T) {
-// 		request, _ := http.NewRequest(http.MethodPost, "/tickets/accept/", nil)
-// 		response := httptest.NewRecorder()
+	t.Run("changes ticket state to PREPARING on POST to /tickets/accept/", func(t *testing.T) {
+		ticketStore.spyTicket = testdata.OpenShackTicket
+		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.OpenShackTicket.ID}
 
-// 		server.ServeHTTP(response, request)
-
-// 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-// 	})
-// }
-
-func TestTicketGetters(t *testing.T) {
-	ticketStore := &StubTicketStore{
-		tickets: []models.Ticket{
-			testdata.OpenShackTicket, testdata.InProgressShackTicket, testdata.ReadyForPickupShackTicket, testdata.PendingShackTicket,
-		},
-	}
-	ticketItemStore := &StubTicketItemStore{
-		ticketItems: []models.TicketItem{
-			testdata.OpenShackTicketItems, testdata.InProgressShackTicketItems, testdata.ReadyForPickupShackTicketItems, testdata.PendingShackTicketItems,
-		},
-	}
-	menuItemStore := &StubMenuItemStore{
-		menuItems: []models.MenuItem{testdata.ShackMenuItem},
-	}
-
-	server := handlers.NewTicketServer(ticketStore, ticketItemStore, menuItemStore)
-
-	t.Run("returns pending tickets on GET to /tickets/pending/", func(t *testing.T) {
-		want := []handlers.GetTicketResponse{
-			{
-				ID: 4,
-				Items: []handlers.GetTicketItemResponse{
-					{
-						Quantity: 1,
-						Name:     "Duner",
-					},
-				},
-			},
-		}
-
-		request, _ := http.NewRequest(http.MethodGet, "/tickets/pending/", nil)
+		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
 		response := httptest.NewRecorder()
 
 		request.Header.Add("Subject", "1")
@@ -102,11 +88,88 @@ func TestTicketGetters(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
-		got, err := validation.ValidateBody[[]handlers.GetTicketResponse](response.Body)
-		testutil.AssertValidResponse(t, err)
-
-		testutil.AssertEqual(t, got, want)
+		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.PREPARING)
 	})
+
+	t.Run("returns Unauthorized on restaurant trying to change ticket that it doesn't own", func(t *testing.T) {
+		ticketStore.spyTicket = testdata.OpenShackTicket
+		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.OpenShackTicket.ID}
+
+		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
+		response := httptest.NewRecorder()
+
+		request.Header.Add("Subject", "5")
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusUnauthorized)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrUnathorizedAction)
+	})
+
+	t.Run("returns Bad Request attempt to transition to an unsupported state ", func(t *testing.T) {
+		ticketStore.spyTicket = testdata.InProgressShackTicket
+		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.InProgressShackTicket.ID}
+
+		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/accept/", ticketRequest)
+		response := httptest.NewRecorder()
+
+		request.Header.Add("Subject", "1")
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
+		testutil.AssertErrorResponse(t, response.Body, handlers.ErrUnsuportedStateTransition)
+	})
+
+	t.Run("changes ticket state to DECLINED on POST to /tickets/decline/", func(t *testing.T) {
+		ticketStore.spyTicket = testdata.OpenShackTicket
+		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.OpenShackTicket.ID}
+
+		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/decline/", ticketRequest)
+		response := httptest.NewRecorder()
+
+		request.Header.Add("Subject", "1")
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.DECLINED)
+	})
+
+	t.Run("changes ticket state to READY_FOR_PICKUP on POST to /tickets/prepared/", func(t *testing.T) {
+		ticketStore.spyTicket = testdata.InProgressShackTicket
+		ticketRequest := handlers.StateTransitionTicketRequest{ID: testdata.InProgressShackTicket.ID}
+
+		request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets/prepared/", ticketRequest)
+		response := httptest.NewRecorder()
+
+		request.Header.Add("Subject", "1")
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.READY_FOR_PICKUP)
+	})
+}
+
+func TestTicketGetters(t *testing.T) {
+	ticketStore := &StubTicketStore{
+		tickets: []models.Ticket{
+			testdata.OpenShackTicket, testdata.InProgressShackTicket, testdata.ReadyForPickupShackTicket,
+		},
+	}
+	ticketItemStore := &StubTicketItemStore{
+		ticketItems: []models.TicketItem{
+			testdata.OpenShackTicketItems, testdata.InProgressShackTicketItems, testdata.ReadyForPickupShackTicketItems,
+		},
+	}
+	menuItemStore := &StubMenuItemStore{
+		menuItems: []models.MenuItem{testdata.ShackMenuItem},
+	}
+
+	server := handlers.NewTicketServer(ticketStore, ticketItemStore, menuItemStore)
 
 	t.Run("returns open tickets on GET to /tickets/open/", func(t *testing.T) {
 		want := []handlers.GetTicketResponse{
