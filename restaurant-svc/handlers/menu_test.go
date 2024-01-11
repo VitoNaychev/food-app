@@ -239,7 +239,7 @@ func TestUpdateMenuItem(t *testing.T) {
 		want := events.InterfaceEvent{
 			EventID:     events.MENU_ITEM_UPDATED_EVENT_ID,
 			AggregateID: td.DominosRestaurant.ID,
-			Payload:     events.NewMenuItemUpdatedEvent(menuItem),
+			Payload:     handlers.NewMenuItemUpdatedEvent(menuItem),
 		}
 
 		testutil.AssertEvent(t, got, want)
@@ -350,7 +350,7 @@ func TestCreateMenuItem(t *testing.T) {
 		want := events.InterfaceEvent{
 			EventID:     events.MENU_ITEM_CREATED_EVENT_ID,
 			AggregateID: td.DominosRestaurant.ID,
-			Payload:     events.NewMenuItemCreatedEvent(menuItem),
+			Payload:     handlers.NewMenuItemCreatedEvent(menuItem),
 		}
 
 		testutil.AssertEvent(t, got, want)

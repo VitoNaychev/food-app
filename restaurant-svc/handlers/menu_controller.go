@@ -91,7 +91,7 @@ func (m *MenuServer) updateMenuItem(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(updateMenuItem)
 
-	payload := events.NewMenuItemUpdatedEvent(updateMenuItem)
+	payload := NewMenuItemUpdatedEvent(updateMenuItem)
 	event := events.NewEvent(events.MENU_ITEM_UPDATED_EVENT_ID, restaurantID, payload)
 	m.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, event)
 }
@@ -121,7 +121,7 @@ func (m *MenuServer) createMenuItem(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(menuItem)
 
-	event := events.NewEvent(events.MENU_ITEM_CREATED_EVENT_ID, restaurantID, events.NewMenuItemCreatedEvent(menuItem))
+	event := events.NewEvent(events.MENU_ITEM_CREATED_EVENT_ID, restaurantID, NewMenuItemCreatedEvent(menuItem))
 	m.publisher.Publish(events.RESTAURANT_EVENTS_TOPIC, event)
 }
 
