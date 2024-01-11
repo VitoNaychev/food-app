@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -21,6 +22,20 @@ func NewPgTicketItemStore(ctx context.Context, connString string) (*PgTicketItem
 	pgTicketItemStore := PgTicketItemStore{conn}
 
 	return &pgTicketItemStore, nil
+}
+
+func (p *PgTicketItemStore) CreateTicketItem(ticketItem *TicketItem) error {
+	query := `insert into ticket_items(id, ticket_id, menu_item_id, quantity) 
+	values (@id, @ticket_id, @menu_item_id, @quantity)`
+	args := pgx.NamedArgs{
+		"id":           ticketItem.ID,
+		"ticket_id":    ticketItem.TicketID,
+		"menu_item_id": ticketItem.MenuItemID,
+		"quantity":     ticketItem.Quantity,
+	}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	return storeerrors.FromPgxError(err)
 }
 
 func (p *PgTicketItemStore) GetTicketItemsByTicketID(ticketID int) ([]TicketItem, error) {

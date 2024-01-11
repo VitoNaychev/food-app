@@ -6,7 +6,7 @@ var (
 	OpenShackTicket = models.Ticket{
 		ID:           1,
 		Total:        12.50,
-		State:        models.CREATED,
+		State:        models.OPEN,
 		RestaurantID: 1,
 	}
 
@@ -34,7 +34,7 @@ var (
 	ForeginRestaurantTicket = models.Ticket{
 		ID:           5,
 		Total:        10.00,
-		State:        models.CREATED,
+		State:        models.OPEN,
 		RestaurantID: 5,
 	}
 )

@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -130,8 +131,17 @@ func TestTicketStateTransisions(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-
 		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.IN_PROGRESS)
+
+		want := handlers.StateTransitionResponse{
+			ID:    testdata.OpenShackTicket.ID,
+			State: "in_progress",
+		}
+
+		var got handlers.StateTransitionResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("returns Unauthorized on restaurant trying to change ticket that it doesn't own", func(t *testing.T) {
@@ -171,8 +181,17 @@ func TestTicketStateTransisions(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-
 		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.DECLINED)
+
+		want := handlers.StateTransitionResponse{
+			ID:    testdata.OpenShackTicket.ID,
+			State: "declined",
+		}
+
+		var got handlers.StateTransitionResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
 	})
 
 	t.Run("changes ticket state to READY_FOR_PICKUP on event FINISH_PREPARING", func(t *testing.T) {
@@ -186,8 +205,17 @@ func TestTicketStateTransisions(t *testing.T) {
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
-
 		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.READY_FOR_PICKUP)
+
+		want := handlers.StateTransitionResponse{
+			ID:    testdata.InProgressShackTicket.ID,
+			State: "ready_for_pickup",
+		}
+
+		var got handlers.StateTransitionResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
 	})
 }
 
@@ -218,18 +246,7 @@ func TestTicketGetters(t *testing.T) {
 	server := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore)
 
 	t.Run("returns open tickets on GET to /tickets?state=open", func(t *testing.T) {
-		want := []handlers.GetTicketResponse{
-			{
-				ID:    1,
-				Total: 12.50,
-				Items: []handlers.GetTicketItemResponse{
-					{
-						Quantity: 2,
-						Name:     "Duner",
-					},
-				},
-			},
-		}
+		want := testdata.OpenShackTicketResponse
 
 		request := handlers.NewGetTicketsRequest(shackJWT, "?state=open")
 		response := httptest.NewRecorder()
@@ -245,18 +262,7 @@ func TestTicketGetters(t *testing.T) {
 	})
 
 	t.Run("returns tickets in progress on GET to /tickets?state=in_progress", func(t *testing.T) {
-		want := []handlers.GetTicketResponse{
-			{
-				ID:    2,
-				Total: 25.00,
-				Items: []handlers.GetTicketItemResponse{
-					{
-						Quantity: 4,
-						Name:     "Duner",
-					},
-				},
-			},
-		}
+		want := testdata.InProgressShackTicketResponse
 
 		request := handlers.NewGetTicketsRequest(shackJWT, "?state=in_progress")
 		response := httptest.NewRecorder()
@@ -272,18 +278,7 @@ func TestTicketGetters(t *testing.T) {
 	})
 
 	t.Run("returns tickets ready for pickup on /tickets?state=ready_for_pickup", func(t *testing.T) {
-		want := []handlers.GetTicketResponse{
-			{
-				ID:    3,
-				Total: 37.50,
-				Items: []handlers.GetTicketItemResponse{
-					{
-						Quantity: 6,
-						Name:     "Duner",
-					},
-				},
-			},
-		}
+		want := testdata.ReadyForPickupShackTicketResponse
 
 		request := handlers.NewGetTicketsRequest(shackJWT, "?state=ready_for_pickup")
 		response := httptest.NewRecorder()
@@ -299,18 +294,7 @@ func TestTicketGetters(t *testing.T) {
 	})
 
 	t.Run("returns completed tickets on /tickets?state=completed", func(t *testing.T) {
-		want := []handlers.GetTicketResponse{
-			{
-				ID:    4,
-				Total: 6.25,
-				Items: []handlers.GetTicketItemResponse{
-					{
-						Quantity: 1,
-						Name:     "Duner",
-					},
-				},
-			},
-		}
+		want := testdata.CompletedShackTicketResponse
 
 		request := handlers.NewGetTicketsRequest(shackJWT, "?state=completed")
 		response := httptest.NewRecorder()

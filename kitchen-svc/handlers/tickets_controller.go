@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/VitoNaychev/food-app/auth"
@@ -55,7 +57,12 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 	ticketRequest, _ := validation.ValidateBody[StateTransitionTicketRequest](r.Body)
 
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
-	ticket, _ := t.ticketStore.GetTicketByID(ticketRequest.ID)
+
+	ticket, err := t.ticketStore.GetTicketByID(ticketRequest.ID)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+		return
+	}
 
 	if ticket.RestaurantID != restaurantID {
 		httperrors.HandleUnauthorized(w, ErrUnathorizedAction)
@@ -63,40 +70,84 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	ticketSM := models.NewTicketSM(ticket.State)
-	err := ticketSM.Exec(ticketRequest.Event)
+	err = ticketSM.Exec(ticketRequest.Event)
 	if err != nil {
 		httperrors.HandleBadRequest(w, ErrUnsuportedStateTransition)
 		return
 	}
 
-	_ = t.ticketStore.UpdateTicketState(ticketRequest.ID, ticketSM.Current())
+	err = t.ticketStore.UpdateTicketState(ticketRequest.ID, ticketSM.Current())
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+		return
+	}
+
+	ticket.State = ticketSM.Current()
+	stateTransitionResponse := NewStateTransitionResponse(ticket)
+
+	json.NewEncoder(w).Encode(stateTransitionResponse)
 }
 
 func (t *TicketServer) getFilteredTickets(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
-	var tickets []models.Ticket
-	stateName := r.URL.Query().Get("state")
-
-	if stateName == "" {
-		tickets, _ = t.ticketStore.GetTicketsByRestaurantID(restaurantID)
+	tickets, err := t.getTicketsForRestaurantAndQueryParams(restaurantID, r.URL.Query())
+	if errors.Is(err, models.ErrNonexistentState) {
+		httperrors.HandleBadRequest(w, err)
 	} else {
-		state, err := stateNameToStateValue(stateName)
-		if err != nil {
-			httperrors.HandleBadRequest(w, ErrNonexistentState)
-			return
-		}
-		tickets, _ = t.ticketStore.GetTicketsByRestaurantIDWhereState(restaurantID, state)
+		httperrors.HandleInternalServerError(w, err)
 	}
 
+	getTicketResponseArr, err := t.newGetTicketResponseArrForTickets(tickets)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+	}
+
+	json.NewEncoder(w).Encode(getTicketResponseArr)
+}
+
+func (t *TicketServer) getTicketsForRestaurantAndQueryParams(restaurantID int, params url.Values) ([]models.Ticket, error) {
+	var tickets []models.Ticket
+
+	stateName := params.Get("state")
+	if stateName == "" {
+		var err error
+
+		tickets, err = t.ticketStore.GetTicketsByRestaurantID(restaurantID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var state models.TicketState
+		state, err := models.StateNameToStateValue(stateName)
+		if err != nil {
+			return nil, err
+		}
+
+		tickets, err = t.ticketStore.GetTicketsByRestaurantIDWhereState(restaurantID, state)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return tickets, nil
+}
+
+func (t *TicketServer) newGetTicketResponseArrForTickets(tickets []models.Ticket) ([]GetTicketResponse, error) {
 	getTicketResponseArr := []GetTicketResponse{}
 
 	for _, ticket := range tickets {
-		ticketItems, _ := t.ticketItemStore.GetTicketItemsByTicketID(ticket.ID)
+		ticketItems, err := t.ticketItemStore.GetTicketItemsByTicketID(ticket.ID)
+		if err != nil {
+			return nil, err
+		}
 
 		getTicketItemResponseArr := []GetTicketItemResponse{}
 		for _, ticketItem := range ticketItems {
-			menuItem, _ := t.menuItemStore.GetMenuItemByID(ticketItem.MenuItemID)
+			menuItem, err := t.menuItemStore.GetMenuItemByID(ticketItem.MenuItemID)
+			if err != nil {
+				return nil, err
+			}
 
 			getTicketItemResponse := NewTicketItemResponse(ticketItem, menuItem)
 			getTicketItemResponseArr = append(getTicketItemResponseArr, getTicketItemResponse)
@@ -106,30 +157,7 @@ func (t *TicketServer) getFilteredTickets(w http.ResponseWriter, r *http.Request
 		getTicketResponseArr = append(getTicketResponseArr, getTicketResponse)
 	}
 
-	json.NewEncoder(w).Encode(getTicketResponseArr)
-}
-
-func stateNameToStateValue(stateName string) (models.TicketState, error) {
-	var stateValue models.TicketState
-
-	switch stateName {
-	case "open":
-		stateValue = models.CREATED
-	case "in_progress":
-		stateValue = models.IN_PROGRESS
-	case "ready_for_pickup":
-		stateValue = models.READY_FOR_PICKUP
-	case "completed":
-		stateValue = models.COMPLETED
-	case "declined":
-		stateValue = models.DECLINED
-	case "canceled":
-		stateValue = models.CANCELED
-	default:
-		return models.TicketState(-1), ErrNonexistentState
-	}
-
-	return stateValue, nil
+	return getTicketResponseArr, nil
 }
 
 func NewTicketItemResponse(ticketItem models.TicketItem, menuItem models.MenuItem) GetTicketItemResponse {
@@ -142,9 +170,12 @@ func NewTicketItemResponse(ticketItem models.TicketItem, menuItem models.MenuIte
 }
 
 func NewTicketResponse(ticket models.Ticket, getTicketItemResponseArr []GetTicketItemResponse) GetTicketResponse {
+	stateName, _ := models.StateValueToStateName(ticket.State)
+
 	getTicketResponse := GetTicketResponse{
 		ID:    ticket.ID,
 		Total: ticket.Total,
+		State: stateName,
 		Items: getTicketItemResponseArr,
 	}
 

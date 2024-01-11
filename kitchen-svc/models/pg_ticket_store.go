@@ -24,6 +24,20 @@ func NewPgTicketStore(ctx context.Context, connString string) (*PgTicketStore, e
 	return &pgTicketStore, nil
 }
 
+func (p *PgTicketStore) CreateTicket(ticket *Ticket) error {
+	query := `insert into tickets(id, restaurant_id, state, total) 
+	values (@id, @restaurant_id, @state, @total)`
+	args := pgx.NamedArgs{
+		"id":            ticket.ID,
+		"restaurant_id": ticket.RestaurantID,
+		"state":         ticket.State,
+		"total":         ticket.Total,
+	}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	return storeerrors.FromPgxError(err)
+}
+
 func (p *PgTicketStore) GetTicketByID(id int) (Ticket, error) {
 	query := `select * from tickets where id=@id`
 	args := pgx.NamedArgs{
@@ -82,8 +96,8 @@ func (p *PgTicketStore) GetTicketsByRestaurantIDWhereState(restaurantID int, sta
 func (p *PgTicketStore) UpdateTicketState(id int, state TicketState) error {
 	query := "update tickets set state=@state where id=@id "
 	args := pgx.NamedArgs{
-		"restaurant_id": state,
-		"state":         id,
+		"id":    id,
+		"state": state,
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)
