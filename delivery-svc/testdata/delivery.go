@@ -13,7 +13,7 @@ var (
 		PickupAddressID:   1,
 		DeliveryAddressID: 2,
 		ReadyBy:           time.Time{},
-		State:             models.CREATED,
+		State:             models.PENDING,
 	}
 
 	PeterDelivery = models.Delivery{

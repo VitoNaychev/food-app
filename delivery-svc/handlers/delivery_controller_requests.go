@@ -12,7 +12,7 @@ func NewChangeDeliveryStateRequest(jwt string, event models.DeliveryEvent) *http
 		Event: event,
 	}
 
-	request := reqbuilder.NewRequestWithBody(http.MethodPost, "/delivery", stateTransitionDeliveryRequest)
+	request := reqbuilder.NewRequestWithBody(http.MethodPost, "/delivery/", stateTransitionDeliveryRequest)
 	request.Header.Add("Token", jwt)
 
 	return request

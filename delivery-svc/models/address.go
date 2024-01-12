@@ -1,7 +1,7 @@
 package models
 
 type Address struct {
-	Id           int
+	ID           int
 	Lat          float64
 	Lon          float64
 	AddressLine1 string `db:"address_line1"`

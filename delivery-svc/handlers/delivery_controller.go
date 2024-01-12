@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -14,14 +15,16 @@ import (
 
 type DeliveryServer struct {
 	deliveryStore models.DeliveryStore
+	addressStore  models.AddressStore
 
 	secretKey []byte
 	verifier  auth.Verifier
 }
 
-func NewDeliveryServer(secretKey []byte, deliveryStore models.DeliveryStore, courierStore models.CourierStore) *DeliveryServer {
+func NewDeliveryServer(secretKey []byte, deliveryStore models.DeliveryStore, addressStore models.AddressStore, courierStore models.CourierStore) *DeliveryServer {
 	deliveryServer := DeliveryServer{
 		deliveryStore: deliveryStore,
+		addressStore:  addressStore,
 
 		secretKey: secretKey,
 		verifier:  NewCourierVerifier(courierStore),
@@ -34,6 +37,8 @@ func (d *DeliveryServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		auth.AuthenticationMW(d.stateTransitionHandler, d.verifier, d.secretKey)(w, r)
+	case http.MethodGet:
+		auth.AuthenticationMW(d.getCurrentDelivery, d.verifier, d.secretKey)(w, r)
 	}
 }
 
@@ -70,4 +75,34 @@ func (d *DeliveryServer) stateTransitionHandler(w http.ResponseWriter, r *http.R
 		httperrors.HandleInternalServerError(w, err)
 		return
 	}
+}
+
+func (d *DeliveryServer) getCurrentDelivery(w http.ResponseWriter, r *http.Request) {
+	courierID, _ := strconv.Atoi(r.Header.Get("Subject"))
+
+	delivery, err := d.deliveryStore.GetActiveDeliveryByCourierID(courierID)
+	if err != nil {
+		if errors.Is(err, storeerrors.ErrNotFound) {
+			httperrors.HandleNotFound(w, ErrNoActiveDeliveries)
+			return
+		} else {
+			httperrors.HandleInternalServerError(w, err)
+			return
+		}
+	}
+
+	pickupAddress, err := d.addressStore.GetAddressByID(delivery.PickupAddressID)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+		return
+	}
+
+	deliveryAddress, err := d.addressStore.GetAddressByID(delivery.DeliveryAddressID)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+		return
+	}
+
+	response := NewGetDeliveryResponse(delivery, pickupAddress, deliveryAddress)
+	json.NewEncoder(w).Encode(response)
 }
