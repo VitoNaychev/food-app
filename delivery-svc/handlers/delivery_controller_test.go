@@ -47,7 +47,7 @@ func TestDeliveryEndpointAuthentication(t *testing.T) {
 	tabletests.RunAuthenticationTests(t, server, cases)
 }
 
-func TestDeliveryController(t *testing.T) {
+func TestDeliveryStateTransitionRequests(t *testing.T) {
 	courierStore := &stubs.StubCourierStore{
 		Couriers: []models.Courier{
 			testdata.VolenCourier, testdata.PeterCourier, testdata.AliceCourier,
