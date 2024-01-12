@@ -83,7 +83,6 @@ func (d *DeliveryServer) getCurrentDelivery(w http.ResponseWriter, r *http.Reque
 	delivery, err := d.deliveryStore.GetActiveDeliveryByCourierID(courierID)
 	if err != nil {
 		if errors.Is(err, storeerrors.ErrNotFound) {
-			httperrors.HandleNotFound(w, ErrNoActiveDeliveries)
 			return
 		} else {
 			httperrors.HandleInternalServerError(w, err)

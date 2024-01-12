@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -107,7 +108,7 @@ func TestDeliveryController(t *testing.T) {
 
 func TestGetDelivery(t *testing.T) {
 	courierStore := &stubs.StubCourierStore{
-		Couriers: []models.Courier{testdata.VolenCourier},
+		Couriers: []models.Courier{testdata.VolenCourier, testdata.PeterCourier},
 	}
 
 	deliveryStore := &stubs.StubDeliveryStore{
@@ -138,4 +139,32 @@ func TestGetDelivery(t *testing.T) {
 		testutil.AssertNoErr(t, err)
 		testutil.AssertEqual(t, got, want)
 	})
+
+	t.Run("returns empty body on no active deliveries", func(t *testing.T) {
+		peterJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.PeterCourier.ID)
+
+		request, _ := http.NewRequest(http.MethodGet, "/delivery/", nil)
+		response := httptest.NewRecorder()
+
+		request.Header.Add("Token", peterJWT)
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+		AssertEmptyBody(t, response.Body)
+	})
+}
+
+func AssertEmptyBody(t testing.TB, body io.Reader) {
+	t.Helper()
+	var maxRequestSize int64 = 10000
+	content, err := io.ReadAll(io.LimitReader(body, maxRequestSize))
+
+	if err != nil {
+		t.Errorf("error reading response body: %v", err)
+	}
+
+	if len(content) != 0 {
+		t.Errorf("response body is not empty")
+	}
 }
