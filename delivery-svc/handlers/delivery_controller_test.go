@@ -4,10 +4,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	"github.com/VitoNaychev/food-app/appenv"
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/delivery-svc/handlers"
 	"github.com/VitoNaychev/food-app/delivery-svc/models"
@@ -17,22 +15,6 @@ import (
 	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
 )
-
-var env appenv.Enviornment
-
-func TestMain(m *testing.M) {
-	keys := []string{"SECRET", "EXPIRES_AT"}
-
-	var err error
-	env, err = appenv.LoadEnviornment("../test.env", keys)
-	if err != nil {
-		testutil.HandleLoadEnviornmentError(err)
-		os.Exit(1)
-	}
-
-	code := m.Run()
-	os.Exit(code)
-}
 
 func TestDeliveryEndpointAuthentication(t *testing.T) {
 	courierStore := &stubs.StubCourierStore{}
@@ -47,7 +29,7 @@ func TestDeliveryEndpointAuthentication(t *testing.T) {
 	tabletests.RunAuthenticationTests(t, server, cases)
 }
 
-func TestDeliveryStateTransitionRequests(t *testing.T) {
+func TestDeliveryStateTransitions(t *testing.T) {
 	courierStore := &stubs.StubCourierStore{
 		Couriers: []models.Courier{
 			testdata.VolenCourier, testdata.PeterCourier, testdata.AliceCourier,
