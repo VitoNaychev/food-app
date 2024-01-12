@@ -24,4 +24,31 @@ var (
 		ReadyBy:           time.Time{},
 		State:             models.IN_PROGRESS,
 	}
+
+	AliceDelivery = models.Delivery{
+		ID:                3,
+		CourierID:         3,
+		PickupAddressID:   5,
+		DeliveryAddressID: 6,
+		ReadyBy:           time.Time{},
+		State:             models.READY_FOR_PICKUP,
+	}
+
+	JohnDelivery = models.Delivery{
+		ID:                4,
+		CourierID:         4,
+		PickupAddressID:   7,
+		DeliveryAddressID: 8,
+		ReadyBy:           time.Time{},
+		State:             models.ON_ROUTE,
+	}
+
+	IvoDelivery = models.Delivery{
+		ID:                5,
+		CourierID:         5,
+		PickupAddressID:   9,
+		DeliveryAddressID: 10,
+		ReadyBy:           time.Time{},
+		State:             models.COMPLETED,
+	}
 )

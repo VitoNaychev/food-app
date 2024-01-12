@@ -6,36 +6,15 @@ import (
 
 	"github.com/VitoNaychev/food-app/delivery-svc/handlers"
 	"github.com/VitoNaychev/food-app/delivery-svc/models"
+	"github.com/VitoNaychev/food-app/delivery-svc/stubs"
 	"github.com/VitoNaychev/food-app/delivery-svc/testdata"
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/events/svcevents"
-	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
-type StubDeliveryStore struct {
-	deliveries      []models.Delivery
-	updatedDelivery models.Delivery
-}
-
-func (d *StubDeliveryStore) GetDeliveryByID(id int) (models.Delivery, error) {
-	for _, delivery := range d.deliveries {
-		if delivery.ID == id {
-			return delivery, nil
-		}
-	}
-
-	return models.Delivery{}, storeerrors.ErrNotFound
-}
-
-func (d *StubDeliveryStore) UpdateDelivery(delivery *models.Delivery) error {
-	d.updatedDelivery = *delivery
-
-	return nil
-}
-
 func TestKitchenEventHandler(t *testing.T) {
-	deliveryStore := &StubDeliveryStore{deliveries: []models.Delivery{testdata.VolenDelivery, testdata.PeterDelivery}}
+	deliveryStore := &stubs.StubDeliveryStore{Deliveries: []models.Delivery{testdata.VolenDelivery, testdata.PeterDelivery}}
 
 	eventHandler := handlers.NewKitchenEventHandler(deliveryStore)
 
@@ -59,7 +38,7 @@ func TestKitchenEventHandler(t *testing.T) {
 		err := eventHandler.HandleTicketBeginPreparingEvent(event)
 
 		testutil.AssertNoErr(t, err)
-		testutil.AssertEqual(t, deliveryStore.updatedDelivery, want)
+		testutil.AssertEqual(t, deliveryStore.UpdatedDelivery, want)
 	})
 
 	t.Run("updates delivery state on TICKET_CANCEL event", func(t *testing.T) {
@@ -74,7 +53,7 @@ func TestKitchenEventHandler(t *testing.T) {
 		err := eventHandler.HandleTicketCancelEvent(event)
 
 		testutil.AssertNoErr(t, err)
-		testutil.AssertEqual(t, deliveryStore.updatedDelivery, want)
+		testutil.AssertEqual(t, deliveryStore.UpdatedDelivery, want)
 	})
 
 	t.Run("updates delivery state on TICKET_FINISH_PREPARING event", func(t *testing.T) {
@@ -89,7 +68,7 @@ func TestKitchenEventHandler(t *testing.T) {
 		err := eventHandler.HandleTicketFinishPreparingEvent(event)
 
 		testutil.AssertNoErr(t, err)
-		testutil.AssertEqual(t, deliveryStore.updatedDelivery, want)
+		testutil.AssertEqual(t, deliveryStore.UpdatedDelivery, want)
 	})
 
 }
