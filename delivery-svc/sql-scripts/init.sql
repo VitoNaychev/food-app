@@ -16,10 +16,11 @@ CREATE TABLE addresses (
 
 CREATE TABLE deliveries (
   id                  serial    PRIMARY KEY,
+  courier_id          int       REFERENCES couriers(id),
   pickup_address_id   int       REFERENCES addresses(id),
   delivery_address_id int       REFERENCES addresses(id),
   prepared_by_time    timestamp NOT NULL,
-  status              status    NOT NULL
+  state               int       NOT NULL
   );
 
 CREATE TABLE locations (

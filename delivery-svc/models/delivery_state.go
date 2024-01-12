@@ -1,9 +1,9 @@
 package models
 
-type DeliveryStatus int
+type DeliveryState int
 
 const (
-	CREATED DeliveryStatus = iota
+	CREATED DeliveryState = iota
 	CANCELED
 	DECLINED
 	IN_PROGRESS

@@ -4,8 +4,9 @@ import "time"
 
 type Delivery struct {
 	ID                int
+	CourierID         int
 	PickupAddressID   int
 	DeliveryAddressID int
 	ReadyBy           time.Time
-	Status            DeliveryStatus
+	State             DeliveryState
 }
