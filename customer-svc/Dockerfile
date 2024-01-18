@@ -19,6 +19,12 @@ COPY ../msgtypes /app/msgtypes
 # Copy the httperrors package at /app/httperrors
 COPY ../httperrors /app/httperrors
 
+# Copy the storeerrors package at /app/storeerrors
+COPY ../storeerrors /app/storeerrors
+
+# Copy the appenv package at /app/appenv
+COPY ../appenv /app/appenv
+
 # Copy go.mod and go.sum in /app
 COPY ../go.mod /app
 COPY ../go.sum /app
