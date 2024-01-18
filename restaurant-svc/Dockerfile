@@ -22,6 +22,18 @@ COPY ../httperrors /app/httperrors
 # Copy the reqbuilder package at /app/reqbuilder
 COPY ../reqbuilder /app/reqbuilder
 
+# Copy the events package at /app/events
+COPY ../events /app/events
+
+# Copy the storeerrors package at /app/storeerrors
+COPY ../storeerrors /app/storeerrors
+
+# Copy the pgconfig package at /app/pgconfig
+COPY ../pgconfig /app/pgconfig
+
+# Copy the appenv package at /app/appenv
+COPY ../appenv /app/appenv
+
 # Copy go.mod and go.sum in /app
 COPY ../go.mod /app
 COPY ../go.sum /app
