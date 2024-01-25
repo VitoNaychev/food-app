@@ -95,6 +95,42 @@ func TestTicketControllerIntegration(t *testing.T) {
 
 		testutil.AssertEqual(t, got, want)
 	})
+
+	t.Run("marks ticket as in progress", func(t *testing.T) {
+		request := handlers.NewBeginPreparingTicketRequest(shackJWT, testdata.OpenShackTicket.ID, "23:59")
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		want := handlers.StateTransitionResponse{
+			ID:    testdata.OpenShackTicket.ID,
+			State: "in_progress",
+		}
+		var got handlers.StateTransitionResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
+
+	t.Run("gets all tickets in progress", func(t *testing.T) {
+		request := handlers.NewGetTicketsRequest(shackJWT, "?state=in_progress")
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		want := testdata.OpenShackTicketResponse
+		want[0].State = "in_progress"
+		want[0].ReadyBy, _ = handlers.ParseTimeAndSetDate("23:59")
+
+		var got []handlers.GetTicketResponse
+		json.NewDecoder(response.Body).Decode(&got)
+
+		testutil.AssertEqual(t, got, want)
+	})
 }
 
 func initTables(t testing.TB, restaurantStore *models.PgRestaurantStore, menuItemStore *models.PgMenuItemStore,

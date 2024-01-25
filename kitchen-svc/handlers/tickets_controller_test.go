@@ -48,6 +48,12 @@ func (s *StubTicketStore) GetTicketByID(id int) (models.Ticket, error) {
 	return s.spyTicket, nil
 }
 
+func (s *StubTicketStore) UpdateTicket(ticket *models.Ticket) error {
+	s.spyTicket = *ticket
+
+	return nil
+}
+
 func (s *StubTicketStore) UpdateTicketState(id int, state models.TicketState) error {
 	if id != s.spyTicket.ID {
 		return storeerrors.ErrNotFound
@@ -125,13 +131,17 @@ func TestTicketStateTransisions(t *testing.T) {
 	t.Run("changes ticket state to IN_PROGRESS on event BEGIN_PREPARING", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.OpenShackTicket
 
-		request := handlers.NewChangeTicketStateRequest(shackJWT, testdata.OpenShackTicket.ID, models.BEGIN_PREPARING)
+		readyByStr := "18:00"
+		readyByTime, _ := handlers.ParseTimeAndSetDate(readyByStr)
+
+		request := handlers.NewBeginPreparingTicketRequest(shackJWT, testdata.OpenShackTicket.ID, readyByStr)
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, request)
 
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 		testutil.AssertEqual(t, ticketStore.spyTicket.State, models.IN_PROGRESS)
+		testutil.AssertEqual(t, ticketStore.spyTicket.ReadyBy, readyByTime)
 
 		want := handlers.StateTransitionResponse{
 			ID:    testdata.OpenShackTicket.ID,

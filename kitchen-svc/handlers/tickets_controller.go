@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/httperrors"
@@ -76,7 +77,18 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = t.ticketStore.UpdateTicketState(ticketRequest.ID, ticketSM.Current())
+	ticket.State = ticketSM.Current()
+
+	if ticketRequest.Event == models.BEGIN_PREPARING {
+		readyBy, err := ParseTimeAndSetDate(ticketRequest.ReadyBy)
+		if err != nil {
+			httperrors.HandleBadRequest(w, err)
+		}
+
+		ticket.ReadyBy = readyBy
+	}
+
+	err = t.ticketStore.UpdateTicket(&ticket)
 	if err != nil {
 		httperrors.HandleInternalServerError(w, err)
 		return
@@ -88,14 +100,32 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(stateTransitionResponse)
 }
 
+func ParseTimeAndSetDate(readyByStr string) (time.Time, error) {
+	readyByTime, err := time.Parse("15:04", readyByStr)
+	if err != nil {
+		return time.Time{}, ErrInvalidTimeFormat
+	}
+
+	now := time.Now()
+	readyByDateTime := time.Date(now.Year(), now.Month(), now.Day(), readyByTime.Hour(), readyByTime.Minute(), 0, 0, now.Location())
+
+	if !readyByDateTime.After(now) {
+		return time.Time{}, ErrInvalidTime
+	}
+
+	return readyByDateTime, nil
+}
+
 func (t *TicketServer) getFilteredTickets(w http.ResponseWriter, r *http.Request) {
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
 	tickets, err := t.getTicketsForRestaurantAndQueryParams(restaurantID, r.URL.Query())
-	if errors.Is(err, models.ErrNonexistentState) {
-		httperrors.HandleBadRequest(w, err)
-	} else {
-		httperrors.HandleInternalServerError(w, err)
+	if err != nil {
+		if errors.Is(err, models.ErrNonexistentState) {
+			httperrors.HandleBadRequest(w, err)
+		} else {
+			httperrors.HandleInternalServerError(w, err)
+		}
 	}
 
 	getTicketResponseArr, err := t.newGetTicketResponseArrForTickets(tickets)
@@ -173,10 +203,11 @@ func NewTicketResponse(ticket models.Ticket, getTicketItemResponseArr []GetTicke
 	stateName, _ := models.StateValueToStateName(ticket.State)
 
 	getTicketResponse := GetTicketResponse{
-		ID:    ticket.ID,
-		Total: ticket.Total,
-		State: stateName,
-		Items: getTicketItemResponseArr,
+		ID:      ticket.ID,
+		Total:   ticket.Total,
+		State:   stateName,
+		Items:   getTicketItemResponseArr,
+		ReadyBy: ticket.ReadyBy,
 	}
 
 	return getTicketResponse

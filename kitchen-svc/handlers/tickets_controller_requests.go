@@ -7,6 +7,19 @@ import (
 	"github.com/VitoNaychev/food-app/reqbuilder"
 )
 
+func NewBeginPreparingTicketRequest(jwt string, id int, readyBy string) *http.Request {
+	ticketRequest := StateTransitionTicketRequest{
+		ID:      id,
+		Event:   models.BEGIN_PREPARING,
+		ReadyBy: readyBy,
+	}
+
+	request := reqbuilder.NewRequestWithBody(http.MethodPost, "/tickets", ticketRequest)
+	request.Header.Add("Token", jwt)
+
+	return request
+}
+
 func NewChangeTicketStateRequest(jwt string, id int, event models.TicketEvent) *http.Request {
 	ticketRequest := StateTransitionTicketRequest{
 		ID:    id,

@@ -1,6 +1,8 @@
 package testdata
 
-import "github.com/VitoNaychev/food-app/kitchen-svc/models"
+import (
+	"github.com/VitoNaychev/food-app/kitchen-svc/models"
+)
 
 var (
 	OpenShackTicket = models.Ticket{
@@ -8,6 +10,7 @@ var (
 		Total:        12.50,
 		State:        models.OPEN,
 		RestaurantID: 1,
+		ReadyBy:      ZeroedTime,
 	}
 
 	InProgressShackTicket = models.Ticket{
@@ -15,6 +18,7 @@ var (
 		Total:        25.00,
 		State:        models.IN_PROGRESS,
 		RestaurantID: 1,
+		ReadyBy:      ReadyByTime,
 	}
 
 	ReadyForPickupShackTicket = models.Ticket{
@@ -22,6 +26,7 @@ var (
 		Total:        37.50,
 		State:        models.READY_FOR_PICKUP,
 		RestaurantID: 1,
+		ReadyBy:      ReadyByTime,
 	}
 
 	CompletedShackTicket = models.Ticket{
@@ -29,6 +34,7 @@ var (
 		Total:        6.25,
 		State:        models.COMPLETED,
 		RestaurantID: 1,
+		ReadyBy:      ReadyByTime,
 	}
 
 	ForeginRestaurantTicket = models.Ticket{
@@ -36,5 +42,6 @@ var (
 		Total:        10.00,
 		State:        models.OPEN,
 		RestaurantID: 5,
+		ReadyBy:      ZeroedTime,
 	}
 )

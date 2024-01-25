@@ -1,10 +1,15 @@
 package handlers
 
-import "github.com/VitoNaychev/food-app/kitchen-svc/models"
+import (
+	"time"
+
+	"github.com/VitoNaychev/food-app/kitchen-svc/models"
+)
 
 type StateTransitionTicketRequest struct {
-	ID    int
-	Event models.TicketEvent
+	ID      int
+	Event   models.TicketEvent
+	ReadyBy string
 }
 
 type StateTransitionResponse struct {
@@ -23,10 +28,11 @@ func NewStateTransitionResponse(ticket models.Ticket) StateTransitionResponse {
 }
 
 type GetTicketResponse struct {
-	ID    int
-	Total float32
-	State string
-	Items []GetTicketItemResponse
+	ID      int
+	Total   float32
+	State   string
+	Items   []GetTicketItemResponse
+	ReadyBy time.Time
 }
 
 type GetTicketItemResponse struct {
