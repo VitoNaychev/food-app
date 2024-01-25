@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/events"
+	"github.com/VitoNaychev/food-app/events/svcevents"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 	"github.com/VitoNaychev/food-app/validation"
@@ -22,6 +24,8 @@ type TicketServer struct {
 	menuItemStore   models.MenuItemStore
 	restaurantStore models.RestaurantStore
 
+	publisher events.EventPublisher
+
 	verifier auth.Verifier
 }
 
@@ -29,7 +33,8 @@ func NewTicketServer(secretKey []byte,
 	ticketStore models.TicketStore,
 	ticketItemStore models.TicketItemStore,
 	menuItemStore models.MenuItemStore,
-	restaurantStore models.RestaurantStore) *TicketServer {
+	restaurantStore models.RestaurantStore,
+	publisher events.EventPublisher) *TicketServer {
 
 	s := TicketServer{
 		secretKey: secretKey,
@@ -38,6 +43,8 @@ func NewTicketServer(secretKey []byte,
 		ticketItemStore: ticketItemStore,
 		menuItemStore:   menuItemStore,
 		restaurantStore: restaurantStore,
+
+		publisher: publisher,
 
 		verifier: NewRestaurantVerifier(restaurantStore),
 	}
@@ -98,6 +105,33 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 	stateTransitionResponse := NewStateTransitionResponse(ticket)
 
 	json.NewEncoder(w).Encode(stateTransitionResponse)
+
+	t.sendTicketStateTransitionEvent(ticketRequest.Event, ticket)
+}
+
+func (t *TicketServer) sendTicketStateTransitionEvent(event models.TicketEvent, ticket models.Ticket) error {
+	switch event {
+	case models.BEGIN_PREPARING:
+		payload := svcevents.TicketBeginPreparingEvent{
+			ID:      ticket.ID,
+			ReadyBy: ticket.ReadyBy,
+		}
+		event := events.NewEvent(svcevents.TICKET_BEGIN_PREPARING_EVENT_ID, ticket.ID, payload)
+
+		err := t.publisher.Publish(svcevents.KITCHEN_EVENTS_TOPIC, event)
+		return err
+	case models.FINISH_PREPARING:
+		payload := svcevents.TicketFinishPreparingEvent{
+			ID: ticket.ID,
+		}
+		event := events.NewEvent(svcevents.TICKET_FINISH_PREPARING_EVENT_ID, ticket.ID, payload)
+
+		err := t.publisher.Publish(svcevents.KITCHEN_EVENTS_TOPIC, event)
+		return err
+	default:
+		// no event needs to be published
+		return nil
+	}
 }
 
 func ParseTimeAndSetDate(readyByStr string) (time.Time, error) {

@@ -39,7 +39,7 @@ func TestTicketControllerIntegration(t *testing.T) {
 
 	shackJWT, _ := auth.GenerateJWT(env.SecretKey, time.Second*10, testdata.ShackRestaurant.ID)
 
-	server := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore)
+	server := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore, &DummyPublisher{})
 
 	t.Run("gets all tickets for a restaurant", func(t *testing.T) {
 		request := handlers.NewGetTicketsRequest(shackJWT, "")

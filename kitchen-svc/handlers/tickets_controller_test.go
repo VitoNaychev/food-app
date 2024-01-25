@@ -9,6 +9,8 @@ import (
 
 	"github.com/VitoNaychev/food-app/appenv"
 	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/events"
+	"github.com/VitoNaychev/food-app/events/svcevents"
 	"github.com/VitoNaychev/food-app/kitchen-svc/handlers"
 	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 	"github.com/VitoNaychev/food-app/kitchen-svc/testdata"
@@ -32,6 +34,18 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 	os.Exit(code)
+}
+
+type StubEventPublisher struct {
+	spyTopic string
+	spyEvent events.InterfaceEvent
+}
+
+func (s *StubEventPublisher) Publish(topic string, event events.InterfaceEvent) error {
+	s.spyTopic = topic
+	s.spyEvent = event
+
+	return nil
 }
 
 type StubTicketStore struct {
@@ -105,7 +119,7 @@ func (s *StubTicketItemStore) GetTicketItemsByTicketID(ticketID int) ([]models.T
 }
 
 func TestTicketEndpointAuthentication(t *testing.T) {
-	server := handlers.NewTicketServer(env.SecretKey, &StubTicketStore{}, &StubTicketItemStore{}, &StubMenuItemStore{}, &StubRestaurantStore{})
+	server := handlers.NewTicketServer(env.SecretKey, &StubTicketStore{}, &StubTicketItemStore{}, &StubMenuItemStore{}, &StubRestaurantStore{}, &StubEventPublisher{})
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
@@ -124,9 +138,11 @@ func TestTicketStateTransisions(t *testing.T) {
 		},
 	}
 
-	shackJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.ShackRestaurant.ID)
+	publisher := &StubEventPublisher{}
 
-	server := handlers.NewTicketServer(env.SecretKey, ticketStore, nil, nil, restaurantStore)
+	server := handlers.NewTicketServer(env.SecretKey, ticketStore, nil, nil, restaurantStore, publisher)
+
+	shackJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.ShackRestaurant.ID)
 
 	t.Run("changes ticket state to IN_PROGRESS on event BEGIN_PREPARING", func(t *testing.T) {
 		ticketStore.spyTicket = testdata.OpenShackTicket
@@ -152,6 +168,19 @@ func TestTicketStateTransisions(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
+
+		wantTopic := svcevents.KITCHEN_EVENTS_TOPIC
+		wantEvent := events.InterfaceEvent{
+			EventID:     svcevents.TICKET_BEGIN_PREPARING_EVENT_ID,
+			AggregateID: testdata.OpenShackTicket.ID,
+			Payload: svcevents.TicketBeginPreparingEvent{
+				ID:      testdata.OpenShackTicket.ID,
+				ReadyBy: readyByTime,
+			},
+		}
+
+		testutil.AssertEqual(t, publisher.spyTopic, wantTopic)
+		testutil.AssertEvent(t, publisher.spyEvent, wantEvent)
 	})
 
 	t.Run("returns Unauthorized on restaurant trying to change ticket that it doesn't own", func(t *testing.T) {
@@ -226,6 +255,18 @@ func TestTicketStateTransisions(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
+
+		wantTopic := svcevents.KITCHEN_EVENTS_TOPIC
+		wantEvent := events.InterfaceEvent{
+			EventID:     svcevents.TICKET_FINISH_PREPARING_EVENT_ID,
+			AggregateID: testdata.InProgressShackTicket.ID,
+			Payload: svcevents.TicketFinishPreparingEvent{
+				ID: testdata.InProgressShackTicket.ID,
+			},
+		}
+
+		testutil.AssertEqual(t, publisher.spyTopic, wantTopic)
+		testutil.AssertEvent(t, publisher.spyEvent, wantEvent)
 	})
 }
 
@@ -251,9 +292,11 @@ func TestTicketGetters(t *testing.T) {
 		},
 	}
 
-	shackJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.ShackRestaurant.ID)
+	publisher := &StubEventPublisher{}
 
-	server := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore)
+	server := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore, publisher)
+
+	shackJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.ShackRestaurant.ID)
 
 	t.Run("returns open tickets on GET to /tickets?state=open", func(t *testing.T) {
 		want := testdata.OpenShackTicketResponse

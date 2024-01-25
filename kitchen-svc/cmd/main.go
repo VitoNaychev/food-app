@@ -51,6 +51,11 @@ func main() {
 		log.Fatalf("Ticket Item Store error: %v\n", err)
 	}
 
+	eventPublisher, err := events.NewKafkaEventPublisher(env.KafkaBrokers)
+	if err != nil {
+		log.Fatalf("Kafka Event Publisher error: %v\n", err)
+	}
+
 	eventConsumer, err := events.NewKafkaEventConsumer(env.KafkaBrokers, "kitchen-svc")
 	if err != nil {
 		log.Fatalf("Kafka Event Consumer error: %v\n", err)
@@ -62,7 +67,7 @@ func main() {
 	go eventConsumer.Run(context.Background())
 	go events.LogEventConsumerErrors(context.Background(), eventConsumer)
 
-	kitchenServer := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore)
+	kitchenServer := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore, eventPublisher)
 
 	log.Println("kitchen service listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", kitchenServer))
