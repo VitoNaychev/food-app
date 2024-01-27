@@ -6,22 +6,27 @@ import (
 
 	"github.com/VitoNaychev/food-app/auth"
 	"github.com/VitoNaychev/food-app/courier-svc/models"
+	"github.com/VitoNaychev/food-app/events"
 )
 
 type CourierServer struct {
 	secretKey []byte
 	expiresAt time.Duration
 	store     models.CourierStore
-	verifier  auth.Verifier
+	publisher events.EventPublisher
+
+	verifier auth.Verifier
 	http.Handler
 }
 
-func NewCourierServer(secretKey []byte, expiresAt time.Duration, store models.CourierStore) *CourierServer {
+func NewCourierServer(secretKey []byte, expiresAt time.Duration, store models.CourierStore, publisher events.EventPublisher) *CourierServer {
 	s := CourierServer{
 		secretKey: secretKey,
 		expiresAt: expiresAt,
 		store:     store,
-		verifier:  NewCourierVerifier(store),
+		publisher: publisher,
+
+		verifier: NewCourierVerifier(store),
 	}
 
 	router := http.NewServeMux()

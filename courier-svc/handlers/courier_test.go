@@ -10,11 +10,25 @@ import (
 	"github.com/VitoNaychev/food-app/courier-svc/handlers"
 	"github.com/VitoNaychev/food-app/courier-svc/models"
 	"github.com/VitoNaychev/food-app/courier-svc/testdata"
+	"github.com/VitoNaychev/food-app/events"
+	"github.com/VitoNaychev/food-app/events/svcevents"
 	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/testutil/tabletests"
 	"github.com/VitoNaychev/food-app/validation"
 )
+
+type StubEventPublisher struct {
+	topic string
+	event events.InterfaceEvent
+}
+
+func (s *StubEventPublisher) Publish(topic string, event events.InterfaceEvent) error {
+	s.topic = topic
+	s.event = event
+
+	return nil
+}
 
 type StubCourierStore struct {
 	updatedCourier   models.Courier
@@ -63,7 +77,9 @@ func TestCourierRequestValidation(t *testing.T) {
 	store := &StubCourierStore{
 		couriers: []models.Courier{testdata.JimCourier},
 	}
-	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	publisher := &StubEventPublisher{}
+
+	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	jimJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
 	cases := map[string]*http.Request{
@@ -79,7 +95,9 @@ func TestCourierResponseValidity(t *testing.T) {
 	store := &StubCourierStore{
 		couriers: []models.Courier{testdata.JimCourier},
 	}
-	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	publisher := &StubEventPublisher{}
+
+	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	jimJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
 	cases := []tabletests.ResponseValidationTestcase{
@@ -113,7 +131,7 @@ func TestCourierResponseValidity(t *testing.T) {
 }
 
 func TestCourierEnpointAuthentication(t *testing.T) {
-	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, nil)
+	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, nil, nil)
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
@@ -129,7 +147,9 @@ func TestLoginCourier(t *testing.T) {
 	store := &StubCourierStore{
 		couriers: []models.Courier{testdata.MichaelCourier, testdata.JimCourier},
 	}
-	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	publisher := &StubEventPublisher{}
+
+	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	t.Run("returns JWT on correct credentials", func(t *testing.T) {
 		request := handlers.NewLoginCourierRequest(testdata.MichaelCourier)
@@ -176,7 +196,9 @@ func TestDeleteCourier(t *testing.T) {
 	store := &StubCourierStore{
 		couriers: []models.Courier{testdata.MichaelCourier, testdata.JimCourier},
 	}
-	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	publisher := &StubEventPublisher{}
+
+	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	t.Run("deletes courier on DELETE", func(t *testing.T) {
 		jimJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
@@ -190,13 +212,36 @@ func TestDeleteCourier(t *testing.T) {
 
 		testutil.AssertEqual(t, store.deletedCourierID, testdata.JimCourier.ID)
 	})
+
+	t.Run("sends COURIER_DELETED event on DELETE", func(t *testing.T) {
+		jimJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.JimCourier.ID)
+
+		request := handlers.NewDeleteCourierRequest(jimJWT)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		wantTopic := svcevents.COURIER_EVENTS_TOPIC
+		wantEvent := events.InterfaceEvent{
+			EventID:     svcevents.COURIER_CREATED_EVENT_ID,
+			AggregateID: testdata.JimCourier.ID,
+			Payload: svcevents.CourierDeletedEvent{
+				ID: testdata.JimCourier.ID,
+			},
+		}
+
+		testutil.AssertEqual(t, publisher.topic, wantTopic)
+		testutil.AssertEvent(t, publisher.event, wantEvent)
+	})
 }
 
 func TestUpdateCourier(t *testing.T) {
 	store := &StubCourierStore{
 		couriers: []models.Courier{testdata.MichaelCourier, testdata.JimCourier},
 	}
-	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+
+	publisher := &StubEventPublisher{}
+	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	t.Run("updates courier on PUT", func(t *testing.T) {
 		updatedCourier := testdata.JimCourier
@@ -219,7 +264,9 @@ func TestGetCourier(t *testing.T) {
 	store := &StubCourierStore{
 		couriers: []models.Courier{testdata.MichaelCourier},
 	}
-	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	publisher := &StubEventPublisher{}
+
+	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	t.Run("returns courier on GET", func(t *testing.T) {
 		michaelJWT, _ := auth.GenerateJWT(testEnv.SecretKey, testEnv.ExpiresAt, testdata.MichaelCourier.ID)
@@ -243,7 +290,9 @@ func TestCreateCourier(t *testing.T) {
 	store := &StubCourierStore{
 		couriers: []models.Courier{testdata.JimCourier},
 	}
-	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store)
+	publisher := &StubEventPublisher{}
+
+	server := handlers.NewCourierServer(testEnv.SecretKey, testEnv.ExpiresAt, store, publisher)
 
 	t.Run("creates courier on POST", func(t *testing.T) {
 		request := handlers.NewCreateCourierRequest(testdata.MichaelCourier)
@@ -281,6 +330,26 @@ func TestCreateCourier(t *testing.T) {
 		testutil.AssertValidResponse(t, err)
 
 		testutil.AssertEqual(t, got.Courier, wantCourier)
+	})
+
+	t.Run("sends COURIER_CREATED event on POST", func(t *testing.T) {
+		request := handlers.NewCreateCourierRequest(testdata.MichaelCourier)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		wantTopic := svcevents.COURIER_EVENTS_TOPIC
+		wantEvent := events.InterfaceEvent{
+			EventID:     svcevents.COURIER_CREATED_EVENT_ID,
+			AggregateID: testdata.MichaelCourier.ID,
+			Payload: svcevents.CourierCreatedEvent{
+				ID:   testdata.MichaelCourier.ID,
+				Name: testdata.MichaelCourier.FirstName,
+			},
+		}
+
+		testutil.AssertEqual(t, publisher.topic, wantTopic)
+		testutil.AssertEvent(t, publisher.event, wantEvent)
 	})
 
 	t.Run("returns Bad Request on courier with same email", func(t *testing.T) {

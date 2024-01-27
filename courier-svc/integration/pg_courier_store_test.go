@@ -9,11 +9,18 @@ import (
 	"github.com/VitoNaychev/food-app/courier-svc/handlers"
 	"github.com/VitoNaychev/food-app/courier-svc/models"
 	td "github.com/VitoNaychev/food-app/courier-svc/testdata"
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/integrationutil"
 	"github.com/VitoNaychev/food-app/parser"
 	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/VitoNaychev/food-app/testutil"
 )
+
+type DummyEventPublisher struct{}
+
+func (d *DummyEventPublisher) Publish(string, events.InterfaceEvent) error {
+	return nil
+}
 
 func TestCustomerServerOperations(t *testing.T) {
 	config := pgconfig.GetConfigFromEnv(env)
@@ -24,7 +31,7 @@ func TestCustomerServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := handlers.NewCourierServer(env.SecretKey, env.ExpiresAt, &courierStore)
+	server := handlers.NewCourierServer(env.SecretKey, env.ExpiresAt, &courierStore, &DummyEventPublisher{})
 
 	var michaelJWT string
 

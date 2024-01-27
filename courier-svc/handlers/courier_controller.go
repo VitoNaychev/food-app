@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	"github.com/VitoNaychev/food-app/auth"
+	"github.com/VitoNaychev/food-app/events"
+	"github.com/VitoNaychev/food-app/events/svcevents"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/storeerrors"
 	"github.com/VitoNaychev/food-app/validation"
@@ -45,6 +47,14 @@ func (s *CourierServer) deleteCourier(w http.ResponseWriter, r *http.Request) {
 	courierID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
 	err := s.store.DeleteCourier(courierID)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+	}
+
+	payload := svcevents.CourierDeletedEvent{ID: courierID}
+	event := events.NewEvent(svcevents.COURIER_CREATED_EVENT_ID, courierID, payload)
+
+	err = s.publisher.Publish(svcevents.COURIER_EVENTS_TOPIC, event)
 	if err != nil {
 		httperrors.HandleInternalServerError(w, err)
 	}
@@ -110,4 +120,15 @@ func (s *CourierServer) createCourier(w http.ResponseWriter, r *http.Request) {
 		Courier: CourierToCourierResponse(courier),
 	}
 	json.NewEncoder(w).Encode(response)
+
+	payload := svcevents.CourierCreatedEvent{
+		ID:   courier.ID,
+		Name: courier.FirstName,
+	}
+	event := events.NewEvent(svcevents.COURIER_CREATED_EVENT_ID, courier.ID, payload)
+
+	err = s.publisher.Publish(svcevents.COURIER_EVENTS_TOPIC, event)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+	}
 }
