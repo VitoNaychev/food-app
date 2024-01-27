@@ -1,6 +1,8 @@
 package svcintegration
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,32 +15,32 @@ import (
 	restaurantmodels "github.com/VitoNaychev/food-app/restaurant-svc/models"
 	"github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	"github.com/VitoNaychev/food-app/storeerrors"
+	"github.com/VitoNaychev/food-app/svcintegration/services"
 	"github.com/VitoNaychev/food-app/testutil"
 )
-
-var restaurantKeys = []string{"SECRET", "EXPIRES_AT"}
-var kitchenKeys = []string{}
 
 func TestRestaurantDomainEvents(t *testing.T) {
 	_, brokersAddrs := integrationutil.SetupKafkaContainer(t)
 
-	restaurantEnv, err := appenv.LoadEnviornment("../restaurant-svc/test.env", restaurantKeys)
+	restaurantKeys := []string{"SECRET", "EXPIRES_AT"}
+	restaurantEnv, err := appenv.LoadEnviornment("../../restaurant-svc/test.env", restaurantKeys)
 	if err != nil {
 		t.Fatalf("Failed to load restaurant env: %v", err)
 	}
 	restaurantEnv.KafkaBrokers = brokersAddrs
 
-	kitchenEnv, err := appenv.LoadEnviornment("../kitchen-svc/test.env", kitchenKeys)
+	kitchenKeys := []string{}
+	kitchenEnv, err := appenv.LoadEnviornment("../../kitchen-svc/test.env", kitchenKeys)
 	if err != nil {
-		t.Fatalf("Failed to load restaurant env: %v", err)
+		t.Fatalf("Failed to load kitchen env: %v", err)
 	}
 	kitchenEnv.KafkaBrokers = brokersAddrs
 
-	restaurantService := SetupRestaurantService(t, restaurantEnv, ":8080")
+	restaurantService := services.SetupRestaurantService(t, restaurantEnv, ":8080")
 	restaurantService.Run()
 	defer restaurantService.Stop()
 
-	kitchenService := SetupKitchenService(t, kitchenEnv, ":9090")
+	kitchenService := services.SetupKitchenService(t, kitchenEnv, ":9090")
 	kitchenService.Run()
 	defer kitchenService.Stop()
 
@@ -48,14 +50,14 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		request := handlers.NewCreateRestaurantRequest(testdata.ShackRestaurant)
 		response := httptest.NewRecorder()
 
-		restaurantService.router.ServeHTTP(response, request)
+		restaurantService.Router.ServeHTTP(response, request)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		shackJWT = getJWTFromResponseBody(response.Body)
 
 		time.Sleep(time.Second)
 
-		got, err := kitchenService.restaurantStore.GetRestaurantByID(testdata.ShackRestaurant.ID)
+		got, err := kitchenService.RestaurantStore.GetRestaurantByID(testdata.ShackRestaurant.ID)
 
 		testutil.AssertNoErr(t, err)
 		testutil.AssertEqual(t, got.ID, testdata.ShackRestaurant.ID)
@@ -65,7 +67,7 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		request := handlers.NewCreateAddressRequest(shackJWT, testdata.ShackAddress)
 		response := httptest.NewRecorder()
 
-		restaurantService.router.ServeHTTP(response, request)
+		restaurantService.Router.ServeHTTP(response, request)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 	}
 
@@ -73,7 +75,7 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		request := handlers.NewCreateHoursRequest(shackJWT, testdata.ShackHours)
 		response := httptest.NewRecorder()
 
-		restaurantService.router.ServeHTTP(response, request)
+		restaurantService.Router.ServeHTTP(response, request)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 	}
 
@@ -81,12 +83,12 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		request := handlers.NewCreateMenuItemRequest(shackJWT, testdata.ShackMenu[0])
 		response := httptest.NewRecorder()
 
-		restaurantService.router.ServeHTTP(response, request)
+		restaurantService.Router.ServeHTTP(response, request)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		time.Sleep(time.Second)
 
-		got, err := kitchenService.menuItemStore.GetMenuItemByID(testdata.ShackMenu[0].ID)
+		got, err := kitchenService.MenuItemStore.GetMenuItemByID(testdata.ShackMenu[0].ID)
 
 		testutil.AssertNoErr(t, err)
 		AssertMenuItem(t, got, testdata.ShackMenu[0])
@@ -99,12 +101,12 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		request := handlers.NewUpdateMenuItemRequest(shackJWT, menuItem)
 		response := httptest.NewRecorder()
 
-		restaurantService.router.ServeHTTP(response, request)
+		restaurantService.Router.ServeHTTP(response, request)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		time.Sleep(time.Second)
 
-		got, err := kitchenService.menuItemStore.GetMenuItemByID(menuItem.ID)
+		got, err := kitchenService.MenuItemStore.GetMenuItemByID(menuItem.ID)
 
 		testutil.AssertNoErr(t, err)
 		AssertMenuItem(t, got, menuItem)
@@ -116,12 +118,12 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		request := handlers.NewDeleteMenuItemRequest(shackJWT, handlers.DeleteMenuItemRequest{ID: wantID})
 		response := httptest.NewRecorder()
 
-		restaurantService.router.ServeHTTP(response, request)
+		restaurantService.Router.ServeHTTP(response, request)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		time.Sleep(time.Second)
 
-		_, err := kitchenService.menuItemStore.GetMenuItemByID(wantID)
+		_, err := kitchenService.MenuItemStore.GetMenuItemByID(wantID)
 		testutil.AssertError(t, err, storeerrors.ErrNotFound)
 	})
 
@@ -129,7 +131,7 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		request := handlers.NewCreateMenuItemRequest(shackJWT, testdata.ShackMenu[0])
 		response := httptest.NewRecorder()
 
-		restaurantService.router.ServeHTTP(response, request)
+		restaurantService.Router.ServeHTTP(response, request)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 	}
 
@@ -137,15 +139,15 @@ func TestRestaurantDomainEvents(t *testing.T) {
 		request := handlers.NewDeleteRestaurantRequest(shackJWT)
 		response := httptest.NewRecorder()
 
-		restaurantService.router.ServeHTTP(response, request)
+		restaurantService.Router.ServeHTTP(response, request)
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		time.Sleep(time.Second)
 
-		_, err := kitchenService.restaurantStore.GetRestaurantByID(testdata.ShackRestaurant.ID)
+		_, err := kitchenService.RestaurantStore.GetRestaurantByID(testdata.ShackRestaurant.ID)
 		testutil.AssertError(t, err, storeerrors.ErrNotFound)
 
-		_, err = kitchenService.menuItemStore.GetMenuItemByID(testdata.ShackMenu[0].ID)
+		_, err = kitchenService.MenuItemStore.GetMenuItemByID(testdata.ShackMenu[0].ID)
 		testutil.AssertError(t, err, storeerrors.ErrNotFound)
 	})
 }
@@ -157,4 +159,11 @@ func AssertMenuItem(t testing.TB, got kitchenmodels.MenuItem, want restaurantmod
 	testutil.AssertEqual(t, got.Name, want.Name)
 	testutil.AssertEqual(t, got.Price, want.Price)
 	testutil.AssertEqual(t, got.RestaurantID, want.RestaurantID)
+}
+
+func getJWTFromResponseBody(body io.Reader) string {
+	var createRestaurantResponse handlers.CreateRestaurantResponse
+	json.NewDecoder(body).Decode(&createRestaurantResponse)
+
+	return createRestaurantResponse.JWT.Token
 }

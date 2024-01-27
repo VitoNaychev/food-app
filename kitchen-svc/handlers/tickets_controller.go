@@ -106,7 +106,10 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 
 	json.NewEncoder(w).Encode(stateTransitionResponse)
 
-	t.sendTicketStateTransitionEvent(ticketRequest.Event, ticket)
+	err = t.sendTicketStateTransitionEvent(ticketRequest.Event, ticket)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+	}
 }
 
 func (t *TicketServer) sendTicketStateTransitionEvent(event models.TicketEvent, ticket models.Ticket) error {

@@ -1,9 +1,7 @@
-package svcintegration
+package services
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"testing"
@@ -16,21 +14,21 @@ import (
 )
 
 type RestaurantService struct {
-	restaurantStore models.RestaurantStore
-	addressStore    models.AddressStore
-	hoursStore      models.HoursStore
-	menuStore       models.MenuStore
+	RestaurantStore models.RestaurantStore
+	AddressStore    models.AddressStore
+	HoursStore      models.HoursStore
+	MenuStore       models.MenuStore
 
-	restaurantHandler *handlers.RestaurantServer
-	addressHandler    *handlers.AddressServer
-	hoursHandler      *handlers.HoursServer
-	menuHandler       *handlers.MenuServer
+	RestaurantHandler *handlers.RestaurantServer
+	AddressHandler    *handlers.AddressServer
+	HoursHandler      *handlers.HoursServer
+	MenuHandler       *handlers.MenuServer
 
-	router *handlers.RouterServer
+	Router *handlers.RouterServer
 
-	server *http.Server
+	Server *http.Server
 
-	eventPublisher *events.KafkaEventPublisher
+	EventPublisher *events.KafkaEventPublisher
 }
 
 func SetupRestaurantService(t testing.TB, env appenv.Enviornment, port string) RestaurantService {
@@ -57,31 +55,31 @@ func SetupRestaurantService(t testing.TB, env appenv.Enviornment, port string) R
 	}
 
 	restaurantService := RestaurantService{
-		restaurantStore: restaurantStore,
-		addressStore:    addressStore,
-		hoursStore:      hoursStore,
-		menuStore:       menuStore,
+		RestaurantStore: restaurantStore,
+		AddressStore:    addressStore,
+		HoursStore:      hoursStore,
+		MenuStore:       menuStore,
 
-		restaurantHandler: restaurantHandler,
-		addressHandler:    addressHandler,
-		hoursHandler:      hoursHandler,
-		menuHandler:       menuHandler,
+		RestaurantHandler: restaurantHandler,
+		AddressHandler:    addressHandler,
+		HoursHandler:      hoursHandler,
+		MenuHandler:       menuHandler,
 
-		router: router,
+		Router: router,
 
-		server: server,
+		Server: server,
 
-		eventPublisher: eventPublisher,
+		EventPublisher: eventPublisher,
 	}
 
 	return restaurantService
 }
 
 func (r *RestaurantService) Run() {
-	log.Printf("Restaurant service listening on %s\n", r.server.Addr)
+	log.Printf("Restaurant service listening on %s\n", r.Server.Addr)
 
 	go func() {
-		err := r.server.ListenAndServe()
+		err := r.Server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Fatalf("ListenAndServe error: %v\n", err)
 		}
@@ -89,20 +87,13 @@ func (r *RestaurantService) Run() {
 }
 
 func (r *RestaurantService) Stop() {
-	r.eventPublisher.Close()
+	r.EventPublisher.Close()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Second)
 	defer shutdownCancel()
 
-	err := r.server.Shutdown(shutdownCtx)
+	err := r.Server.Shutdown(shutdownCtx)
 	if err != nil {
 		log.Fatalf("Shutdown error: %v\n", err)
 	}
-}
-
-func getJWTFromResponseBody(body io.Reader) string {
-	var createRestaurantResponse handlers.CreateRestaurantResponse
-	json.NewDecoder(body).Decode(&createRestaurantResponse)
-
-	return createRestaurantResponse.JWT.Token
 }

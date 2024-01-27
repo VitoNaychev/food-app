@@ -6,7 +6,7 @@ import (
 	"github.com/VitoNaychev/food-app/events"
 )
 
-const KITCHEN_EVENTS_TOPIC = "ktichen-events-topic"
+const KITCHEN_EVENTS_TOPIC = "kitchen-events-topic"
 
 const (
 	TICKET_BEGIN_PREPARING_EVENT_ID events.EventID = iota

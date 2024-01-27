@@ -7,6 +7,10 @@ import (
 	"github.com/VitoNaychev/food-app/reqbuilder"
 )
 
+func NewFinishPreparingTicketRequest(jwt string, id int) *http.Request {
+	return NewChangeTicketStateRequest(jwt, id, models.FINISH_PREPARING)
+}
+
 func NewBeginPreparingTicketRequest(jwt string, id int, readyBy string) *http.Request {
 	ticketRequest := StateTransitionTicketRequest{
 		ID:      id,
