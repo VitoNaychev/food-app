@@ -17,6 +17,10 @@ func (i *InMemoryCourierStore) CreateCourier(courier *Courier) error {
 	return nil
 }
 
+func (i *InMemoryCourierStore) GetAllCouriers() []Courier {
+	return i.couriers
+}
+
 func (i *InMemoryCourierStore) GetCourierByID(id int) (Courier, error) {
 	for _, courier := range i.couriers {
 		if courier.ID == id {

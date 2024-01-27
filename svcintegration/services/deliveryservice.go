@@ -56,14 +56,14 @@ func SetupDeliveryService(t testing.TB, env appenv.Enviornment, port string) Del
 }
 
 func (d *DeliveryService) Run() {
-	// d.EventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
-	// 	svcevents.COURIER_CREATED_EVENT_ID,
-	// 	events.EventHandlerWrapper(d.CourierEventHandler.HandleCourierCreatedEvent),
-	// 	reflect.TypeOf(svcevents.CourierCreatedEvent{}))
-	// d.EventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
-	// 	svcevents.COURIER_DELETED_EVENT_ID,
-	// 	events.EventHandlerWrapper(d.CourierEventHandler.HandleCourierDeletedEvent),
-	// 	reflect.TypeOf(svcevents.CourierDeletedEvent{}))
+	d.EventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
+		svcevents.COURIER_CREATED_EVENT_ID,
+		events.EventHandlerWrapper(d.CourierEventHandler.HandleCourierCreatedEvent),
+		reflect.TypeOf(svcevents.CourierCreatedEvent{}))
+	d.EventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
+		svcevents.COURIER_DELETED_EVENT_ID,
+		events.EventHandlerWrapper(d.CourierEventHandler.HandleCourierDeletedEvent),
+		reflect.TypeOf(svcevents.CourierDeletedEvent{}))
 
 	d.EventConsumer.RegisterEventHandler(svcevents.KITCHEN_EVENTS_TOPIC,
 		svcevents.TICKET_BEGIN_PREPARING_EVENT_ID,
