@@ -72,23 +72,3 @@ func TestDeliveryHandlerOperations(t *testing.T) {
 		testutil.AssertEqual(t, got, want)
 	})
 }
-
-func initCouriersTable(t testing.TB, courierStore *models.PgCourierStore) {
-	courier := testdata.VolenCourier
-
-	testutil.AssertNoErr(t, courierStore.CreateCourier(&courier))
-}
-
-func initAddressesTable(t testing.TB, addressStore *models.PgAddressStore) {
-	pickupAddress := testdata.VolenPickupAddress
-	deliveryAddress := testdata.VolenDeliveryAddress
-
-	testutil.AssertNoErr(t, addressStore.CreateAddress(&pickupAddress))
-	testutil.AssertNoErr(t, addressStore.CreateAddress(&deliveryAddress))
-}
-
-func initDeliveriesTable(t testing.TB, deliveryStore *models.PgDeliveryStore) {
-	delivery := testdata.VolenActiveDelivery
-
-	testutil.AssertNoErr(t, deliveryStore.CreateDelivery(&delivery))
-}

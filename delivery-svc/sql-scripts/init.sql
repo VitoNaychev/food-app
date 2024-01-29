@@ -29,8 +29,7 @@ CREATE TABLE deliveries (
   );
 
 CREATE TABLE locations (
-  id                   int             PRIMARY KEY,
-  courier_id           int             NOT NULL,
+  courier_id           int             PRIMARY KEY      REFERENCES couriers(id),
   lat                  numeric(10, 7)  NOT NULL,
   lon                  numeric(10, 7)  NOT NULL
   );
