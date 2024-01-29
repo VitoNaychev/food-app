@@ -20,7 +20,7 @@ func NewCourierEventHandler(courierStore models.CourierStore) *CourierEventHandl
 	return &courierEventHandler
 }
 
-func RegisterCourierEventHandlers(eventConsumer events.EventConsumer, courierEventHandler CourierEventHandler) {
+func RegisterCourierEventHandlers(eventConsumer events.EventConsumer, courierEventHandler *CourierEventHandler) {
 	eventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
 		svcevents.COURIER_CREATED_EVENT_ID,
 		events.EventHandlerWrapper(courierEventHandler.HandleCourierCreatedEvent),

@@ -2,14 +2,12 @@ package services
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/VitoNaychev/food-app/appenv"
 	"github.com/VitoNaychev/food-app/delivery-svc/handlers"
 	"github.com/VitoNaychev/food-app/delivery-svc/models"
 	"github.com/VitoNaychev/food-app/events"
-	"github.com/VitoNaychev/food-app/events/svcevents"
 )
 
 type DeliveryService struct {
@@ -56,23 +54,8 @@ func SetupDeliveryService(t testing.TB, env appenv.Enviornment, port string) Del
 }
 
 func (d *DeliveryService) Run() {
-	d.EventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
-		svcevents.COURIER_CREATED_EVENT_ID,
-		events.EventHandlerWrapper(d.CourierEventHandler.HandleCourierCreatedEvent),
-		reflect.TypeOf(svcevents.CourierCreatedEvent{}))
-	d.EventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
-		svcevents.COURIER_DELETED_EVENT_ID,
-		events.EventHandlerWrapper(d.CourierEventHandler.HandleCourierDeletedEvent),
-		reflect.TypeOf(svcevents.CourierDeletedEvent{}))
-
-	d.EventConsumer.RegisterEventHandler(svcevents.KITCHEN_EVENTS_TOPIC,
-		svcevents.TICKET_BEGIN_PREPARING_EVENT_ID,
-		events.EventHandlerWrapper(d.KitchenEventHandler.HandleTicketBeginPreparingEvent),
-		reflect.TypeOf(svcevents.TicketBeginPreparingEvent{}))
-	d.EventConsumer.RegisterEventHandler(svcevents.KITCHEN_EVENTS_TOPIC,
-		svcevents.TICKET_FINISH_PREPARING_EVENT_ID,
-		events.EventHandlerWrapper(d.KitchenEventHandler.HandleTicketFinishPreparingEvent),
-		reflect.TypeOf(svcevents.TicketFinishPreparingEvent{}))
+	handlers.RegisterCourierEventHandlers(d.EventConsumer, d.CourierEventHandler)
+	handlers.RegisterKitchenEventHandlers(d.EventConsumer, d.KitchenEventHandler)
 
 	go d.EventConsumer.Run(d.EventConsumerCtx)
 	go events.LogEventConsumerErrors(d.EventConsumerCtx, d.EventConsumer)

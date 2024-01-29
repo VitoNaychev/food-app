@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"reflect"
+
 	"github.com/VitoNaychev/food-app/delivery-svc/models"
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/events/svcevents"
@@ -16,6 +18,17 @@ func NewKitchenEventHandler(deliveryStore models.DeliveryStore) *KitchenEventHan
 	}
 
 	return &kitchenEventHandler
+}
+
+func RegisterKitchenEventHandlers(eventConsumer events.EventConsumer, kitchenEventHandler *KitchenEventHandler) {
+	eventConsumer.RegisterEventHandler(svcevents.KITCHEN_EVENTS_TOPIC,
+		svcevents.TICKET_BEGIN_PREPARING_EVENT_ID,
+		events.EventHandlerWrapper(kitchenEventHandler.HandleTicketBeginPreparingEvent),
+		reflect.TypeOf(svcevents.TicketBeginPreparingEvent{}))
+	eventConsumer.RegisterEventHandler(svcevents.KITCHEN_EVENTS_TOPIC,
+		svcevents.TICKET_FINISH_PREPARING_EVENT_ID,
+		events.EventHandlerWrapper(kitchenEventHandler.HandleTicketFinishPreparingEvent),
+		reflect.TypeOf(svcevents.TicketFinishPreparingEvent{}))
 }
 
 func (k *KitchenEventHandler) HandleTicketBeginPreparingEvent(event events.Event[svcevents.TicketBeginPreparingEvent]) error {
