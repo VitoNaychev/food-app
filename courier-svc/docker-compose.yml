@@ -23,7 +23,7 @@ services:
       dockerfile: ./courier-svc/Dockerfile
     container_name: courier-svc
     ports:
-      - "6060:8080"
+      - "4040:8080"
     environment:
       SECRET: ${SECRET}
       POSTGRES_HOST: courier-db
@@ -31,15 +31,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      KAFKA_BROKERS: kafka:29092
     depends_on:
       courier-db:
         condition: service_healthy
     networks:
       - my-network
-      - svc-network
+      - kafka-network
 
 networks:
   my-network:
     driver: bridge
-  svc-network:
+  kafka-network:
     external: true
