@@ -4,6 +4,11 @@ DROP TABLE IF EXISTS locations;
 
 DROP TABLE IF EXISTS couriers;
 
+CREATE TABLE couriers (
+    id                  int                  PRIMARY KEY,
+    name                varchar(20)          NOT NULL
+);
+
 CREATE TABLE addresses (
   id                  serial               PRIMARY KEY,
   lat                 numeric(10, 7)       NOT NULL,
@@ -30,7 +35,3 @@ CREATE TABLE locations (
   lon                  numeric(10, 7)  NOT NULL
   );
 
-CREATE TABLE couriers (
-    id                  int                  PRIMARY KEY,
-    first_name          varchar(20)          NOT NULL
-)
