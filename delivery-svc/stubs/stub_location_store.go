@@ -10,7 +10,7 @@ type StubLocationStore struct {
 	UpdatedLocation models.Location
 }
 
-func (s *StubLocationStore) GeLocationByCourerID(courierID int) (models.Location, error) {
+func (s *StubLocationStore) GetLocationByCourerID(courierID int) (models.Location, error) {
 	for _, location := range s.Locations {
 		if location.CourierID == courierID {
 			return location, nil
