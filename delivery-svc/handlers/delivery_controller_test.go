@@ -60,6 +60,27 @@ func TestDeliveryStateTransitions(t *testing.T) {
 		testutil.AssertEqual(t, deliveryStore.UpdatedDelivery, want)
 	})
 
+	t.Run("returns delivery status on state transition request", func(t *testing.T) {
+		aliceJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.AliceCourier.ID)
+
+		state, _ := models.StateValueToStateName(models.ON_ROUTE)
+		want := handlers.DeliveryStateTransitionResponse{
+			ID:    testdata.AliceDelivery.ID,
+			State: state,
+		}
+
+		request := handlers.NewChangeDeliveryStateRequest(aliceJWT, models.PICKUP_DELIVERY)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		testutil.AssertStatus(t, response.Code, http.StatusOK)
+
+		got, err := validation.ValidateBody[handlers.DeliveryStateTransitionResponse](response.Body)
+		testutil.AssertNoErr(t, err)
+		testutil.AssertEqual(t, got, want)
+	})
+
 	t.Run("changes delivery state to COMPLETED on COMPLETE_DELIVERY event", func(t *testing.T) {
 		johnJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.JohnCourier.ID)
 		want := testdata.JohnDelivery

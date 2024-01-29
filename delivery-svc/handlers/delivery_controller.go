@@ -75,6 +75,9 @@ func (d *DeliveryServer) stateTransitionHandler(w http.ResponseWriter, r *http.R
 		httperrors.HandleInternalServerError(w, err)
 		return
 	}
+
+	deliveryStateTransisionResponse := NewDeliveryStateTransitionResponse(delivery)
+	json.NewEncoder(w).Encode(deliveryStateTransisionResponse)
 }
 
 func (d *DeliveryServer) getCurrentDelivery(w http.ResponseWriter, r *http.Request) {

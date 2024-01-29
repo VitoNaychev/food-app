@@ -6,6 +6,20 @@ import (
 	"github.com/VitoNaychev/food-app/delivery-svc/models"
 )
 
+type DeliveryStateTransitionResponse struct {
+	ID    int
+	State string
+}
+
+func NewDeliveryStateTransitionResponse(delivery models.Delivery) DeliveryStateTransitionResponse {
+	stateName, _ := models.StateValueToStateName(delivery.State)
+
+	return DeliveryStateTransitionResponse{
+		ID:    delivery.ID,
+		State: stateName,
+	}
+}
+
 type StateTransitionDeliveryRequest struct {
 	Event models.DeliveryEvent
 }
