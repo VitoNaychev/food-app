@@ -6,11 +6,25 @@ import (
 )
 
 type StubLocationStore struct {
-	Locations       []models.Location
-	UpdatedLocation models.Location
+	Locations                []models.Location
+	UpdatedLocation          models.Location
+	CreatedLocation          models.Location
+	DeletedLocationCourierID int
 }
 
-func (s *StubLocationStore) GetLocationByCourerID(courierID int) (models.Location, error) {
+func (s *StubLocationStore) DeleteLocation(courierID int) error {
+	s.DeletedLocationCourierID = courierID
+
+	return nil
+}
+
+func (s *StubLocationStore) CreateLocation(location *models.Location) error {
+	s.CreatedLocation = *location
+
+	return nil
+}
+
+func (s *StubLocationStore) GetLocationByCourierID(courierID int) (models.Location, error) {
 	for _, location := range s.Locations {
 		if location.CourierID == courierID {
 			return location, nil

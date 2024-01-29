@@ -55,7 +55,7 @@ func main() {
 		log.Fatalf("Kafka Event Consumer error: %v\n", err)
 	}
 
-	courierEventHandler := handlers.NewCourierEventHandler(courierStore)
+	courierEventHandler := handlers.NewCourierEventHandler(courierStore, locationStore)
 	handlers.RegisterCourierEventHandlers(eventConsumer, courierEventHandler)
 
 	kitchenEventHandler := handlers.NewKitchenEventHandler(deliveryStore)

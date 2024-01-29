@@ -1,6 +1,8 @@
 package models
 
 type LocationStore interface {
-	GetLocationByCourerID(int) (Location, error)
+	CreateLocation(*Location) error
+	GetLocationByCourierID(int) (Location, error)
 	UpdateLocation(*Location) error
+	DeleteLocation(int) error
 }

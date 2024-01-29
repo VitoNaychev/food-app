@@ -24,27 +24,37 @@ func TestCourierEventHandlerIntegration(t *testing.T) {
 	courierStore, err := models.NewPgCourierStore(context.Background(), connStr)
 	testutil.AssertNoErr(t, err)
 
-	courierEventHandler := handlers.NewCourierEventHandler(courierStore)
+	locationStore, err := models.NewPgLocationStore(context.Background(), connStr)
+	testutil.AssertNoErr(t, err)
 
-	t.Run("creates new courier", func(t *testing.T) {
-		want := testdata.VolenCourier
+	courierEventHandler := handlers.NewCourierEventHandler(courierStore, locationStore)
+
+	t.Run("creates new courier and initial location", func(t *testing.T) {
+		wantCourier := testdata.VolenCourier
+		wantLocation := models.Location{CourierID: wantCourier.ID}
 
 		payload := svcevents.CourierCreatedEvent{
-			ID:   want.ID,
-			Name: want.Name,
+			ID:   wantCourier.ID,
+			Name: wantCourier.Name,
 		}
-		event := events.NewTypedEvent(svcevents.COURIER_CREATED_EVENT_ID, want.ID, payload)
+		event := events.NewTypedEvent(svcevents.COURIER_CREATED_EVENT_ID, wantCourier.ID, payload)
 
 		err := courierEventHandler.HandleCourierCreatedEvent(event)
 		testutil.AssertNoErr(t, err)
 
-		got, err := courierStore.GetCourierByID(want.ID)
+		gotCourier, err := courierStore.GetCourierByID(wantCourier.ID)
 
 		testutil.AssertNoErr(t, err)
-		testutil.AssertEqual(t, got, want)
+		testutil.AssertEqual(t, gotCourier, wantCourier)
+
+		gotLocation, err := locationStore.GetLocationByCourierID(wantCourier.ID)
+
+		testutil.AssertNoErr(t, err)
+		testutil.AssertEqual(t, gotLocation, wantLocation)
+
 	})
 
-	t.Run("deletes courier", func(t *testing.T) {
+	t.Run("deletes courier and associated location", func(t *testing.T) {
 		want := testdata.VolenCourier
 
 		payload := svcevents.CourierDeletedEvent{
@@ -56,6 +66,10 @@ func TestCourierEventHandlerIntegration(t *testing.T) {
 		testutil.AssertNoErr(t, err)
 
 		_, err = courierStore.GetCourierByID(want.ID)
+
+		testutil.AssertError(t, err, storeerrors.ErrNotFound)
+
+		_, err = locationStore.GetLocationByCourierID(want.ID)
 
 		testutil.AssertError(t, err, storeerrors.ErrNotFound)
 	})

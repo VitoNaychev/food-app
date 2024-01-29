@@ -33,7 +33,7 @@ func (p *PgLocationStore) CreateLocation(location *Location) error {
 	return storeerrors.FromPgxError(err)
 }
 
-func (p *PgLocationStore) GetLocationByCourerID(courierID int) (Location, error) {
+func (p *PgLocationStore) GetLocationByCourierID(courierID int) (Location, error) {
 	query := `select * from locations where courier_id=@courier_id`
 	args := pgx.NamedArgs{
 		"courier_id": courierID,
@@ -55,6 +55,16 @@ func (p *PgLocationStore) UpdateLocation(location *Location) error {
 		"courier_id": location.CourierID,
 		"lat":        location.Lat,
 		"lon":        location.Lon,
+	}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	return storeerrors.FromPgxError(err)
+}
+
+func (p *PgLocationStore) DeleteLocation(courierID int) error {
+	query := `delete from locations where courier_id=@courier_id`
+	args := pgx.NamedArgs{
+		"courier_id": courierID,
 	}
 
 	_, err := p.conn.Exec(context.Background(), query, args)

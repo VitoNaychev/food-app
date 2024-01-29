@@ -9,12 +9,14 @@ import (
 )
 
 type CourierEventHandler struct {
-	courierStore models.CourierStore
+	courierStore  models.CourierStore
+	locationStore models.LocationStore
 }
 
-func NewCourierEventHandler(courierStore models.CourierStore) *CourierEventHandler {
+func NewCourierEventHandler(courierStore models.CourierStore, locationStore models.LocationStore) *CourierEventHandler {
 	courierEventHandler := CourierEventHandler{
-		courierStore: courierStore,
+		courierStore:  courierStore,
+		locationStore: locationStore,
 	}
 
 	return &courierEventHandler
@@ -36,12 +38,34 @@ func (c *CourierEventHandler) HandleCourierCreatedEvent(event events.Event[svcev
 		ID:   event.Payload.ID,
 		Name: event.Payload.Name,
 	}
-
 	err := c.courierStore.CreateCourier(&courier)
-	return err
+	if err != nil {
+		return err
+	}
+
+	location := models.Location{
+		CourierID: courier.ID,
+		Lat:       0.0,
+		Lon:       0.0,
+	}
+	err = c.locationStore.CreateLocation(&location)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *CourierEventHandler) HandleCourierDeletedEvent(event events.Event[svcevents.CourierDeletedEvent]) error {
-	err := c.courierStore.DeleteCourier(event.Payload.ID)
-	return err
+	err := c.locationStore.DeleteLocation(event.Payload.ID)
+	if err != nil {
+		return err
+	}
+
+	err = c.courierStore.DeleteCourier(event.Payload.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

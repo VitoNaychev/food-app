@@ -12,6 +12,7 @@ import (
 
 type DeliveryService struct {
 	CourierStore  *models.InMemoryCourierStore
+	LocationStore *models.InMemoryLocationStore
 	DeliveryStore *models.InMemoryDeliveryStore
 	AddressStore  *models.InMemoryAddressStore
 
@@ -30,15 +31,17 @@ func SetupDeliveryService(t testing.TB, env appenv.Enviornment, port string) Del
 	}
 
 	courierStore := models.NewInMemoryCourierStore()
+	locationStore := models.NewInMemoryLocationStore()
 	deliveryStore := models.NewInMemoryDeliveryStore()
 	addressStore := models.NewInMemoryAddressStore()
 
-	courierEventHandler := handlers.NewCourierEventHandler(courierStore)
+	courierEventHandler := handlers.NewCourierEventHandler(courierStore, locationStore)
 	kitchenEventHandler := handlers.NewKitchenEventHandler(deliveryStore)
 	eventConsumerCtx, eventConsumerCancel := context.WithCancel(context.Background())
 
 	deliveryService := DeliveryService{
 		CourierStore:  courierStore,
+		LocationStore: locationStore,
 		DeliveryStore: deliveryStore,
 		AddressStore:  addressStore,
 

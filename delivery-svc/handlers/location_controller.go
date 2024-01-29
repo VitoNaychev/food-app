@@ -66,7 +66,7 @@ func (l *LocationServer) updateLocation(w http.ResponseWriter, r *http.Request) 
 func (l *LocationServer) getLocation(w http.ResponseWriter, r *http.Request) {
 	courierID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
-	location, err := l.locationStore.GetLocationByCourerID(courierID)
+	location, err := l.locationStore.GetLocationByCourierID(courierID)
 	if err != nil {
 		httperrors.HandleInternalServerError(w, err)
 	}
