@@ -16,6 +16,15 @@ var (
 		State:             models.PENDING,
 	}
 
+	VolenActiveDelivery = models.Delivery{
+		ID:                1,
+		CourierID:         1,
+		PickupAddressID:   1,
+		DeliveryAddressID: 2,
+		ReadyBy:           time.Time{},
+		State:             models.READY_FOR_PICKUP,
+	}
+
 	PeterDelivery = models.Delivery{
 		ID:                2,
 		CourierID:         2,

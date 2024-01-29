@@ -11,8 +11,8 @@ CREATE TABLE couriers (
 
 CREATE TABLE addresses (
   id                  serial               PRIMARY KEY,
-  lat                 numeric(10, 7)       NOT NULL,
-  lon                 numeric(10, 7)       NOT NULL,
+  lat                 numeric(20, 17)       NOT NULL,
+  lon                 numeric(20, 17)       NOT NULL,
   address_line1       varchar(100)         NOT NULL,
   address_line2       varchar(100)                 ,
   city                varchar(40)          NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE deliveries (
   courier_id          int       REFERENCES couriers(id),
   pickup_address_id   int       REFERENCES addresses(id),
   delivery_address_id int       REFERENCES addresses(id),
-  prepared_by_time    timestamp NOT NULL,
+  ready_by            timestamp NOT NULL,
   state               int       NOT NULL
   );
 

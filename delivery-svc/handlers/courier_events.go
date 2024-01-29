@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"reflect"
+
 	"github.com/VitoNaychev/food-app/delivery-svc/models"
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/events/svcevents"
@@ -16,6 +18,17 @@ func NewCourierEventHandler(courierStore models.CourierStore) *CourierEventHandl
 	}
 
 	return &courierEventHandler
+}
+
+func RegisterCourierEventHandlers(eventConsumer events.EventConsumer, courierEventHandler CourierEventHandler) {
+	eventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
+		svcevents.COURIER_CREATED_EVENT_ID,
+		events.EventHandlerWrapper(courierEventHandler.HandleCourierCreatedEvent),
+		reflect.TypeOf(svcevents.CourierCreatedEvent{}))
+	eventConsumer.RegisterEventHandler(svcevents.COURIER_EVENTS_TOPIC,
+		svcevents.COURIER_DELETED_EVENT_ID,
+		events.EventHandlerWrapper(courierEventHandler.HandleCourierDeletedEvent),
+		reflect.TypeOf(svcevents.CourierDeletedEvent{}))
 }
 
 func (c *CourierEventHandler) HandleCourierCreatedEvent(event events.Event[svcevents.CourierCreatedEvent]) error {

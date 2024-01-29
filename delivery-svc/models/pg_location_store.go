@@ -21,6 +21,18 @@ func NewPgLocationStore(ctx context.Context, connString string) (*PgLocationStor
 	return &PgLocationStore{conn}, nil
 }
 
+func (p *PgLocationStore) CreateLocation(location *Location) error {
+	query := `insert into locations(courier_id, lat, lon) values (@courier_id, @lat, @lon)`
+	args := pgx.NamedArgs{
+		"courier_id": location.CourierID,
+		"lat":        location.Lat,
+		"lon":        location.Lon,
+	}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	return storeerrors.FromPgxError(err)
+}
+
 func (p *PgLocationStore) GetLocationByCourerID(courierID int) (Location, error) {
 	query := `select * from locations where courier_id=@courier_id`
 	args := pgx.NamedArgs{

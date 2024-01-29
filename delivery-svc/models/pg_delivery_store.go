@@ -21,6 +21,22 @@ func NewPgDeliveryStore(ctx context.Context, connString string) (*PgDeliveryStor
 	return &PgDeliveryStore{conn}, nil
 }
 
+func (p *PgDeliveryStore) CreateDelivery(delivery *Delivery) error {
+	query := `insert into deliveries(id, courier_id, pickup_address_id, delivery_address_id, ready_by, state) 
+		values (@id, @courier_id, @pickup_address_id, @delivery_address_id, @ready_by, @state)`
+	args := pgx.NamedArgs{
+		"id":                  delivery.ID,
+		"courier_id":          delivery.CourierID,
+		"pickup_address_id":   delivery.PickupAddressID,
+		"delivery_address_id": delivery.DeliveryAddressID,
+		"ready_by":            delivery.ReadyBy,
+		"state":               delivery.State,
+	}
+
+	_, err := p.conn.Exec(context.Background(), query, args)
+	return storeerrors.FromPgxError(err)
+}
+
 func (p *PgDeliveryStore) GetDeliveryByID(id int) (Delivery, error) {
 	query := `select * from deliveries where id=@id`
 	args := pgx.NamedArgs{
