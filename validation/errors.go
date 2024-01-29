@@ -14,10 +14,10 @@ func (v *ValidationError) Error() string {
 }
 
 var (
-	ErrNoBody               = NewValidationError("request body is nil")
-	ErrEmptyBody            = NewValidationError("request body is empty")
-	ErrEmptyJSON            = NewValidationError("request JSON is empty")
-	ErrIncorrectRequestType = NewValidationError("request type is incorrect")
+	ErrNoBody               = NewValidationError("message body is nil")
+	ErrEmptyBody            = NewValidationError("message body is empty")
+	ErrEmptyJSON            = NewValidationError("message JSON is empty")
+	ErrIncorrectRequestType = NewValidationError("message type is incorrect")
 	ErrUnsupportedType      = NewValidationError("validator doesn't support this type")
 )
 
