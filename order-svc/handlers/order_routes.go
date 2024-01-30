@@ -8,17 +8,19 @@ import (
 )
 
 type OrderServer struct {
-	orderStore   models.OrderStore
-	addressStore models.AddressStore
-	verifyJWT    auth.VerifyJWTFunc
+	orderStore     models.OrderStore
+	orderItemStore models.OrderItemStore
+	addressStore   models.AddressStore
+	verifyJWT      auth.VerifyJWTFunc
 	http.Handler
 }
 
-func NewOrderServer(orderStore models.OrderStore, addressStore models.AddressStore, verifyJWT auth.VerifyJWTFunc) OrderServer {
+func NewOrderServer(orderStore models.OrderStore, orderItemsStore models.OrderItemStore, addressStore models.AddressStore, verifyJWT auth.VerifyJWTFunc) OrderServer {
 	server := OrderServer{
-		orderStore:   orderStore,
-		addressStore: addressStore,
-		verifyJWT:    verifyJWT,
+		orderStore:     orderStore,
+		orderItemStore: orderItemsStore,
+		addressStore:   addressStore,
+		verifyJWT:      verifyJWT,
 	}
 
 	router := http.NewServeMux()

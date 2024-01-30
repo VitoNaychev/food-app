@@ -103,7 +103,18 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orderResponse := NewOrderResponseBody(order, pickupAddress, deliveryAddress)
+	orderItems := GetOrderItemsFromCreateOrderRequest(createOrderRequest)
+	for i := range orderItems {
+		orderItems[i].OrderID = order.ID
+
+		err = o.orderItemStore.CreateOrderItem(&orderItems[i])
+		if err != nil {
+			httperrors.HandleInternalServerError(w, err)
+			return
+		}
+	}
+
+	orderResponse := NewOrderResponseBody(order, orderItems, pickupAddress, deliveryAddress)
 
 	json.NewEncoder(w).Encode(orderResponse)
 }
@@ -142,9 +153,11 @@ func (o *OrderServer) getCurrentOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OrderServer) orderToGetOrderResponse(order models.Order) OrderResponse {
+	orderItems, _ := o.orderItemStore.GetOrderItemsByOrderID(order.ID)
+
 	pickupAddress, _ := o.addressStore.GetAddressByID(order.PickupAddress)
 	deliveryAddress, _ := o.addressStore.GetAddressByID(order.DeliveryAddress)
 
-	getOrderResponse := NewOrderResponseBody(order, pickupAddress, deliveryAddress)
+	getOrderResponse := NewOrderResponseBody(order, orderItems, pickupAddress, deliveryAddress)
 	return getOrderResponse
 }

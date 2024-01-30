@@ -15,15 +15,53 @@ type CancelOrderResponse struct {
 }
 
 type OrderResponse struct {
-	ID              int             `validate:"min=1"       json:"id"`
-	CustomerID      int             `validate:"min=1"       json:"customer_id"`
-	RestaurantID    int             `validate:"min=1"       json:"restaurant_id"`
-	Items           []int           `validate:"required"    json:"items"`
-	Total           float64         `validate:"min=0.01"    json:"total"`
-	DeliveryTime    time.Time       `validate:"required"    json:"delivery_time"`
-	Status          models.Status   `validate:"min=0,max=8" json:"status"`
-	PickupAddress   AddressResponse `validate:"required"    json:"pickup_address"`
-	DeliveryAddress AddressResponse `validate:"required"    json:"delivery_address"`
+	ID              int                 `validate:"min=1"       json:"id"`
+	CustomerID      int                 `validate:"min=1"       json:"customer_id"`
+	RestaurantID    int                 `validate:"min=1"       json:"restaurant_id"`
+	Items           []OrderItemResponse `validate:"required"    json:"items"`
+	Total           float64             `validate:"min=0.01"    json:"total"`
+	DeliveryTime    time.Time           `validate:"required"    json:"delivery_time"`
+	Status          models.Status       `validate:"min=0,max=8" json:"status"`
+	PickupAddress   AddressResponse     `validate:"required"    json:"pickup_address"`
+	DeliveryAddress AddressResponse     `validate:"required"    json:"delivery_address"`
+}
+
+func NewOrderResponseBody(order models.Order, orderItems []models.OrderItem, pickupAddress, deliveryAddress models.Address) OrderResponse {
+	pickupAddressResponse := AddressToAddressResponse(pickupAddress)
+	deliveryAddressResponse := AddressToAddressResponse(deliveryAddress)
+
+	orderItemsResponse := []OrderItemResponse{}
+	for _, orderItem := range orderItems {
+		orderItemsResponse = append(orderItemsResponse, OrderItemToOrderItemResponse(orderItem))
+	}
+
+	return OrderResponse{
+		ID:              order.ID,
+		CustomerID:      order.CustomerID,
+		RestaurantID:    order.RestaurantID,
+		Items:           orderItemsResponse,
+		Total:           order.Total,
+		DeliveryTime:    order.DeliveryTime,
+		Status:          order.Status,
+		PickupAddress:   pickupAddressResponse,
+		DeliveryAddress: deliveryAddressResponse,
+	}
+}
+
+type OrderItemResponse struct {
+	ID         int `validate:"min=1"       json:"id"`
+	MenuItemID int `validate:"min=1"       json:"menu_item_id"`
+	Quantity   int `validate:"min=1"       json:"quantity"`
+}
+
+func OrderItemToOrderItemResponse(orderItem models.OrderItem) OrderItemResponse {
+	orderItemResponse := OrderItemResponse{
+		ID:         orderItem.ID,
+		MenuItemID: orderItem.MenuItemID,
+		Quantity:   orderItem.Quantity,
+	}
+
+	return orderItemResponse
 }
 
 type AddressResponse struct {
@@ -34,23 +72,6 @@ type AddressResponse struct {
 	AddressLine2 string  `validate:"max=100"             json:"address_line2"`
 	City         string  `validate:"required,max=70"     json:"city"`
 	Country      string  `validate:"required,max=60"     json:"country"`
-}
-
-func NewOrderResponseBody(order models.Order, pickupAddress, deliveryAddress models.Address) OrderResponse {
-	pickupAddressResponse := AddressToAddressResponse(pickupAddress)
-	deliveryAddressResponse := AddressToAddressResponse(deliveryAddress)
-
-	return OrderResponse{
-		ID:              order.ID,
-		CustomerID:      order.CustomerID,
-		RestaurantID:    order.RestaurantID,
-		Items:           order.Items,
-		Total:           order.Total,
-		DeliveryTime:    order.DeliveryTime,
-		Status:          order.Status,
-		PickupAddress:   pickupAddressResponse,
-		DeliveryAddress: deliveryAddressResponse,
-	}
 }
 
 func AddressToAddressResponse(address models.Address) AddressResponse {
@@ -67,14 +88,14 @@ func AddressToAddressResponse(address models.Address) AddressResponse {
 
 type CreateOrderRequest struct {
 	RestaurantID    int                `validate:"min=1"    json:"restaurant_id"`
-	Items           []int              `validate:"required" json:"items"`
+	Items           []CreateOrderItem  `validate:"required" json:"items"`
 	Total           float64            `validate:"min=0.01" json:"total"`
 	DeliveryTime    time.Time          `validate:"required" json:"delivery_time"`
 	PickupAddress   CreateOrderAddress `validate:"required" json:"pickup_address"`
 	DeliveryAddress CreateOrderAddress `validate:"required" json:"delivery_address"`
 }
 
-func NewCeateOrderRequestBody(order models.Order, pickupAddress models.Address, deliveryAddress models.Address) CreateOrderRequest {
+func NewCeateOrderRequestBody(order models.Order, orderItems []models.OrderItem, pickupAddress models.Address, deliveryAddress models.Address) CreateOrderRequest {
 	createPickupAddress := CreateOrderAddress{
 		Lat:          pickupAddress.Lat,
 		Lon:          pickupAddress.Lon,
@@ -93,9 +114,18 @@ func NewCeateOrderRequestBody(order models.Order, pickupAddress models.Address, 
 		Country:      deliveryAddress.Country,
 	}
 
+	createOrderItems := []CreateOrderItem{}
+	for _, orderItem := range orderItems {
+		creatOrderItem := CreateOrderItem{
+			MenuItemID: orderItem.MenuItemID,
+			Quantity:   orderItem.Quantity,
+		}
+		createOrderItems = append(createOrderItems, creatOrderItem)
+	}
+
 	createOrderRequest := CreateOrderRequest{
 		RestaurantID:    order.RestaurantID,
-		Items:           order.Items,
+		Items:           createOrderItems,
 		Total:           order.Total,
 		DeliveryTime:    order.DeliveryTime,
 		PickupAddress:   createPickupAddress,
@@ -110,7 +140,6 @@ func CreateOrderRequestToOrder(createOrderRequest CreateOrderRequest, customerID
 		ID:              0,
 		CustomerID:      customerID,
 		RestaurantID:    createOrderRequest.RestaurantID,
-		Items:           createOrderRequest.Items,
 		Total:           createOrderRequest.Total,
 		DeliveryTime:    createOrderRequest.DeliveryTime,
 		PickupAddress:   -1,
@@ -118,6 +147,30 @@ func CreateOrderRequestToOrder(createOrderRequest CreateOrderRequest, customerID
 	}
 
 	return order
+}
+
+func GetOrderItemsFromCreateOrderRequest(createOrderRequest CreateOrderRequest) []models.OrderItem {
+	orderItems := []models.OrderItem{}
+
+	for _, createOrderItem := range createOrderRequest.Items {
+		orderItems = append(orderItems, CreateOrderItemToOrderItem(createOrderItem))
+	}
+
+	return orderItems
+}
+
+type CreateOrderItem struct {
+	MenuItemID int `validate:"min=1"       json:"menu_item_id"`
+	Quantity   int `validate:"min=1"       json:"quantity"`
+}
+
+func CreateOrderItemToOrderItem(createOrderItem CreateOrderItem) models.OrderItem {
+	orderItem := models.OrderItem{
+		MenuItemID: createOrderItem.MenuItemID,
+		Quantity:   createOrderItem.Quantity,
+	}
+
+	return orderItem
 }
 
 func GetPickupAddressFromCreateOrderRequest(createOrderRequest CreateOrderRequest) models.Address {

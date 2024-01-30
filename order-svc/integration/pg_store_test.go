@@ -28,15 +28,20 @@ func TestOrderServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	orderItemStore, err := models.NewPgOrderItemStore(context.Background(), connStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	addressStore, err := models.NewPgAddressStore(context.Background(), connStr)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
-	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
+	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
 
 	request := handlers.NewCreateOrderRequest(peterJWT, createOrderRequestBody)
 	response := httptest.NewRecorder()
@@ -54,7 +59,7 @@ func TestOrderServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []handlers.OrderResponse{
-			handlers.NewOrderResponseBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
+			handlers.NewOrderResponseBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1),
 		}
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
@@ -71,7 +76,7 @@ func TestOrderServerOperations(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []handlers.OrderResponse{
-			handlers.NewOrderResponseBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
+			handlers.NewOrderResponseBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1),
 		}
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)

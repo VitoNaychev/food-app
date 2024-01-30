@@ -19,8 +19,9 @@ import (
 
 func TestOrderEndpointAuthentication(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{}
+	orderItemStore := &stubs.StubOrderItemStore{}
 	addressStore := &stubs.StubAddressStore{}
-	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
@@ -35,8 +36,9 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 
 func TestOrderRequestValidation(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{}
+	orderItemStore := &stubs.StubOrderItemStore{}
 	addressStore := &stubs.StubAddressStore{}
-	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 
@@ -50,16 +52,19 @@ func TestOrderRequestValidation(t *testing.T) {
 
 func TestOrderResponseValidity(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{
-		Orders: []models.Order{testdata.PeterOrder1, testdata.PeterOrder2},
+		Orders: []models.Order{testdata.PeterCreatedOrder, testdata.PeterCompletedOrder},
+	}
+	orderItemStore := &stubs.StubOrderItemStore{
+		OrderItems: concatThreeSlices(testdata.PeterCreatedOrderItems, testdata.PeterCompletedOrderItems, testdata.AliceOrderItems),
 	}
 	addressStore := &stubs.StubAddressStore{
 		Addresses: []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
-	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
-	cancelOrderRequestBody := handlers.CancelOrderRequest{ID: testdata.PeterOrder1.ID}
+	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
+	cancelOrderRequestBody := handlers.CancelOrderRequest{ID: testdata.PeterCreatedOrder.ID}
 
 	cases := []tabletests.ResponseValidationTestcase{
 		{
@@ -101,12 +106,15 @@ func TestOrderResponseValidity(t *testing.T) {
 
 func TestCancelOrder(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{
-		Orders: []models.Order{testdata.PeterOrder1, testdata.PeterOrder2},
+		Orders: []models.Order{testdata.PeterCreatedOrder, testdata.PeterCompletedOrder},
+	}
+	orderItemStore := &stubs.StubOrderItemStore{
+		OrderItems: concatThreeSlices(testdata.PeterCreatedOrderItems, testdata.PeterCompletedOrderItems, testdata.AliceOrderItems),
 	}
 	addressStore := &stubs.StubAddressStore{
 		Addresses: []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
 
 	t.Run("return Unauthorized on attemp to cancel another user's order", func(t *testing.T) {
 		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 1}
@@ -171,11 +179,12 @@ func TestCancelOrder(t *testing.T) {
 
 func TestCreateOrder(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{CreatedOrders: []models.Order{}, Orders: nil}
+	orderItemStore := &stubs.StubOrderItemStore{CreatedOrderItems: []models.OrderItem{}, OrderItems: nil}
 	addressStore := &stubs.StubAddressStore{CreatedAddresses: []models.Address{}, Addresses: nil}
-	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
 
 	t.Run("creates new order and returns it", func(t *testing.T) {
-		createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1)
+		createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
 		request := handlers.NewCreateOrderRequest(strconv.Itoa(testdata.PeterCustomerID), createOrderRequestBody)
 		response := httptest.NewRecorder()
 
@@ -195,9 +204,9 @@ func TestCreateOrder(t *testing.T) {
 			t.Errorf("got status %v want %v", orderStore.CreatedOrders[0].Status, models.APPROVAL_PENDING)
 		}
 
-		wantOrder := testdata.PeterOrder1
+		wantOrder := testdata.PeterCreatedOrder
 		wantOrder.Status = models.APPROVAL_PENDING
-		want := handlers.NewOrderResponseBody(wantOrder, testdata.ChickenShackAddress, testdata.PeterAddress1)
+		want := handlers.NewOrderResponseBody(wantOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
 
 		var got handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
@@ -209,13 +218,17 @@ func TestCreateOrder(t *testing.T) {
 func TestGetCurrentOrders(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{
 		CreatedOrders: nil,
-		Orders:        []models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder},
+		Orders:        []models.Order{testdata.PeterCreatedOrder, testdata.PeterCompletedOrder, testdata.AliceOrder},
+	}
+	orderItemStore := &stubs.StubOrderItemStore{
+		CreatedOrderItems: nil,
+		OrderItems:        concatThreeSlices(testdata.PeterCreatedOrderItems, testdata.PeterCompletedOrderItems, testdata.AliceOrderItems),
 	}
 	addressStore := &stubs.StubAddressStore{
 		CreatedAddresses: nil,
 		Addresses:        []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
 
 	t.Run("returns current orders for customer Peter", func(t *testing.T) {
 		request := handlers.NewGetCurrentOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
@@ -226,7 +239,7 @@ func TestGetCurrentOrders(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []handlers.OrderResponse{
-			handlers.NewOrderResponseBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
+			handlers.NewOrderResponseBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1),
 		}
 
 		var got []handlers.OrderResponse
@@ -236,16 +249,27 @@ func TestGetCurrentOrders(t *testing.T) {
 	})
 }
 
+func concatThreeSlices[T any](s1, s2, s3 []T) []T {
+	newSlice := make([]T, 0, len(s1)+len(s2)+len(s3))
+
+	newSlice = append(newSlice, append(s1, append(s2, s3...)...)...)
+	return newSlice
+}
+
 func TestGetOrders(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{
 		CreatedOrders: nil,
-		Orders:        []models.Order{testdata.PeterOrder1, testdata.PeterOrder2, testdata.AliceOrder},
+		Orders:        []models.Order{testdata.PeterCreatedOrder, testdata.PeterCompletedOrder, testdata.AliceOrder},
+	}
+	orderItemStore := &stubs.StubOrderItemStore{
+		CreatedOrderItems: nil,
+		OrderItems:        concatThreeSlices(testdata.PeterCreatedOrderItems, testdata.PeterCompletedOrderItems, testdata.AliceOrderItems),
 	}
 	addressStore := &stubs.StubAddressStore{
 		CreatedAddresses: nil,
 		Addresses:        []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress},
 	}
-	server := handlers.NewOrderServer(orderStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
 
 	t.Run("returns orders of customer Peter", func(t *testing.T) {
 		request := handlers.NewGetAllOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
@@ -256,8 +280,8 @@ func TestGetOrders(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []handlers.OrderResponse{
-			handlers.NewOrderResponseBody(testdata.PeterOrder1, testdata.ChickenShackAddress, testdata.PeterAddress1),
-			handlers.NewOrderResponseBody(testdata.PeterOrder2, testdata.ChickenShackAddress, testdata.PeterAddress2),
+			handlers.NewOrderResponseBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1),
+			handlers.NewOrderResponseBody(testdata.PeterCompletedOrder, testdata.PeterCompletedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress2),
 		}
 		var got []handlers.OrderResponse
 		json.NewDecoder(response.Body).Decode(&got)
@@ -274,7 +298,7 @@ func TestGetOrders(t *testing.T) {
 		testutil.AssertStatus(t, response.Code, http.StatusOK)
 
 		want := []handlers.OrderResponse{
-			handlers.NewOrderResponseBody(testdata.AliceOrder, testdata.ChickenShackAddress, testdata.AliceAddress),
+			handlers.NewOrderResponseBody(testdata.AliceOrder, testdata.AliceOrderItems, testdata.ChickenShackAddress, testdata.AliceAddress),
 		}
 
 		var got []handlers.OrderResponse

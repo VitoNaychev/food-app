@@ -6,37 +6,38 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/VitoNaychev/food-app/appenv"
 	"github.com/VitoNaychev/food-app/order-svc/handlers"
 	"github.com/VitoNaychev/food-app/order-svc/models"
+	"github.com/VitoNaychev/food-app/pgconfig"
 )
 
-type DBConfig struct {
-	postgresHost     string
-	postgresPort     string
-	postgresUser     string
-	postgresPassword string
-	postgresDB       string
-}
-
-func (d *DBConfig) getConnectionString() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
-		d.postgresUser, d.postgresPassword, d.postgresHost, d.postgresPort, d.postgresDB)
-}
-
 func main() {
-	dbConfig := DBConfig{
-		postgresHost:     "order-db",
-		postgresPort:     "5432",
-		postgresUser:     os.Getenv("POSTGRES_USER"),
-		postgresPassword: os.Getenv("POSTGRES_PASSWORD"),
-		postgresDB:       os.Getenv("POSTGRES_DB"),
+	env := appenv.Enviornment{
+		SecretKey: []byte(os.Getenv("SECRET")),
+
+		Dbhost: "delivery-db",
+		Dbport: "5432",
+		Dbuser: os.Getenv("POSTGRES_USER"),
+		Dbpass: os.Getenv("POSTGRES_PASSWORD"),
+		Dbname: os.Getenv("POSTGRES_DB"),
+
+		KafkaBrokers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
 	}
-	connStr := dbConfig.getConnectionString()
+
+	dbConfig := pgconfig.GetConfigFromEnv(env)
+	connStr := dbConfig.GetConnectionString()
 
 	orderStore, err := models.NewPgOrderStore(context.Background(), connStr)
 	if err != nil {
 		log.Fatalf("Order Store error: %v", err)
+	}
+
+	orderItemStore, err := models.NewPgOrderItemStore(context.Background(), connStr)
+	if err != nil {
+		log.Fatalf("Order Item Store error: %v", err)
 	}
 
 	addressStore, err := models.NewPgAddressStore(context.Background(), connStr)
@@ -44,7 +45,7 @@ func main() {
 		log.Fatalf("Address Store error: %v", err)
 	}
 
-	orderServer := handlers.NewOrderServer(orderStore, addressStore, handlers.VerifyJWT)
+	orderServer := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, handlers.VerifyJWT)
 
 	fmt.Println("Order service listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", orderServer))
