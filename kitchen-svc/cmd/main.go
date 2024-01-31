@@ -61,8 +61,10 @@ func main() {
 	}
 
 	restaurantEventhandler := handlers.NewRestaurantEventHandler(restaurantStore, menuItemStore)
+	orderEventHandler := handlers.NewOrderEventHandler(ticketStore, ticketItemStore)
 
 	handlers.RegisterRestaurantEventHandlers(eventConsumer, restaurantEventhandler)
+	handlers.RegisterOrderEventHandlers(eventConsumer, orderEventHandler)
 	go eventConsumer.Run(context.Background())
 	go events.LogEventConsumerErrors(context.Background(), eventConsumer)
 
