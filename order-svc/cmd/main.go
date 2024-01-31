@@ -19,7 +19,7 @@ func main() {
 	env := appenv.Enviornment{
 		SecretKey: []byte(os.Getenv("SECRET")),
 
-		Dbhost: "delivery-db",
+		Dbhost: "order-db",
 		Dbport: "5432",
 		Dbuser: os.Getenv("POSTGRES_USER"),
 		Dbpass: os.Getenv("POSTGRES_PASSWORD"),
