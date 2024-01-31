@@ -18,6 +18,7 @@ type DeliveryService struct {
 
 	CourierEventHandler *handlers.CourierEventHandler
 	KitchenEventHandler *handlers.KitchenEventHandler
+	OrderEventHandler   *handlers.OrderEventHandler
 
 	EventConsumer       *events.KafkaEventConsumer
 	EventConsumerCtx    context.Context
@@ -37,6 +38,7 @@ func SetupDeliveryService(t testing.TB, env appenv.Enviornment, port string) Del
 
 	courierEventHandler := handlers.NewCourierEventHandler(courierStore, locationStore)
 	kitchenEventHandler := handlers.NewKitchenEventHandler(deliveryStore)
+	orderEventHandler := handlers.NewOrderEventHandler(deliveryStore, addressStore)
 	eventConsumerCtx, eventConsumerCancel := context.WithCancel(context.Background())
 
 	deliveryService := DeliveryService{
@@ -47,6 +49,7 @@ func SetupDeliveryService(t testing.TB, env appenv.Enviornment, port string) Del
 
 		CourierEventHandler: courierEventHandler,
 		KitchenEventHandler: kitchenEventHandler,
+		OrderEventHandler:   orderEventHandler,
 
 		EventConsumer:       eventConsumer,
 		EventConsumerCtx:    eventConsumerCtx,
@@ -59,6 +62,7 @@ func SetupDeliveryService(t testing.TB, env appenv.Enviornment, port string) Del
 func (d *DeliveryService) Run() {
 	handlers.RegisterCourierEventHandlers(d.EventConsumer, d.CourierEventHandler)
 	handlers.RegisterKitchenEventHandlers(d.EventConsumer, d.KitchenEventHandler)
+	handlers.RegisterOrderEventHandlers(d.EventConsumer, d.OrderEventHandler)
 
 	go d.EventConsumer.Run(d.EventConsumerCtx)
 	go events.LogEventConsumerErrors(d.EventConsumerCtx, d.EventConsumer)

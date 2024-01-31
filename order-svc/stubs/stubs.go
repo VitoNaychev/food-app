@@ -112,7 +112,8 @@ func (s *StubOrderStore) GetOrdersByCustomerID(customerID int) ([]models.Order, 
 func (s *StubOrderStore) GetCurrentOrdersByCustomerID(customerID int) ([]models.Order, error) {
 	var customerOrders []models.Order
 	for _, order := range s.Orders {
-		if order.CustomerID == customerID && order.Status != models.COMPLETED {
+		if order.CustomerID == customerID &&
+			order.Status != models.CANCELED && order.Status != models.COMPLETED {
 			customerOrders = append(customerOrders, order)
 		}
 	}
