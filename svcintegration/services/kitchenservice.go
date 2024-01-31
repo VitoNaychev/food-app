@@ -22,6 +22,7 @@ type KitchenService struct {
 	Server *http.Server
 
 	RestaurantEventHandler *handlers.RestaurantEventHandler
+	OrderEventHandler      *handlers.OrderEventHandler
 
 	EventPublisher *events.KafkaEventPublisher
 
@@ -53,17 +54,20 @@ func SetupKitchenService(t testing.TB, env appenv.Enviornment, port string) Kitc
 	}
 
 	restaurantEventHandler := handlers.NewRestaurantEventHandler(restaurantStore, menuItemStore)
+	orderEventHandler := handlers.NewOrderEventHandler(ticketStore, ticketItemStore)
+
 	eventConsumerCtx, eventConsumerCancel := context.WithCancel(context.Background())
 
 	kitchenService := KitchenService{
 		RestaurantStore: restaurantStore,
-
-		RestaurantEventHandler: restaurantEventHandler,
-		MenuItemStore:          menuItemStore,
-		TicketStore:            ticketStore,
-		TicketItemStore:        ticketItemStore,
+		MenuItemStore:   menuItemStore,
+		TicketStore:     ticketStore,
+		TicketItemStore: ticketItemStore,
 
 		Server: server,
+
+		RestaurantEventHandler: restaurantEventHandler,
+		OrderEventHandler:      orderEventHandler,
 
 		EventPublisher: eventPublisher,
 
@@ -77,6 +81,8 @@ func SetupKitchenService(t testing.TB, env appenv.Enviornment, port string) Kitc
 
 func (k *KitchenService) Run() {
 	handlers.RegisterRestaurantEventHandlers(k.EventConsumer, k.RestaurantEventHandler)
+	handlers.RegisterOrderEventHandlers(k.EventConsumer, k.OrderEventHandler)
+
 	go k.EventConsumer.Run(k.EventConsumerCtx)
 
 	log.Printf("Kitchen service listening on %s\n", k.Server.Addr)
