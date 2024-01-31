@@ -14,7 +14,7 @@ import (
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
-func TestOrderDomainEvents(t *testing.T) {
+func TestDeliveryServiceOrderEventHandlers(t *testing.T) {
 	_, brokersAddrs := integrationutil.SetupKafkaContainer(t)
 
 	orderKeys := []string{}
@@ -31,7 +31,7 @@ func TestOrderDomainEvents(t *testing.T) {
 	}
 	deliveryEnv.KafkaBrokers = brokersAddrs
 
-	orderService := services.SetupOrderService(t, orderEnv, ":9090")
+	orderService := services.SetupOrderService(t, orderEnv, ":4040")
 	orderService.Run()
 	defer orderService.Stop()
 

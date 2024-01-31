@@ -31,7 +31,7 @@ func TestKitchenServiceOrderEventHandlers(t *testing.T) {
 	}
 	kitchenEnv.KafkaBrokers = brokersAddrs
 
-	orderService := services.SetupOrderService(t, orderEnv, ":9090")
+	orderService := services.SetupOrderService(t, orderEnv, ":4040")
 	orderService.Run()
 	defer orderService.Stop()
 
