@@ -90,6 +90,7 @@ func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Req
 		readyBy, err := ParseTimeAndSetDate(ticketRequest.ReadyBy)
 		if err != nil {
 			httperrors.HandleBadRequest(w, err)
+			return
 		}
 
 		ticket.ReadyBy = readyBy

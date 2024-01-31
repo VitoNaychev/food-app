@@ -71,7 +71,7 @@ func TestTicketStateTransisions(t *testing.T) {
 	t.Run("changes ticket state to IN_PROGRESS on event BEGIN_PREPARING", func(t *testing.T) {
 		ticketStore.SpyTicket = testdata.OpenShackTicket
 
-		readyByStr := "18:00"
+		readyByStr := "23:59"
 		readyByTime, _ := handlers.ParseTimeAndSetDate(readyByStr)
 
 		request := handlers.NewBeginPreparingTicketRequest(shackJWT, testdata.OpenShackTicket.ID, readyByStr)
