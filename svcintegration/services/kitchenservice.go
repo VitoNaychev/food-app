@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"reflect"
 	"testing"
 	"time"
 
@@ -77,26 +76,7 @@ func SetupKitchenService(t testing.TB, env appenv.Enviornment, port string) Kitc
 }
 
 func (k *KitchenService) Run() {
-	k.EventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.RESTAURANT_CREATED_EVENT_ID,
-		events.EventHandlerWrapper(k.RestaurantEventHandler.HandleRestaurantCreatedEvent),
-		reflect.TypeOf(events.RestaurantCreatedEvent{}))
-	k.EventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.RESTAURANT_DELETED_EVENT_ID,
-		events.EventHandlerWrapper(k.RestaurantEventHandler.HandleRestaurantDeletedEvent),
-		reflect.TypeOf(events.RestaurantDeletedEvent{}))
-	k.EventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.MENU_ITEM_CREATED_EVENT_ID,
-		events.EventHandlerWrapper(k.RestaurantEventHandler.HandleMenuItemCreatedEvent),
-		reflect.TypeOf(events.MenuItemCreatedEvent{}))
-	k.EventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.MENU_ITEM_UPDATED_EVENT_ID,
-		events.EventHandlerWrapper(k.RestaurantEventHandler.HandleMenuItemUpdatedEvent),
-		reflect.TypeOf(events.MenuItemUpdatedEvent{}))
-	k.EventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.MENU_ITEM_DELETED_EVENT_ID,
-		events.EventHandlerWrapper(k.RestaurantEventHandler.HandleMenuItemDeletedEvent),
-		reflect.TypeOf(events.MenuItemDeletedEvent{}))
+	handlers.RegisterRestaurantEventHandlers(k.EventConsumer, k.RestaurantEventHandler)
 	go k.EventConsumer.Run(k.EventConsumerCtx)
 
 	log.Printf("Kitchen service listening on %s\n", k.Server.Addr)

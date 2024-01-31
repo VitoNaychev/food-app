@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"reflect"
+
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 )
@@ -17,6 +19,29 @@ func NewRestaurantEventHandler(restaurantStore models.RestaurantStore, menuItemS
 	}
 
 	return &endpoint
+}
+
+func RegisterRestaurantEventHandlers(eventConsumer events.EventConsumer, restaurantEventHandler *RestaurantEventHandler) {
+	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.RESTAURANT_CREATED_EVENT_ID,
+		events.EventHandlerWrapper(restaurantEventHandler.HandleRestaurantCreatedEvent),
+		reflect.TypeOf(events.RestaurantCreatedEvent{}))
+	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.RESTAURANT_DELETED_EVENT_ID,
+		events.EventHandlerWrapper(restaurantEventHandler.HandleRestaurantDeletedEvent),
+		reflect.TypeOf(events.RestaurantDeletedEvent{}))
+	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.MENU_ITEM_CREATED_EVENT_ID,
+		events.EventHandlerWrapper(restaurantEventHandler.HandleMenuItemCreatedEvent),
+		reflect.TypeOf(events.MenuItemCreatedEvent{}))
+	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.MENU_ITEM_UPDATED_EVENT_ID,
+		events.EventHandlerWrapper(restaurantEventHandler.HandleMenuItemUpdatedEvent),
+		reflect.TypeOf(events.MenuItemUpdatedEvent{}))
+	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
+		events.MENU_ITEM_DELETED_EVENT_ID,
+		events.EventHandlerWrapper(restaurantEventHandler.HandleMenuItemDeletedEvent),
+		reflect.TypeOf(events.MenuItemDeletedEvent{}))
 }
 
 func (r *RestaurantEventHandler) HandleRestaurantCreatedEvent(event events.Event[events.RestaurantCreatedEvent]) error {

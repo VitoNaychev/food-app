@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
 
 	"github.com/VitoNaychev/food-app/appenv"
@@ -63,7 +62,7 @@ func main() {
 
 	restaurantEventhandler := handlers.NewRestaurantEventHandler(restaurantStore, menuItemStore)
 
-	registerRestaurantEventHandlers(eventConsumer, *restaurantEventhandler)
+	handlers.RegisterRestaurantEventHandlers(eventConsumer, restaurantEventhandler)
 	go eventConsumer.Run(context.Background())
 	go events.LogEventConsumerErrors(context.Background(), eventConsumer)
 
@@ -71,31 +70,4 @@ func main() {
 
 	log.Println("kitchen service listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", kitchenServer))
-}
-
-func registerRestaurantEventHandlers(eventConsumer events.EventConsumer, restaurantEventHandler handlers.RestaurantEventHandler) {
-	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.RESTAURANT_CREATED_EVENT_ID,
-		events.EventHandlerWrapper(restaurantEventHandler.HandleRestaurantCreatedEvent),
-		reflect.TypeOf(events.RestaurantCreatedEvent{}))
-
-	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.RESTAURANT_DELETED_EVENT_ID,
-		events.EventHandlerWrapper(restaurantEventHandler.HandleRestaurantDeletedEvent),
-		reflect.TypeOf(events.RestaurantDeletedEvent{}))
-
-	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.MENU_ITEM_CREATED_EVENT_ID,
-		events.EventHandlerWrapper(restaurantEventHandler.HandleMenuItemCreatedEvent),
-		reflect.TypeOf(events.MenuItemCreatedEvent{}))
-
-	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.MENU_ITEM_UPDATED_EVENT_ID,
-		events.EventHandlerWrapper(restaurantEventHandler.HandleMenuItemUpdatedEvent),
-		reflect.TypeOf(events.MenuItemUpdatedEvent{}))
-
-	eventConsumer.RegisterEventHandler(events.RESTAURANT_EVENTS_TOPIC,
-		events.MENU_ITEM_DELETED_EVENT_ID,
-		events.EventHandlerWrapper(restaurantEventHandler.HandleMenuItemDeletedEvent),
-		reflect.TypeOf(events.MenuItemDeletedEvent{}))
 }
