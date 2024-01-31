@@ -30,18 +30,18 @@ func RegisterOrderEventHandlers(eventConsumer events.EventConsumer, orderEventHa
 }
 
 func (o *OrderEventHandler) HandleOrderCreatedEvent(event events.Event[svcevents.OrderCreatedEvent]) error {
+	ticket := TicketFromOrderCreatedEvent(event.Payload)
+	err := o.ticketStore.CreateTicket(&ticket)
+	if err != nil {
+		return err
+	}
+
 	ticketItems := TicketItemsFromOrderCreatedEvent(event.Payload)
 	for _, ticketItem := range ticketItems {
 		err := o.ticketItemStore.CreateTicketItem(&ticketItem)
 		if err != nil {
 			return err
 		}
-	}
-
-	ticket := TicketFromOrderCreatedEvent(event.Payload)
-	err := o.ticketStore.CreateTicket(&ticket)
-	if err != nil {
-		return err
 	}
 
 	return nil
