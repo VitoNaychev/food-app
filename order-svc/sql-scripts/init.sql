@@ -14,10 +14,9 @@ CREATE TABLE addresses (
   
 CREATE TABLE orders (
 	id                        serial        PRIMARY KEY,
-	customer_id               int           UNIQUE NOT NULL,
-  restaurant_id             int           UNIQUE NOT NULL,
+	customer_id               int           NOT NULL,
+  restaurant_id             int           NOT NULL,
   total                     numeric(7, 2) NOT NULL,
-  delivery_time             timestamp             ,
   status                    int           NOT NULL,
   pickup_address            int           NOT NULL          REFERENCES addresses(id),
   delivery_address          int           NOT NULL          REFERENCES addresses(id)

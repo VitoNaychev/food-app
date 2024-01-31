@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"time"
-
 	"github.com/VitoNaychev/food-app/events/svcevents"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 )
@@ -66,7 +64,6 @@ type OrderResponse struct {
 	RestaurantID    int                 `validate:"min=1"       json:"restaurant_id"`
 	Items           []OrderItemResponse `validate:"required"    json:"items"`
 	Total           float32             `validate:"min=0.01"    json:"total"`
-	DeliveryTime    time.Time           `validate:"required"    json:"delivery_time"`
 	Status          models.Status       `validate:"min=0,max=8" json:"status"`
 	PickupAddress   AddressResponse     `validate:"required"    json:"pickup_address"`
 	DeliveryAddress AddressResponse     `validate:"required"    json:"delivery_address"`
@@ -87,7 +84,6 @@ func NewOrderResponseBody(order models.Order, orderItems []models.OrderItem, pic
 		RestaurantID:    order.RestaurantID,
 		Items:           orderItemsResponse,
 		Total:           order.Total,
-		DeliveryTime:    order.DeliveryTime,
 		Status:          order.Status,
 		PickupAddress:   pickupAddressResponse,
 		DeliveryAddress: deliveryAddressResponse,
@@ -136,7 +132,6 @@ type CreateOrderRequest struct {
 	RestaurantID    int                `validate:"min=1"    json:"restaurant_id"`
 	Items           []CreateOrderItem  `validate:"required" json:"items"`
 	Total           float32            `validate:"min=0.01" json:"total"`
-	DeliveryTime    time.Time          `validate:"required" json:"delivery_time"`
 	PickupAddress   CreateOrderAddress `validate:"required" json:"pickup_address"`
 	DeliveryAddress CreateOrderAddress `validate:"required" json:"delivery_address"`
 }
@@ -173,7 +168,6 @@ func NewCeateOrderRequestBody(order models.Order, orderItems []models.OrderItem,
 		RestaurantID:    order.RestaurantID,
 		Items:           createOrderItems,
 		Total:           order.Total,
-		DeliveryTime:    order.DeliveryTime,
 		PickupAddress:   createPickupAddress,
 		DeliveryAddress: createDeliveryAddress,
 	}
@@ -187,7 +181,6 @@ func CreateOrderRequestToOrder(createOrderRequest CreateOrderRequest, customerID
 		CustomerID:      customerID,
 		RestaurantID:    createOrderRequest.RestaurantID,
 		Total:           createOrderRequest.Total,
-		DeliveryTime:    createOrderRequest.DeliveryTime,
 		PickupAddress:   -1,
 		DeliveryAddress: -1,
 	}

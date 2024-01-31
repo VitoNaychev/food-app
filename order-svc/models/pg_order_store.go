@@ -59,13 +59,12 @@ func (p *PgOrderStore) GetCurrentOrdersByCustomerID(customerId int) ([]Order, er
 }
 
 func (p *PgOrderStore) CreateOrder(order *Order) error {
-	query := `insert into orders(customer_id, restaurant_id, total, delivery_time, status, pickup_address, delivery_address) 
-		values (@customer_id, @restaurant_id, @total, @delivery_time, @status, @pickup_address, @delivery_address) returning id`
+	query := `insert into orders(customer_id, restaurant_id, total, status, pickup_address, delivery_address) 
+		values (@customer_id, @restaurant_id, @total, @status, @pickup_address, @delivery_address) returning id`
 	args := pgx.NamedArgs{
 		"customer_id":      order.CustomerID,
 		"restaurant_id":    order.RestaurantID,
 		"total":            order.Total,
-		"delivery_time":    order.DeliveryTime,
 		"status":           order.Status,
 		"pickup_address":   order.PickupAddress,
 		"delivery_address": order.DeliveryAddress,

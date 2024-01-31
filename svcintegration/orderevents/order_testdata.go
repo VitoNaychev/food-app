@@ -1,8 +1,6 @@
 package orderevents
 
 import (
-	"time"
-
 	"github.com/VitoNaychev/food-app/order-svc/models"
 )
 
@@ -14,7 +12,6 @@ var (
 		CustomerID:      1,
 		RestaurantID:    1,
 		Total:           13.12,
-		DeliveryTime:    time.Date(2024, 2, 12, 18, 30, 00, 00, time.UTC),
 		PickupAddress:   1,
 		DeliveryAddress: 2,
 		Status:          models.APPROVAL_PENDING,
