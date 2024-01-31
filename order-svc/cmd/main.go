@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/VitoNaychev/food-app/appenv"
+	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/order-svc/handlers"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 	"github.com/VitoNaychev/food-app/pgconfig"
@@ -45,7 +46,12 @@ func main() {
 		log.Fatalf("Address Store error: %v", err)
 	}
 
-	orderServer := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, handlers.VerifyJWT)
+	eventPublisher, err := events.NewKafkaEventPublisher(env.KafkaBrokers)
+	if err != nil {
+		log.Fatalf("Kafka Event Publisher error: %v\n", err)
+	}
+
+	orderServer := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, eventPublisher, handlers.VerifyJWT)
 
 	fmt.Println("Order service listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", orderServer))

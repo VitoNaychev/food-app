@@ -3,8 +3,54 @@ package handlers
 import (
 	"time"
 
+	"github.com/VitoNaychev/food-app/events/svcevents"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 )
+
+func NewOrderCreatedEvent(order models.Order, orderItems []models.OrderItem, pickupAddress, deliveryAddress models.Address) svcevents.OrderCreatedEvent {
+	orderCreatedEventPickupAddress := AddressToOrderCreatedEventAddress(pickupAddress)
+	orderCreatedEventDeliveryAddress := AddressToOrderCreatedEventAddress(deliveryAddress)
+
+	orderCreatedEventItem := []svcevents.OrderCreatedEventItem{}
+	for _, orderItem := range orderItems {
+		orderCreatedEventItem = append(orderCreatedEventItem, OrderItemToOrderCreatedEventItem(orderItem))
+	}
+
+	orderCreatedEvent := svcevents.OrderCreatedEvent{
+		ID:              order.ID,
+		RestaurantID:    order.RestaurantID,
+		Items:           orderCreatedEventItem,
+		Total:           order.Total,
+		PickupAddress:   orderCreatedEventPickupAddress,
+		DeliveryAddress: orderCreatedEventDeliveryAddress,
+	}
+
+	return orderCreatedEvent
+}
+
+func OrderItemToOrderCreatedEventItem(orderItem models.OrderItem) svcevents.OrderCreatedEventItem {
+	orderCreatedEventItem := svcevents.OrderCreatedEventItem{
+		ID:         orderItem.ID,
+		MenuItemID: orderItem.MenuItemID,
+		Quantity:   orderItem.Quantity,
+	}
+
+	return orderCreatedEventItem
+}
+
+func AddressToOrderCreatedEventAddress(address models.Address) svcevents.OrderCreatedEventAddress {
+	orderCreatedEventAddress := svcevents.OrderCreatedEventAddress{
+		ID:           address.ID,
+		Lat:          address.Lat,
+		Lon:          address.Lon,
+		AddressLine1: address.AddressLine1,
+		AddressLine2: address.AddressLine2,
+		City:         address.City,
+		Country:      address.Country,
+	}
+
+	return orderCreatedEventAddress
+}
 
 type CancelOrderRequest struct {
 	ID int `validate:"min=1" json:"id"`

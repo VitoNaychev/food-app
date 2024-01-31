@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/VitoNaychev/food-app/events"
+	"github.com/VitoNaychev/food-app/events/svcevents"
 	"github.com/VitoNaychev/food-app/httperrors"
 	"github.com/VitoNaychev/food-app/msgtypes"
 	"github.com/VitoNaychev/food-app/order-svc/models"
@@ -117,6 +119,14 @@ func (o *OrderServer) createOrder(w http.ResponseWriter, r *http.Request) {
 	orderResponse := NewOrderResponseBody(order, orderItems, pickupAddress, deliveryAddress)
 
 	json.NewEncoder(w).Encode(orderResponse)
+
+	payload := NewOrderCreatedEvent(order, orderItems, pickupAddress, deliveryAddress)
+	event := events.NewEvent(svcevents.ORDER_CREATED_EVENT_ID, order.ID, payload)
+
+	err = o.publisher.Publish(svcevents.ORDER_EVENTS_TOPIC, event)
+	if err != nil {
+		httperrors.HandleInternalServerError(w, err)
+	}
 }
 
 func (o *OrderServer) getAllOrders(w http.ResponseWriter, r *http.Request) {

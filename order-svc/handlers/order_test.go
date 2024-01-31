@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/events"
+	"github.com/VitoNaychev/food-app/events/svcevents"
 	"github.com/VitoNaychev/food-app/order-svc/handlers"
 	"github.com/VitoNaychev/food-app/order-svc/models"
 	"github.com/VitoNaychev/food-app/order-svc/stubs"
@@ -21,7 +23,10 @@ func TestOrderEndpointAuthentication(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{}
 	orderItemStore := &stubs.StubOrderItemStore{}
 	addressStore := &stubs.StubAddressStore{}
-	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
+
+	publisher := &stubs.StubEventPublisher{}
+
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, publisher, stubs.StubVerifyJWT)
 
 	invalidJWT := "invalidJWT"
 	cases := map[string]*http.Request{
@@ -38,7 +43,10 @@ func TestOrderRequestValidation(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{}
 	orderItemStore := &stubs.StubOrderItemStore{}
 	addressStore := &stubs.StubAddressStore{}
-	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
+
+	publisher := &stubs.StubEventPublisher{}
+
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, publisher, stubs.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 
@@ -60,7 +68,10 @@ func TestOrderResponseValidity(t *testing.T) {
 	addressStore := &stubs.StubAddressStore{
 		Addresses: []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2},
 	}
-	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
+
+	publisher := &stubs.StubEventPublisher{}
+
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, publisher, stubs.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -114,7 +125,10 @@ func TestCancelOrder(t *testing.T) {
 	addressStore := &stubs.StubAddressStore{
 		Addresses: []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2},
 	}
-	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
+
+	publisher := &stubs.StubEventPublisher{}
+
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, publisher, stubs.StubVerifyJWT)
 
 	t.Run("return Unauthorized on attemp to cancel another user's order", func(t *testing.T) {
 		cancelOrderRequestBody := handlers.CancelOrderRequest{ID: 1}
@@ -181,7 +195,10 @@ func TestCreateOrder(t *testing.T) {
 	orderStore := &stubs.StubOrderStore{CreatedOrders: []models.Order{}, Orders: nil}
 	orderItemStore := &stubs.StubOrderItemStore{CreatedOrderItems: []models.OrderItem{}, OrderItems: nil}
 	addressStore := &stubs.StubAddressStore{CreatedAddresses: []models.Address{}, Addresses: nil}
-	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
+
+	publisher := &stubs.StubEventPublisher{}
+
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, publisher, stubs.StubVerifyJWT)
 
 	t.Run("creates new order and returns it", func(t *testing.T) {
 		createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -204,6 +221,8 @@ func TestCreateOrder(t *testing.T) {
 			t.Errorf("got status %v want %v", orderStore.CreatedOrders[0].Status, models.APPROVAL_PENDING)
 		}
 
+		testutil.AssertEqual(t, orderItemStore.CreatedOrderItems, testdata.PeterCreatedOrderItems)
+
 		wantOrder := testdata.PeterCreatedOrder
 		wantOrder.Status = models.APPROVAL_PENDING
 		want := handlers.NewOrderResponseBody(wantOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
@@ -212,6 +231,17 @@ func TestCreateOrder(t *testing.T) {
 		json.NewDecoder(response.Body).Decode(&got)
 
 		testutil.AssertEqual(t, got, want)
+
+		payload := handlers.NewOrderCreatedEvent(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
+		wantEvent := events.InterfaceEvent{
+			EventID:     svcevents.ORDER_CREATED_EVENT_ID,
+			AggregateID: testdata.PeterCreatedOrder.ID,
+			Payload:     payload,
+		}
+		gotEvent := publisher.Event
+
+		testutil.AssertEvent(t, gotEvent, wantEvent)
+		testutil.AssertEqual(t, publisher.Topic, svcevents.ORDER_EVENTS_TOPIC)
 	})
 }
 
@@ -228,7 +258,10 @@ func TestGetCurrentOrders(t *testing.T) {
 		CreatedAddresses: nil,
 		Addresses:        []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress},
 	}
-	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
+
+	publisher := &stubs.StubEventPublisher{}
+
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, publisher, stubs.StubVerifyJWT)
 
 	t.Run("returns current orders for customer Peter", func(t *testing.T) {
 		request := handlers.NewGetCurrentOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))
@@ -269,7 +302,10 @@ func TestGetOrders(t *testing.T) {
 		CreatedAddresses: nil,
 		Addresses:        []models.Address{testdata.ChickenShackAddress, testdata.PeterAddress1, testdata.PeterAddress2, testdata.AliceAddress},
 	}
-	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
+
+	publisher := &stubs.StubEventPublisher{}
+
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, publisher, stubs.StubVerifyJWT)
 
 	t.Run("returns orders of customer Peter", func(t *testing.T) {
 		request := handlers.NewGetAllOrdersRequest(strconv.Itoa(testdata.PeterCustomerID))

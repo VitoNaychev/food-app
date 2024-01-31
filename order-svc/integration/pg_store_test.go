@@ -15,6 +15,7 @@ import (
 	"github.com/VitoNaychev/food-app/order-svc/testdata"
 	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/VitoNaychev/food-app/testutil"
+	"github.com/VitoNaychev/food-app/testutil/dummies"
 )
 
 func TestOrderServerOperations(t *testing.T) {
@@ -38,7 +39,7 @@ func TestOrderServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, stubs.StubVerifyJWT)
+	server := handlers.NewOrderServer(orderStore, orderItemStore, addressStore, &dummies.DummyPublisher{}, stubs.StubVerifyJWT)
 
 	peterJWT := strconv.Itoa(testdata.PeterCustomerID)
 	createOrderRequestBody := handlers.NewCeateOrderRequestBody(testdata.PeterCreatedOrder, testdata.PeterCreatedOrderItems, testdata.ChickenShackAddress, testdata.PeterAddress1)
