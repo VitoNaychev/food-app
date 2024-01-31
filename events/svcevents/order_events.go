@@ -12,7 +12,7 @@ type OrderCreatedEvent struct {
 	ID              int
 	RestaurantID    int
 	Items           []OrderCreatedEventItem
-	Total           float64
+	Total           float32
 	PickupAddress   OrderCreatedEventAddress
 	DeliveryAddress OrderCreatedEventAddress
 }

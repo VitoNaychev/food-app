@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"github.com/VitoNaychev/food-app/kitchen-svc/handlers"
+	"github.com/VitoNaychev/food-app/kitchen-svc/models"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 					Name:     "Duner",
 				},
 			},
-			ReadyBy: ZeroedTime,
+			ReadyBy: models.ZeroTime,
 		},
 	}
 

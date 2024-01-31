@@ -5,79 +5,15 @@ import (
 
 	"github.com/VitoNaychev/food-app/events"
 	"github.com/VitoNaychev/food-app/kitchen-svc/handlers"
-	"github.com/VitoNaychev/food-app/kitchen-svc/models"
+	"github.com/VitoNaychev/food-app/kitchen-svc/stubs"
 	"github.com/VitoNaychev/food-app/kitchen-svc/testdata"
-	"github.com/VitoNaychev/food-app/storeerrors"
+
 	"github.com/VitoNaychev/food-app/testutil"
 )
 
-type StubMenuItemStore struct {
-	menuItems                []models.MenuItem
-	createdMenuItem          models.MenuItem
-	deletedMenuItemID        int
-	updatedMenuItem          models.MenuItem
-	deletedItemsRestaurantID int
-}
-
-func (s *StubMenuItemStore) GetMenuItemByID(id int) (models.MenuItem, error) {
-	for _, menuItem := range s.menuItems {
-		if menuItem.ID == id {
-			return menuItem, nil
-		}
-	}
-	return models.MenuItem{}, storeerrors.ErrNotFound
-}
-
-func (s *StubMenuItemStore) DeleteMenuItemWhereRestaurantID(id int) error {
-	s.deletedItemsRestaurantID = id
-	return nil
-}
-
-func (s *StubMenuItemStore) CreateMenuItem(menuItem *models.MenuItem) error {
-	s.createdMenuItem = *menuItem
-	return nil
-}
-
-func (s *StubMenuItemStore) DeleteMenuItem(id int) error {
-	s.deletedMenuItemID = id
-	return nil
-}
-
-func (s *StubMenuItemStore) UpdateMenuItem(menuItem *models.MenuItem) error {
-	s.updatedMenuItem = *menuItem
-	return nil
-}
-
-type StubRestaurantStore struct {
-	restaurants         []models.Restaurant
-	createdRestaurant   models.Restaurant
-	deletedRestaurantID int
-}
-
-func (s *StubRestaurantStore) DeleteRestaurant(id int) error {
-	s.deletedRestaurantID = id
-	return nil
-}
-
-func (s *StubRestaurantStore) GetRestaurantByID(id int) (models.Restaurant, error) {
-	for _, restaurant := range s.restaurants {
-		if restaurant.ID == id {
-			return restaurant, nil
-		}
-	}
-
-	return models.Restaurant{}, nil
-}
-
-func (s *StubRestaurantStore) CreateRestaurant(restaurant *models.Restaurant) error {
-	s.createdRestaurant = *restaurant
-
-	return nil
-}
-
 func TestRestaurantEventHandler(t *testing.T) {
-	restaurantStore := &StubRestaurantStore{}
-	menuItemStore := &StubMenuItemStore{}
+	restaurantStore := &stubs.StubRestaurantStore{}
+	menuItemStore := &stubs.StubMenuItemStore{}
 	restaurantEventHandler := handlers.NewRestaurantEventHandler(restaurantStore, menuItemStore)
 
 	t.Run("creates restaurant on RESTAURANT_CREATED_EVENT", func(t *testing.T) {
@@ -87,7 +23,7 @@ func TestRestaurantEventHandler(t *testing.T) {
 		err := restaurantEventHandler.HandleRestaurantCreatedEvent(event)
 		testutil.AssertNoErr(t, err)
 
-		got := restaurantStore.createdRestaurant
+		got := restaurantStore.CreatedRestaurant
 		testutil.AssertEqual(t, got, testdata.ShackRestaurant)
 	})
 
@@ -98,13 +34,13 @@ func TestRestaurantEventHandler(t *testing.T) {
 		err := restaurantEventHandler.HandleRestaurantDeletedEvent(event)
 		testutil.AssertNoErr(t, err)
 
-		testutil.AssertEqual(t, restaurantStore.deletedRestaurantID, testdata.ShackRestaurant.ID)
-		testutil.AssertEqual(t, menuItemStore.deletedItemsRestaurantID, testdata.ShackRestaurant.ID)
+		testutil.AssertEqual(t, restaurantStore.DeletedRestaurantID, testdata.ShackRestaurant.ID)
+		testutil.AssertEqual(t, menuItemStore.DeletedItemsRestaurantID, testdata.ShackRestaurant.ID)
 	})
 }
 
 func TestRestaurantMenuEventHandler(t *testing.T) {
-	menuItemStore := &StubMenuItemStore{}
+	menuItemStore := &stubs.StubMenuItemStore{}
 	restaurantEventHandler := handlers.NewRestaurantEventHandler(nil, menuItemStore)
 
 	t.Run("creates menu item on MENU_ITEM_CREATED_EVENT", func(t *testing.T) {
@@ -119,7 +55,7 @@ func TestRestaurantMenuEventHandler(t *testing.T) {
 		err := restaurantEventHandler.HandleMenuItemCreatedEvent(event)
 		testutil.AssertNoErr(t, err)
 
-		got := menuItemStore.createdMenuItem
+		got := menuItemStore.CreatedMenuItem
 		testutil.AssertEqual(t, got, testdata.ShackMenuItem)
 	})
 
@@ -130,7 +66,7 @@ func TestRestaurantMenuEventHandler(t *testing.T) {
 		err := restaurantEventHandler.HandleMenuItemDeletedEvent(event)
 		testutil.AssertNoErr(t, err)
 
-		got := menuItemStore.deletedMenuItemID
+		got := menuItemStore.DeletedMenuItemID
 		testutil.AssertEqual(t, got, testdata.ShackMenuItem.ID)
 	})
 
@@ -146,7 +82,7 @@ func TestRestaurantMenuEventHandler(t *testing.T) {
 		err := restaurantEventHandler.HandleMenuItemUpdatedEvent(event)
 		testutil.AssertNoErr(t, err)
 
-		got := menuItemStore.updatedMenuItem
+		got := menuItemStore.UpdatedMenuItem
 		testutil.AssertEqual(t, got, testdata.ShackMenuItem)
 	})
 }

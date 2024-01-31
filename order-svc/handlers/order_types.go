@@ -65,7 +65,7 @@ type OrderResponse struct {
 	CustomerID      int                 `validate:"min=1"       json:"customer_id"`
 	RestaurantID    int                 `validate:"min=1"       json:"restaurant_id"`
 	Items           []OrderItemResponse `validate:"required"    json:"items"`
-	Total           float64             `validate:"min=0.01"    json:"total"`
+	Total           float32             `validate:"min=0.01"    json:"total"`
 	DeliveryTime    time.Time           `validate:"required"    json:"delivery_time"`
 	Status          models.Status       `validate:"min=0,max=8" json:"status"`
 	PickupAddress   AddressResponse     `validate:"required"    json:"pickup_address"`
@@ -135,7 +135,7 @@ func AddressToAddressResponse(address models.Address) AddressResponse {
 type CreateOrderRequest struct {
 	RestaurantID    int                `validate:"min=1"    json:"restaurant_id"`
 	Items           []CreateOrderItem  `validate:"required" json:"items"`
-	Total           float64            `validate:"min=0.01" json:"total"`
+	Total           float32            `validate:"min=0.01" json:"total"`
 	DeliveryTime    time.Time          `validate:"required" json:"delivery_time"`
 	PickupAddress   CreateOrderAddress `validate:"required" json:"pickup_address"`
 	DeliveryAddress CreateOrderAddress `validate:"required" json:"delivery_address"`

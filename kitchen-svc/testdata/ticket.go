@@ -10,7 +10,7 @@ var (
 		Total:        12.50,
 		State:        models.OPEN,
 		RestaurantID: 1,
-		ReadyBy:      ZeroedTime,
+		ReadyBy:      models.ZeroTime,
 	}
 
 	InProgressShackTicket = models.Ticket{
@@ -42,6 +42,6 @@ var (
 		Total:        10.00,
 		State:        models.OPEN,
 		RestaurantID: 5,
-		ReadyBy:      ZeroedTime,
+		ReadyBy:      models.ZeroTime,
 	}
 )
