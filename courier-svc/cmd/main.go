@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/VitoNaychev/food-app/appenv"
 	"github.com/VitoNaychev/food-app/courier-svc/handlers"
@@ -18,8 +19,9 @@ import (
 func main() {
 	env := appenv.Enviornment{
 		SecretKey: []byte(os.Getenv("SECRET")),
+		ExpiresAt: 24 * time.Hour,
 
-		Dbhost: "kitchen-db",
+		Dbhost: "courier-db",
 		Dbport: "5432",
 		Dbuser: os.Getenv("POSTGRES_USER"),
 		Dbpass: os.Getenv("POSTGRES_PASSWORD"),
@@ -33,7 +35,7 @@ func main() {
 
 	courierStore, err := models.NewPgCourierStore(context.Background(), connStr)
 	if err != nil {
-		fmt.Printf("courier Store error: %v", err)
+		log.Fatalf("Courier Store error: %v", err)
 	}
 
 	eventPublisher, err := events.NewKafkaEventPublisher(env.KafkaBrokers)
