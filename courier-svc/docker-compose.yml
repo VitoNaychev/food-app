@@ -23,7 +23,7 @@ services:
       dockerfile: ./courier-svc/Dockerfile
     container_name: courier-svc
     ports:
-      - "4040:8080"
+      - "9090:8080"
     environment:
       SECRET: ${SECRET}
       POSTGRES_HOST: courier-db

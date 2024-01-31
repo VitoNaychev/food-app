@@ -23,7 +23,7 @@ services:
       dockerfile: ./customer-svc/Dockerfile
     container_name: customer-svc
     ports:
-      - "9090:8080"
+      - "8080:8080"
     environment:
       SECRET: ${SECRET}
       POSTGRES_HOST: customer-db
