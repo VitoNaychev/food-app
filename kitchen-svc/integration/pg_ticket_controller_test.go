@@ -15,6 +15,7 @@ import (
 	"github.com/VitoNaychev/food-app/kitchen-svc/testdata"
 	"github.com/VitoNaychev/food-app/pgconfig"
 	"github.com/VitoNaychev/food-app/testutil"
+	"github.com/VitoNaychev/food-app/testutil/dummies"
 )
 
 func TestTicketControllerIntegration(t *testing.T) {
@@ -39,7 +40,7 @@ func TestTicketControllerIntegration(t *testing.T) {
 
 	shackJWT, _ := auth.GenerateJWT(env.SecretKey, time.Second*10, testdata.ShackRestaurant.ID)
 
-	server := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore, &DummyPublisher{})
+	server := handlers.NewTicketServer(env.SecretKey, ticketStore, ticketItemStore, menuItemStore, restaurantStore, &dummies.DummyPublisher{})
 
 	t.Run("gets all tickets for a restaurant", func(t *testing.T) {
 		request := handlers.NewGetTicketsRequest(shackJWT, "")

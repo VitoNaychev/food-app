@@ -13,6 +13,7 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	"github.com/VitoNaychev/food-app/testutil"
+	"github.com/VitoNaychev/food-app/testutil/dummies"
 )
 
 func TestCustomerServerOperations(t *testing.T) {
@@ -26,7 +27,7 @@ func TestCustomerServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore, &DummyPublisher{})
+	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore, &dummies.DummyPublisher{})
 
 	server := handlers.NewRouterServer(restaurantServer,
 		http.HandlerFunc(DummyHandler),

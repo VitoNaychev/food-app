@@ -14,6 +14,7 @@ import (
 	"github.com/VitoNaychev/food-app/restaurant-svc/models"
 	td "github.com/VitoNaychev/food-app/restaurant-svc/testdata"
 	"github.com/VitoNaychev/food-app/testutil"
+	"github.com/VitoNaychev/food-app/testutil/dummies"
 )
 
 func TestHoursServerOperations(t *testing.T) {
@@ -32,7 +33,7 @@ func TestHoursServerOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore, &DummyPublisher{})
+	restaurantServer := handlers.NewRestaurantServer(env.SecretKey, env.ExpiresAt, &restaurantStore, &dummies.DummyPublisher{})
 	hoursServer := handlers.NewHoursServer(env.SecretKey, &hoursStore, &restaurantStore)
 
 	server := handlers.NewRouterServer(restaurantServer, DummyHandler, hoursServer, DummyHandler)
