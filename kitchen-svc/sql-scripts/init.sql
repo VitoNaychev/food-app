@@ -16,7 +16,7 @@ CREATE TABLE menu_items (
 );
 
 CREATE TABLE tickets (
-    id                        serial                       PRIMARY KEY,
+    id                        int                          PRIMARY KEY,
     restaurant_id             int                          REFERENCES restaurants(id),
     total                     numeric(8, 2)                NOT NULL,
     state                     int                          NOT NULL,
