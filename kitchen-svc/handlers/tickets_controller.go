@@ -62,7 +62,11 @@ func (t *TicketServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t *TicketServer) stateTransitionHandler(w http.ResponseWriter, r *http.Request) {
-	ticketRequest, _ := validation.ValidateBody[StateTransitionTicketRequest](r.Body)
+	ticketRequest, err := validation.ValidateBody[StateTransitionTicketRequest](r.Body)
+	if err != nil {
+		httperrors.HandleBadRequest(w, err)
+		return
+	}
 
 	restaurantID, _ := strconv.Atoi(r.Header.Get("Subject"))
 
