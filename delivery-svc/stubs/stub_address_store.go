@@ -12,7 +12,6 @@ type StubAddressStore struct {
 
 func (s *StubAddressStore) CreateAddress(address *models.Address) error {
 	s.CreatedAddresses = append(s.CreatedAddresses, *address)
-	address.ID = len(s.CreatedAddresses)
 
 	return nil
 }

@@ -8,6 +8,13 @@ import (
 type StubDeliveryStore struct {
 	Deliveries      []models.Delivery
 	UpdatedDelivery models.Delivery
+	CreatedDelivery models.Delivery
+}
+
+func (d *StubDeliveryStore) CreateDelivery(delivery *models.Delivery) error {
+	d.CreatedDelivery = *delivery
+
+	return nil
 }
 
 func (d *StubDeliveryStore) GetActiveDeliveryByCourierID(courierID int) (models.Delivery, error) {

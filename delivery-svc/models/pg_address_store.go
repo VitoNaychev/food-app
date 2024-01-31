@@ -38,9 +38,10 @@ func (p *PgAddressStore) GetAddressByID(id int) (Address, error) {
 }
 
 func (p *PgAddressStore) CreateAddress(address *Address) error {
-	query := `insert into addresses(lat, lon, address_line1, address_line2, city, country) 
-	values (@lat, @lon, @address_line1, @address_line2, @city, @country) returning id`
+	query := `insert into addresses(id, lat, lon, address_line1, address_line2, city, country) 
+	values (@lat, @lon, @address_line1, @address_line2, @city, @country)`
 	args := pgx.NamedArgs{
+		"id":            address.ID,
 		"lat":           address.Lat,
 		"lon":           address.Lon,
 		"address_line1": address.AddressLine1,
@@ -49,6 +50,6 @@ func (p *PgAddressStore) CreateAddress(address *Address) error {
 		"country":       address.Country,
 	}
 
-	err := p.conn.QueryRow(context.Background(), query, args).Scan(&address.ID)
+	_, err := p.conn.Exec(context.Background(), query, args)
 	return err
 }
