@@ -48,8 +48,8 @@ type DeleteAddressRequest struct {
 type CreateAddressRequest struct {
 	Lat          float64 `validate:"latitude,required"  json:"lat"`
 	Lon          float64 `validate:"longitude,required" json:"lon"`
-	AddressLine1 string  `validate:"required,max=100"   json:"adddress_line1"`
-	AddressLine2 string  `validate:"max=100"            json:"adddress_line2"`
+	AddressLine1 string  `validate:"required,max=100"   json:"address_line1"`
+	AddressLine2 string  `validate:"max=100"            json:"address_line2"`
 	City         string  `validate:"required,max=70"    json:"city"`
 	Country      string  `validate:"required,max=60"    json:"country"`
 }
