@@ -72,12 +72,10 @@ func getRequiredEnv(name string) (string, error) {
 }
 
 func parseDuration(durationStr string) (time.Duration, error) {
-	parsedTime, err := time.Parse("15:04:05", durationStr)
+	duration, err := time.ParseDuration(durationStr)
 	if err != nil {
 		return 0, ErrInvalidDuration
 	}
-
-	duration := parsedTime.Sub(time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC))
 
 	return duration, nil
 }
