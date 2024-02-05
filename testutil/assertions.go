@@ -94,8 +94,8 @@ func AssertErrorResponse(t testing.TB, body io.Reader, expetedError error) {
 	var errorResponse httperrors.ErrorResponse
 	json.NewDecoder(body).Decode(&errorResponse)
 
-	if errorResponse.Message != expetedError.Error() {
-		t.Errorf("got error %q want %q", errorResponse.Message, expetedError.Error())
+	if errorResponse.Error != expetedError.Error() {
+		t.Errorf("got error %q want %q", errorResponse.Error, expetedError.Error())
 	}
 }
 

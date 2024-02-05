@@ -2,26 +2,16 @@ package httperrors
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
-	"reflect"
 )
 
 type ErrorResponse struct {
-	Error   string `json:"error"`
-	Message string `json:"message"`
-	Details string `json:"details"`
+	Error string `json:"error"`
 }
 
 func WriteJSONError(w http.ResponseWriter, statusCode int, err error) {
 	errorResponse := ErrorResponse{
-		Error:   reflect.TypeOf(err).Name(),
-		Message: err.Error(),
-	}
-
-	wrappedError := errors.Unwrap(err)
-	if wrappedError != nil {
-		errorResponse.Details = wrappedError.Error()
+		Error: err.Error(),
 	}
 
 	w.WriteHeader(statusCode)

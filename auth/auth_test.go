@@ -97,7 +97,7 @@ func TestAuthenticationMW(t *testing.T) {
 		decoder := json.NewDecoder(response.Body)
 		decoder.DisallowUnknownFields()
 		decoder.Decode(&errorResponse)
-		if errorResponse.Message == "" {
+		if errorResponse.Error == "" {
 			t.Errorf("expected error message but did not get one")
 		}
 	})
@@ -260,8 +260,8 @@ func assertErrorResponse(t testing.TB, body io.Reader, expetedError error) {
 	var errorResponse httperrors.ErrorResponse
 	json.NewDecoder(body).Decode(&errorResponse)
 
-	if errorResponse.Message != expetedError.Error() {
-		t.Errorf("got error %q want %q", errorResponse.Message, expetedError.Error())
+	if errorResponse.Error != expetedError.Error() {
+		t.Errorf("got error %q want %q", errorResponse.Error, expetedError.Error())
 	}
 }
 
