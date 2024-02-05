@@ -29,6 +29,30 @@ func TestDeliveryEndpointAuthentication(t *testing.T) {
 	tabletests.RunAuthenticationTests(t, server, cases)
 }
 
+func TestDeliveryRequestValidation(t *testing.T) {
+	courierStore := &stubs.StubCourierStore{
+		Couriers: []models.Courier{testdata.VolenCourier},
+	}
+
+	deliveryStore := &stubs.StubDeliveryStore{
+		Deliveries: []models.Delivery{testdata.VolenDelivery},
+	}
+
+	addressStore := &stubs.StubAddressStore{
+		Addresses: []models.Address{testdata.VolenPickupAddress, testdata.VolenDeliveryAddress},
+	}
+
+	server := handlers.NewDeliveryServer(env.SecretKey, deliveryStore, addressStore, courierStore)
+
+	volenJWT, _ := auth.GenerateJWT(env.SecretKey, env.ExpiresAt, testdata.VolenCourier.ID)
+
+	cases := map[string]*http.Request{
+		"change ticket state": handlers.NewChangeDeliveryStateRequest(volenJWT, -1),
+	}
+
+	tabletests.RunRequestValidationTests(t, server, cases)
+}
+
 func TestDeliveryStateTransitions(t *testing.T) {
 	courierStore := &stubs.StubCourierStore{
 		Couriers: []models.Courier{
@@ -105,7 +129,6 @@ func TestDeliveryStateTransitions(t *testing.T) {
 
 		testutil.AssertStatus(t, response.Code, http.StatusBadRequest)
 		testutil.AssertErrorResponse(t, response.Body, handlers.ErrNoActiveDeliveries)
-		// testutil.AssertEqual(t, deliveryStore.UpdatedDelivery, want)
 	})
 }
 

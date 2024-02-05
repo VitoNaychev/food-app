@@ -21,7 +21,7 @@ func NewDeliveryStateTransitionResponse(delivery models.Delivery) DeliveryStateT
 }
 
 type StateTransitionDeliveryRequest struct {
-	Event models.DeliveryEvent `validate:"required"          json:"event"`
+	Event models.DeliveryEvent `validate:"min=0,required"          json:"event"`
 }
 
 type GetDeliveryResponse struct {
