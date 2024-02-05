@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"reflect"
 	"strconv"
@@ -14,6 +15,14 @@ import (
 )
 
 type GenericTypeToResponseFunction func(interface{}) interface{}
+
+func AssertErrorType[T error](t testing.TB, got error) {
+	var want T
+
+	if !errors.As(got, &want) {
+		t.Errorf("got error with type %v want %v", reflect.TypeOf(got), reflect.TypeOf(want))
+	}
+}
 
 func AssertError(t testing.TB, got error, want error) {
 	t.Helper()
