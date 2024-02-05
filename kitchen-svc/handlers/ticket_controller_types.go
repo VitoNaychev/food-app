@@ -7,14 +7,14 @@ import (
 )
 
 type StateTransitionTicketRequest struct {
-	ID      int
-	Event   models.TicketEvent
-	ReadyBy string
+	ID      int                `validate:"required,min=1"    json:"id"`
+	Event   models.TicketEvent `validate:"required,min=0"    json:"event"`
+	ReadyBy string             `                             json:"ready_by"`
 }
 
 type StateTransitionResponse struct {
-	ID    int
-	State string
+	ID    int    `validate:"required,min=1"    json:"id"`
+	State string `validate:"required"          json:"state"`
 }
 
 func NewStateTransitionResponse(ticket models.Ticket) StateTransitionResponse {
@@ -28,14 +28,14 @@ func NewStateTransitionResponse(ticket models.Ticket) StateTransitionResponse {
 }
 
 type GetTicketResponse struct {
-	ID      int
-	Total   float32
-	State   string
-	Items   []GetTicketItemResponse
-	ReadyBy time.Time
+	ID      int                     `validate:"required,min=1"    json:"id"`
+	Total   float32                 `validate:"required,min=0"    json:"total"`
+	State   string                  `validate:"required"          json:"state"`
+	Items   []GetTicketItemResponse `validate:"required"          json:"items"`
+	ReadyBy time.Time               `validate:"required"          json:"ready_by"`
 }
 
 type GetTicketItemResponse struct {
-	Quantity int
-	Name     string
+	Quantity int    `validate:"required,min=1"    json:"quantity"`
+	Name     string `validate:"required"          json:"name"`
 }
