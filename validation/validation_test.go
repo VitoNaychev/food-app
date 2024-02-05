@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/VitoNaychev/food-app/testutil"
 	"github.com/VitoNaychev/food-app/validation"
 )
 
@@ -73,7 +74,7 @@ func TestValidateBody(t *testing.T) {
 
 		_, err := validation.ValidateBody[DummyRequest](body)
 
-		assertError(t, err, validation.ErrIncorrectRequestType)
+		testutil.AssertErrorType[*validation.ErrIncorrectRequestType](t, err)
 	})
 
 	t.Run("returns ErrIncorrectRequestType on unknown fields", func(t *testing.T) {
@@ -88,7 +89,8 @@ func TestValidateBody(t *testing.T) {
 
 		_, err := validation.ValidateBody[DummyRequest](body)
 
-		assertError(t, err, validation.ErrIncorrectRequestType)
+		testutil.AssertErrorType[*validation.ErrIncorrectRequestType](t, err)
+
 	})
 
 	t.Run("returns ErrInvalidRequestField on invalid fields", func(t *testing.T) {
@@ -101,10 +103,8 @@ func TestValidateBody(t *testing.T) {
 
 		_, err := validation.ValidateBody[DummyRequest](body)
 
-		errInvalidRequestField := validation.NewErrInvalidRequestField("")
-		if !errors.As(err, &errInvalidRequestField) {
-			t.Errorf("didn't get error with type ErrInvalidRequestField")
-		}
+		testutil.AssertErrorType[*validation.ErrInvalidRequestField](t, err)
+
 	})
 
 	t.Run("parses request body on valid request", func(t *testing.T) {

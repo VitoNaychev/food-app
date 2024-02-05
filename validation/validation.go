@@ -62,7 +62,7 @@ func ValidateBody[T ValidationObject](body io.Reader) (T, error) {
 
 	err = strictUnmarshal(content, &requestObject)
 	if err != nil {
-		return requestObject, ErrIncorrectRequestType
+		return requestObject, NewErrIncorrectRequestType(err)
 	}
 
 	switch reflect.TypeOf(requestObject).Kind() {
