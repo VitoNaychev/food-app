@@ -71,5 +71,6 @@ func (l *LocationServer) getLocation(w http.ResponseWriter, r *http.Request) {
 		httperrors.HandleInternalServerError(w, err)
 	}
 
-	json.NewEncoder(w).Encode(location)
+	getLocationResponse := LocationToGetLocationResponse(location)
+	json.NewEncoder(w).Encode(getLocationResponse)
 }
