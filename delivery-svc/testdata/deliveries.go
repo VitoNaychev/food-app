@@ -1,8 +1,6 @@
 package testdata
 
 import (
-	"time"
-
 	"github.com/VitoNaychev/food-app/delivery-svc/models"
 )
 
@@ -12,7 +10,7 @@ var (
 		CourierID:         1,
 		PickupAddressID:   1,
 		DeliveryAddressID: 2,
-		ReadyBy:           time.Time{},
+		ReadyBy:           models.ZeroTime,
 		State:             models.PENDING,
 	}
 
@@ -21,7 +19,7 @@ var (
 		CourierID:         1,
 		PickupAddressID:   1,
 		DeliveryAddressID: 2,
-		ReadyBy:           time.Time{},
+		ReadyBy:           models.ZeroTime,
 		State:             models.READY_FOR_PICKUP,
 	}
 
@@ -30,7 +28,7 @@ var (
 		CourierID:         2,
 		PickupAddressID:   3,
 		DeliveryAddressID: 4,
-		ReadyBy:           time.Time{},
+		ReadyBy:           models.ZeroTime,
 		State:             models.IN_PROGRESS,
 	}
 
@@ -39,7 +37,7 @@ var (
 		CourierID:         3,
 		PickupAddressID:   5,
 		DeliveryAddressID: 6,
-		ReadyBy:           time.Time{},
+		ReadyBy:           models.ZeroTime,
 		State:             models.READY_FOR_PICKUP,
 	}
 
@@ -48,7 +46,7 @@ var (
 		CourierID:         4,
 		PickupAddressID:   7,
 		DeliveryAddressID: 8,
-		ReadyBy:           time.Time{},
+		ReadyBy:           models.ZeroTime,
 		State:             models.ON_ROUTE,
 	}
 
@@ -57,7 +55,7 @@ var (
 		CourierID:         5,
 		PickupAddressID:   9,
 		DeliveryAddressID: 10,
-		ReadyBy:           time.Time{},
+		ReadyBy:           models.ZeroTime,
 		State:             models.COMPLETED,
 	}
 )

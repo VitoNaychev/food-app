@@ -20,12 +20,12 @@ CREATE TABLE addresses (
   );
 
 CREATE TABLE deliveries (
-  id                  serial    PRIMARY KEY,
-  courier_id          int       REFERENCES couriers(id),
-  pickup_address_id   int       REFERENCES addresses(id),
-  delivery_address_id int       REFERENCES addresses(id),
-  ready_by            timestamp NOT NULL,
-  state               int       NOT NULL
+  id                  serial                     PRIMARY KEY,
+  courier_id          int                        REFERENCES couriers(id),
+  pickup_address_id   int                        REFERENCES addresses(id),
+  delivery_address_id int                        REFERENCES addresses(id),
+  ready_by            timestamp with time zone   NOT NULL,
+  state               int                        NOT NULL
   );
 
 CREATE TABLE locations (

@@ -44,6 +44,7 @@ func (o *OrderEventHandler) HandleOrderCreatedEvent(event events.Event[svcevents
 	delivery := DeliveryFromOrderCreatedEvent(event.Payload)
 	// AssignDeliveryToAvailableCourier(delivery)
 	delivery.CourierID = 1
+	delivery.ReadyBy = models.ZeroTime
 
 	err = o.deliveryStore.CreateDelivery(&delivery)
 	if err != nil {

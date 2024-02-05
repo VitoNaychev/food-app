@@ -1,8 +1,6 @@
 package orderevents
 
 import (
-	"time"
-
 	"github.com/VitoNaychev/food-app/delivery-svc/models"
 )
 
@@ -37,7 +35,7 @@ var (
 		CourierID:         1,
 		PickupAddressID:   1,
 		DeliveryAddressID: 2,
-		ReadyBy:           time.Time{},
+		ReadyBy:           models.ZeroTime,
 		State:             models.PENDING,
 	}
 )
