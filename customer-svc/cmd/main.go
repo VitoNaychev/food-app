@@ -6,37 +6,31 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/VitoNaychev/food-app/appenv"
 	"github.com/VitoNaychev/food-app/customer-svc/handlers"
 	"github.com/VitoNaychev/food-app/customer-svc/models"
+	"github.com/VitoNaychev/food-app/pgconfig"
 )
 
-type DBConfig struct {
-	postgresHost     string
-	postgresPort     string
-	postgresUser     string
-	postgresPassword string
-	postgresDB       string
-}
-
-func (d *DBConfig) getConnectionString() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
-		d.postgresUser, d.postgresPassword, d.postgresHost, d.postgresPort, d.postgresDB)
-}
-
 func main() {
-	secretKey := []byte(os.Getenv("SECRET"))
-	expiresAt := 24 * time.Hour
+	env := appenv.Enviornment{
+		SecretKey: []byte(os.Getenv("SECRET")),
+		ExpiresAt: 24 * time.Hour,
 
-	dbConfig := DBConfig{
-		postgresHost:     "customer-db",
-		postgresPort:     "5432",
-		postgresUser:     os.Getenv("POSTGRES_USER"),
-		postgresPassword: os.Getenv("POSTGRES_PASSWORD"),
-		postgresDB:       os.Getenv("POSTGRES_DB"),
+		Dbhost: "customer-db",
+		Dbport: "5432",
+		Dbuser: os.Getenv("POSTGRES_USER"),
+		Dbpass: os.Getenv("POSTGRES_PASSWORD"),
+		Dbname: os.Getenv("POSTGRES_DB"),
+
+		KafkaBrokers: strings.Split(os.Getenv("KAFKA_BROKERS"), ","),
 	}
-	connStr := dbConfig.getConnectionString()
+
+	dbConfig := pgconfig.GetConfigFromEnv(env)
+	connStr := dbConfig.GetConnectionString()
 
 	customerStore, err := models.NewPgCustomerStore(context.Background(), connStr)
 	if err != nil {
@@ -48,8 +42,8 @@ func main() {
 		fmt.Printf("Address Store error: %v", err)
 	}
 
-	customerServer := handlers.NewCustomerServer(secretKey, expiresAt, &customerStore)
-	addressServer := handlers.NewCustomerAddressServer(&addressStore, &customerStore, secretKey)
+	customerServer := handlers.NewCustomerServer(env.SecretKey, env.ExpiresAt, &customerStore)
+	addressServer := handlers.NewCustomerAddressServer(&addressStore, &customerStore, env.SecretKey)
 
 	router := handlers.NewRouterServer(customerServer, addressServer)
 
